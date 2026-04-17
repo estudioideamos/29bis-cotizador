@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #f6f6f3;
   --ink: #1c1c1a;
   --muted: #52524b;
@@ -221,19 +221,19 @@ h3 {
 }
 
 .field--machine .label-icon::before {
-  content: "🖨";
+  content: "M";
 }
 
 .field--paper .label-icon::before {
-  content: "📄";
+  content: "P";
 }
 
 .field--size .label-icon::before {
-  content: "▭";
+  content: "T";
 }
 
 .field--sides .label-icon::before {
-  content: "⇆";
+  content: "F";
 }
 
 .field--quantity .label-icon::before {
@@ -500,3 +500,5 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+
