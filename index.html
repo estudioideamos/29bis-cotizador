@@ -114,8 +114,21 @@
               </span>
               Cantidad de hojas
             </span>
-            <input id="quantity" type="number" min="1" step="1" value="1" required>
+            <input id="quantity" type="number" min="1" step="1" value="1">
           </label>
+        </div>
+
+        <div class="multi-order-box">
+          <div class="multi-order-head">
+            <p>¿Necesitás más de un tipo de impresión en el mismo pedido?</p>
+            <button type="button" id="add-item-btn" class="btn btn-quiet">+ Agregar este trabajo</button>
+          </div>
+          <button type="button" id="toggle-items-btn" class="multi-toggle hidden" aria-expanded="false">
+            Ver trabajos agregados (0)
+          </button>
+          <div id="items-panel" class="items-panel hidden">
+            <div id="items-list" class="items-list"></div>
+          </div>
         </div>
 
         <div class="grid customer-grid">

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const config = window.APP_CONFIG || {};
   const fallbackData = window.PRICING_DATA;
 
@@ -13,6 +13,10 @@
     quantityGrid: document.getElementById("quantity-grid"),
     coverageWrap: document.getElementById("coverage-wrap"),
     coverageGrid: document.getElementById("coverage-grid"),
+    addItemBtn: document.getElementById("add-item-btn"),
+    toggleItemsBtn: document.getElementById("toggle-items-btn"),
+    itemsPanel: document.getElementById("items-panel"),
+    itemsList: document.getElementById("items-list"),
     summary: document.getElementById("summary"),
     recalcBtn: document.getElementById("recalc-btn"),
     status: document.getElementById("status"),
@@ -34,13 +38,15 @@
 
   const state = {
     coverageInputs: {},
-    currentTotals: null
+    currentTotals: null,
+    savedItems: [],
+    showItemsPanel: false
   };
 
   const COVERAGE_MEDIA = {
     lineas: {
       image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/linea2.jpg",
-      alt: "Cobertura líneas"
+      alt: "Cobertura Líneas"
     },
     mixto: {
       image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/medio.jpg",
@@ -263,7 +269,7 @@
     return match ? match.rate : 0;
   }
 
-  function updateSummary() {
+  function getCurrentQuote() {
     const machineKey = els.machine.value;
     const paperKey = els.paper.value;
     const sizeKey = els.size.value;
@@ -274,8 +280,7 @@
     let detailLines = [];
 
     if (withCoverage) {
-      const entries = Object.entries(state.coverageInputs);
-      entries.forEach(([coverageKey, input]) => {
+      Object.entries(state.coverageInputs).forEach(([coverageKey, input]) => {
         const qty = Number(input.value) || 0;
         if (qty <= 0) {
           return;
@@ -309,7 +314,11 @@
     const discountAmount = subtotal * discountRate;
     const total = subtotal - discountAmount;
 
-    state.currentTotals = {
+    return {
+      machineKey,
+      paperKey,
+      sizeKey,
+      sideKey,
       subtotal,
       discountRate,
       discountAmount,
@@ -317,7 +326,90 @@
       totalSheets,
       detailLines
     };
+  }
 
+  function getCurrentWorkSnapshot() {
+    const totals = getCurrentQuote();
+    if (!totals.totalSheets || totals.total <= 0) {
+      return null;
+    }
+
+    const machineKey = totals.machineKey;
+    const paperKey = totals.paperKey;
+    const sizeKey = totals.sizeKey;
+    const sideKey = isLaser(machineKey) ? totals.sideKey : null;
+
+    return {
+      id: `work-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      machine: {
+        key: machineKey,
+        label: pricing.machines[machineKey].label
+      },
+      paper: {
+        key: paperKey,
+        label: getPaperLabel(paperKey),
+        type: getPaperType(paperKey)
+      },
+      size: {
+        key: sizeKey,
+        label: getSizeLabel(sizeKey)
+      },
+      sides: sideKey ? { key: sideKey, label: pricing.labels.sides[sideKey] } : null,
+      quantity: usesCoverage(machineKey, paperKey) ? null : Number(els.quantity.value) || 0,
+      coverageDistribution: usesCoverage(machineKey, paperKey) ? getCoverageDistribution() : [],
+      pricing: {
+        subtotal: totals.subtotal,
+        discountRate: totals.discountRate,
+        discountAmount: totals.discountAmount,
+        total: totals.total,
+        totalSheets: totals.totalSheets
+      }
+    };
+  }
+
+  function clearWorkInputsForNextItem() {
+    if (usesCoverage(els.machine.value, els.paper.value)) {
+      Object.values(state.coverageInputs).forEach((input) => { input.value = "0"; });
+    } else {
+      els.quantity.value = "";
+    }
+    updateSummary();
+  }
+
+  function renderItemsPanel() {
+    const count = state.savedItems.length;
+    els.toggleItemsBtn.classList.toggle("hidden", count === 0);
+    els.toggleItemsBtn.textContent = `Ver trabajos agregados (${count})`;
+    els.toggleItemsBtn.setAttribute("aria-expanded", state.showItemsPanel ? "true" : "false");
+    els.itemsPanel.classList.toggle("hidden", !state.showItemsPanel || count === 0);
+
+    if (count === 0) {
+      els.itemsList.innerHTML = "";
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    state.savedItems.forEach((item, index) => {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML = `
+        <div>
+          <strong>Trabajo ${index + 1}</strong>
+          <p>${item.machine.label} · ${item.paper.label} · ${item.size.label}${item.sides ? ` · ${item.sides.label}` : ""}</p>
+          <small>${item.pricing.totalSheets} hojas · ${currency.format(item.pricing.total)}</small>
+        </div>
+        <button type="button" class="item-remove" data-item-id="${item.id}">Quitar</button>
+      `;
+      frag.appendChild(row);
+    });
+    els.itemsList.innerHTML = "";
+    els.itemsList.appendChild(frag);
+  }
+
+  function updateSummary() {
+    state.currentTotals = getCurrentQuote();
+
+    renderItemsPanel();
     renderSummary();
   }
 
@@ -332,6 +424,10 @@
     };
 
     const sideText = isLaser(els.machine.value) ? pricing.labels.sides[els.sides.value] : "N/A";
+    const savedItemsTotal = state.savedItems.reduce((acc, item) => acc + (item.pricing.total || 0), 0);
+    const savedItemsSheets = state.savedItems.reduce((acc, item) => acc + (item.pricing.totalSheets || 0), 0);
+    const grandTotal = savedItemsTotal + (totals.total || 0);
+    const grandSheets = savedItemsSheets + (totals.totalSheets || 0);
 
     const frag = document.createDocumentFragment();
     const rows = [
@@ -373,6 +469,23 @@
     totalRow.innerHTML = `<span>Total estimado</span><strong>${currency.format(totals.total)}</strong>`;
     frag.appendChild(totalRow);
 
+    if (state.savedItems.length > 0) {
+      const infoRow = document.createElement("div");
+      infoRow.className = "row";
+      infoRow.innerHTML = `<span>Trabajos agregados</span><strong>${state.savedItems.length}</strong>`;
+      frag.appendChild(infoRow);
+
+      const itemsSubtotalRow = document.createElement("div");
+      itemsSubtotalRow.className = "row";
+      itemsSubtotalRow.innerHTML = `<span>Total trabajos agregados</span><strong>${currency.format(savedItemsTotal)}</strong>`;
+      frag.appendChild(itemsSubtotalRow);
+
+      const grandRow = document.createElement("div");
+      grandRow.className = "row total";
+      grandRow.innerHTML = `<span>Total pedido (${grandSheets} hojas)</span><strong>${currency.format(grandTotal)}</strong>`;
+      frag.appendChild(grandRow);
+    }
+
     els.summary.innerHTML = "";
     els.summary.appendChild(frag);
   }
@@ -391,52 +504,35 @@
       return false;
     }
 
-    if (usesCoverage(els.machine.value, els.paper.value) && getQuantityTotal() === 0) {
-      setStatus("Ingresá al menos 1 hoja entre Líneas/Mixto/Pleno.", "error");
-      return false;
-    }
-
-    if (!usesCoverage(els.machine.value, els.paper.value) && Number(els.quantity.value) <= 0) {
-      setStatus("La cantidad debe ser mayor a 0.", "error");
-      return false;
-    }
-
     const machine = els.machine.value;
     if (machine === "laser" && !isSideAvailable(els.paper.value, els.size.value, els.sides.value)) {
       setStatus("Ese papel no permite doble faz en este tamaño.", "error");
       return false;
     }
 
+    const currentWork = getCurrentWorkSnapshot();
+    if (!currentWork && state.savedItems.length === 0) {
+      setStatus("Agregá al menos un trabajo con cantidad de hojas mayor a 0.", "error");
+      return false;
+    }
+
     return true;
   }
 
-  function buildOrderPayload() {
-    const machineKey = els.machine.value;
-    const paperKey = els.paper.value;
-    const sizeKey = els.size.value;
-    const sideKey = isLaser(machineKey) ? els.sides.value : null;
+  function buildOrderPayload(orderItems) {
     const urgent = !els.pickupDatetime.value;
-    const totals = state.currentTotals || {};
+    const pricingTotals = orderItems.reduce((acc, item) => {
+      acc.subtotal += item.pricing.subtotal || 0;
+      acc.discountAmount += item.pricing.discountAmount || 0;
+      acc.total += item.pricing.total || 0;
+      acc.totalSheets += item.pricing.totalSheets || 0;
+      return acc;
+    }, { subtotal: 0, discountAmount: 0, total: 0, totalSheets: 0 });
 
     return {
       orderId: `29BIS-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      machine: {
-        key: machineKey,
-        label: pricing.machines[machineKey].label
-      },
-      paper: {
-        key: paperKey,
-        label: getPaperLabel(paperKey),
-        type: getPaperType(paperKey)
-      },
-      size: {
-        key: sizeKey,
-        label: getSizeLabel(sizeKey)
-      },
-      sides: sideKey ? { key: sideKey, label: pricing.labels.sides[sideKey] } : null,
-      quantity: usesCoverage(machineKey, paperKey) ? null : Number(els.quantity.value) || 0,
-      coverageDistribution: usesCoverage(machineKey, paperKey) ? getCoverageDistribution() : [],
+      orderItems,
       customer: {
         name: els.customerName.value.trim(),
         phone: els.customerPhone.value.trim(),
@@ -447,15 +543,13 @@
       notes: els.notes.value.trim(),
       fileName: els.fileInput.files[0] ? els.fileInput.files[0].name : null,
       pricing: {
-        subtotal: totals.subtotal || 0,
-        discountRate: totals.discountRate || 0,
-        discountAmount: totals.discountAmount || 0,
-        total: totals.total || 0,
-        totalSheets: totals.totalSheets || 0
+        subtotal: pricingTotals.subtotal,
+        discountAmount: pricingTotals.discountAmount,
+        total: pricingTotals.total,
+        totalSheets: pricingTotals.totalSheets
       }
     };
   }
-
   async function submitOrder(payload) {
     if (!config.ordersWebhookUrl) {
       return { ok: true, mode: "local-preview" };
@@ -511,6 +605,41 @@
     els.quantity.addEventListener("input", updateSummary);
     els.recalcBtn.addEventListener("click", updateSummary);
 
+    els.addItemBtn.addEventListener("click", () => {
+      updateSummary();
+      const currentWork = getCurrentWorkSnapshot();
+      if (!currentWork) {
+        setStatus("Primero cargá una cantidad válida para este trabajo antes de agregarlo.", "error");
+        return;
+      }
+
+      state.savedItems.push(currentWork);
+      state.showItemsPanel = true;
+      renderItemsPanel();
+      updateSummary();
+      clearWorkInputsForNextItem();
+      setStatus("Trabajo agregado al pedido. Podés cargar otro diferente.", "ok");
+    });
+
+    els.toggleItemsBtn.addEventListener("click", () => {
+      state.showItemsPanel = !state.showItemsPanel;
+      renderItemsPanel();
+    });
+
+    els.itemsList.addEventListener("click", (event) => {
+      const button = event.target.closest(".item-remove");
+      if (!button) {
+        return;
+      }
+      const itemId = button.dataset.itemId;
+      state.savedItems = state.savedItems.filter((item) => item.id !== itemId);
+      if (state.savedItems.length === 0) {
+        state.showItemsPanel = false;
+      }
+      renderItemsPanel();
+      updateSummary();
+    });
+
     els.form.addEventListener("submit", async (event) => {
       event.preventDefault();
       setStatus("");
@@ -520,7 +649,13 @@
         return;
       }
 
-      const payload = buildOrderPayload();
+      const orderItems = [...state.savedItems];
+      const currentWork = getCurrentWorkSnapshot();
+      if (currentWork) {
+        orderItems.push(currentWork);
+      }
+
+      const payload = buildOrderPayload(orderItems);
       const submitBtn = els.form.querySelector("button[type='submit']");
       submitBtn.disabled = true;
       submitBtn.textContent = "Enviando...";
@@ -534,8 +669,11 @@
           setStatus("Pedido enviado correctamente y guardado en Google Sheets.", "ok");
         }
         els.form.reset();
+        state.savedItems = [];
+        state.showItemsPanel = false;
+        renderItemsPanel();
         Object.values(state.coverageInputs).forEach((input) => { input.value = "0"; });
-        els.quantity.value = "1";
+        els.quantity.value = "";
         syncUI();
       } catch (err) {
         setStatus(err.message || "Error al enviar el pedido.", "error");
@@ -557,3 +695,6 @@
 
   init();
 })();
+
+
+
