@@ -438,6 +438,30 @@ textarea:focus {
   border: 1px solid #d8ece8;
 }
 
+.tracking-panel {
+  margin-top: 0.95rem;
+  padding: 0.8rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid #e8ddcf;
+  background: linear-gradient(180deg, #fff 0%, #fffaf1 100%);
+}
+
+.btn-track {
+  background: #fff;
+  color: #2d3950;
+  border: 1px solid #d8cdbf;
+  font-family: var(--display-font);
+  font-size: 1.02rem;
+  padding: 0.62rem 0.95rem;
+}
+
+.tracking-panel p {
+  margin: 0.65rem 0 0;
+  color: #4b4741;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .summary {
   margin-top: 1rem;
   display: grid;
