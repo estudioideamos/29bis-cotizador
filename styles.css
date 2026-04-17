@@ -458,8 +458,19 @@ textarea:focus {
 }
 
 .total {
-  color: var(--primary);
-  font-size: 1.1rem;
+  color: #fff;
+  font-size: 1.28rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  border: 1px solid #d63b74;
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.2rem;
+  box-shadow: 0 12px 22px #e8488335;
+}
+
+.total strong {
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
 }
 
 .discount {
