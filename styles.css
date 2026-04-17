@@ -517,14 +517,10 @@ textarea:focus {
 
 .mascot-card {
   margin-top: 1rem;
-  border-radius: 14px;
-  border: 1px solid #edd9ce;
-  background: linear-gradient(160deg, #fff6f9 0%, #fff8ef 55%, #f0faf8 100%);
-  padding: 0.7rem;
+  padding: 0.2rem 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 1px 0 #ffffff, 0 8px 20px #1c1c1a12;
 }
 
 .mascot-card img {
