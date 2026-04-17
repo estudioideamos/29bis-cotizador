@@ -480,11 +480,54 @@ textarea:focus {
   color: var(--ok);
 }
 
+.mascot-card {
+  margin-top: 1rem;
+  border-radius: 14px;
+  border: 1px solid #edd9ce;
+  background: linear-gradient(160deg, #fff6f9 0%, #fff8ef 55%, #f0faf8 100%);
+  padding: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 0 #ffffff, 0 8px 20px #1c1c1a12;
+}
+
+.mascot-card img {
+  width: min(180px, 100%);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 10px 16px #e8488330);
+}
+
 .sticky {
   position: sticky;
   top: 0.8rem;
   height: fit-content;
   background: linear-gradient(180deg, #fff 0%, #fffcf6 100%);
+}
+
+.site-footer {
+  width: min(1200px, 100% - 2rem);
+  margin: 0 auto 1.1rem;
+  padding: 0.95rem 1rem;
+  border-top: 1px solid #e8e0d6;
+  color: #4f4a44;
+}
+
+.site-footer p {
+  margin: 0;
+  font-size: 0.98rem;
+  text-align: center;
+}
+
+.site-footer a {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
 }
 
 .hidden {
