@@ -278,9 +278,6 @@
   }
 
   function getLaserDiscountRate(sheetCount) {
-    if (!isLaser(els.machine.value)) {
-      return 0;
-    }
     const match = pricing.laser.discounts.find((tier) => sheetCount >= tier.minSheets);
     return match ? match.rate : 0;
   }
@@ -326,9 +323,9 @@
     }
 
     const totalSheets = getQuantityTotal();
-    const discountRate = getLaserDiscountRate(totalSheets);
-    const discountAmount = subtotal * discountRate;
-    const total = subtotal - discountAmount;
+    const discountRate = 0;
+    const discountAmount = 0;
+    const total = subtotal;
 
     return {
       machineKey,
@@ -380,6 +377,29 @@
         total: totals.total,
         totalSheets: totals.totalSheets
       }
+    };
+  }
+
+  function getAggregatedPricing(orderItems) {
+    const subtotal = orderItems.reduce((acc, item) => acc + (item.pricing.subtotal || 0), 0);
+    const totalSheets = orderItems.reduce((acc, item) => acc + (item.pricing.totalSheets || 0), 0);
+
+    const laserItems = orderItems.filter((item) => item.machine?.key === "laser");
+    const laserSheets = laserItems.reduce((acc, item) => acc + (item.pricing.totalSheets || 0), 0);
+    const laserSubtotal = laserItems.reduce((acc, item) => acc + (item.pricing.subtotal || 0), 0);
+
+    const discountRate = getLaserDiscountRate(laserSheets);
+    const discountAmount = laserSubtotal * discountRate;
+    const total = subtotal - discountAmount;
+
+    return {
+      subtotal,
+      totalSheets,
+      laserSheets,
+      laserSubtotal,
+      discountRate,
+      discountAmount,
+      total
     };
   }
 
@@ -440,10 +460,12 @@
     };
 
     const sideText = isLaser(els.machine.value) ? pricing.labels.sides[els.sides.value] : "N/A";
-    const savedItemsTotal = state.savedItems.reduce((acc, item) => acc + (item.pricing.total || 0), 0);
-    const savedItemsSheets = state.savedItems.reduce((acc, item) => acc + (item.pricing.totalSheets || 0), 0);
-    const grandTotal = savedItemsTotal + (totals.total || 0);
-    const grandSheets = savedItemsSheets + (totals.totalSheets || 0);
+    const orderItemsForSummary = [...state.savedItems];
+    const currentWork = getCurrentWorkSnapshot();
+    if (currentWork) {
+      orderItemsForSummary.push(currentWork);
+    }
+    const aggregated = getAggregatedPricing(orderItemsForSummary);
 
     const frag = document.createDocumentFragment();
     const rows = [
@@ -451,7 +473,7 @@
       ["Papel", getPaperLabel(els.paper.value)],
       ["Tamaño", getSizeLabel(els.size.value)],
       ["Faz", sideText],
-      ["Hojas totales", String(totals.totalSheets)]
+      ["Hojas totales (pedido)", String(aggregated.totalSheets)]
     ];
 
     rows.forEach(([label, value]) => {
@@ -470,19 +492,19 @@
 
     const subtotalRow = document.createElement("div");
     subtotalRow.className = "row";
-    subtotalRow.innerHTML = `<span>Subtotal</span><strong>${currency.format(totals.subtotal)}</strong>`;
+    subtotalRow.innerHTML = `<span>Subtotal</span><strong>${currency.format(aggregated.subtotal)}</strong>`;
     frag.appendChild(subtotalRow);
 
-    if (totals.discountRate > 0) {
+    if (aggregated.discountRate > 0) {
       const discountRow = document.createElement("div");
       discountRow.className = "row discount";
-      discountRow.innerHTML = `<span>Descuento por cantidad (${Math.round(totals.discountRate * 100)}%)</span><strong>- ${currency.format(totals.discountAmount)}</strong>`;
+      discountRow.innerHTML = `<span>Descuento láser por cantidad (${Math.round(aggregated.discountRate * 100)}%)</span><strong>- ${currency.format(aggregated.discountAmount)}</strong>`;
       frag.appendChild(discountRow);
     }
 
     const totalRow = document.createElement("div");
     totalRow.className = "row total";
-    totalRow.innerHTML = `<span>Total estimado</span><strong>${currency.format(totals.total)}</strong>`;
+    totalRow.innerHTML = `<span>Total estimado</span><strong>${currency.format(aggregated.total)}</strong>`;
     frag.appendChild(totalRow);
 
     if (state.savedItems.length > 0) {
@@ -490,16 +512,13 @@
       infoRow.className = "row";
       infoRow.innerHTML = `<span>Trabajos agregados</span><strong>${state.savedItems.length}</strong>`;
       frag.appendChild(infoRow);
+    }
 
-      const itemsSubtotalRow = document.createElement("div");
-      itemsSubtotalRow.className = "row";
-      itemsSubtotalRow.innerHTML = `<span>Total trabajos agregados</span><strong>${currency.format(savedItemsTotal)}</strong>`;
-      frag.appendChild(itemsSubtotalRow);
-
-      const grandRow = document.createElement("div");
-      grandRow.className = "row total";
-      grandRow.innerHTML = `<span>Total pedido (${grandSheets} hojas)</span><strong>${currency.format(grandTotal)}</strong>`;
-      frag.appendChild(grandRow);
+    if (aggregated.discountRate > 0) {
+      const ruleRow = document.createElement("div");
+      ruleRow.className = "row";
+      ruleRow.innerHTML = `<span>Base descuento láser</span><strong>${aggregated.laserSheets} hojas</strong>`;
+      frag.appendChild(ruleRow);
     }
 
     els.summary.innerHTML = "";
@@ -537,13 +556,7 @@
 
   function buildOrderPayload(orderItems) {
     const urgent = !els.pickupDatetime.value;
-    const pricingTotals = orderItems.reduce((acc, item) => {
-      acc.subtotal += item.pricing.subtotal || 0;
-      acc.discountAmount += item.pricing.discountAmount || 0;
-      acc.total += item.pricing.total || 0;
-      acc.totalSheets += item.pricing.totalSheets || 0;
-      return acc;
-    }, { subtotal: 0, discountAmount: 0, total: 0, totalSheets: 0 });
+    const pricingTotals = getAggregatedPricing(orderItems);
 
     return {
       orderId: `29BIS-${Date.now()}`,
@@ -560,6 +573,7 @@
       fileName: els.fileInput.files[0] ? els.fileInput.files[0].name : null,
       pricing: {
         subtotal: pricingTotals.subtotal,
+        discountRate: pricingTotals.discountRate,
         discountAmount: pricingTotals.discountAmount,
         total: pricingTotals.total,
         totalSheets: pricingTotals.totalSheets
