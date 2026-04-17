@@ -163,8 +163,24 @@
 
   function buildSidesOptions() {
     clearSelect(els.sides);
+    const machineKey = els.machine.value;
+    const paperKey = els.paper.value;
+    const sizeKey = els.size.value;
+
     els.sides.appendChild(createOption("sf", pricing.labels.sides.sf));
-    els.sides.appendChild(createOption("df", pricing.labels.sides.df));
+
+    if (!isLaser(machineKey)) {
+      return;
+    }
+
+    const simpleOnlyPapers = ["autoadhesivo_obra", "autoadhesivo_brillo", "opp"];
+    if (simpleOnlyPapers.includes(paperKey)) {
+      return;
+    }
+
+    if (isSideAvailable(paperKey, sizeKey, "df")) {
+      els.sides.appendChild(createOption("df", pricing.labels.sides.df));
+    }
   }
 
   function buildCoverageInputs() {
@@ -578,6 +594,7 @@
   function syncUI() {
     buildPaperOptions();
     buildSizeOptions();
+    buildSidesOptions();
     toggleConditionalFields();
     updateSummary();
   }
@@ -586,17 +603,20 @@
     els.machine.addEventListener("change", () => {
       buildPaperOptions();
       buildSizeOptions();
+      buildSidesOptions();
       toggleConditionalFields();
       updateSummary();
     });
 
     els.paper.addEventListener("change", () => {
       buildSizeOptions();
+      buildSidesOptions();
       toggleConditionalFields();
       updateSummary();
     });
 
     els.size.addEventListener("change", () => {
+      buildSidesOptions();
       toggleConditionalFields();
       updateSummary();
     });
