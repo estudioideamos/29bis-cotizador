@@ -37,6 +37,21 @@
     currentTotals: null
   };
 
+  const COVERAGE_MEDIA = {
+    lineas: {
+      image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/linea2.jpg",
+      alt: "Cobertura líneas"
+    },
+    mixto: {
+      image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/medio.jpg",
+      alt: "Cobertura medio"
+    },
+    pleno: {
+      image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/pleno.jpg",
+      alt: "Cobertura pleno"
+    }
+  };
+
   function setStatus(message, kind) {
     els.status.textContent = message || "";
     els.status.className = "status";
@@ -154,12 +169,18 @@
 
     const rows = ["lineas", "mixto", "pleno"];
     rows.forEach((coverageKey) => {
-      const row = document.createElement("div");
-      row.className = "coverage-row";
+      const card = document.createElement("div");
+      card.className = `coverage-card coverage-${coverageKey}`;
 
       const label = document.createElement("label");
       label.className = "field";
-      label.innerHTML = `<span>${getCoverageLabel(coverageKey)} <span class="badge">${coverageKey}</span></span>`;
+      label.innerHTML = `<span>${getCoverageLabel(coverageKey)}</span>`;
+
+      const media = document.createElement("div");
+      media.className = "coverage-media";
+      media.innerHTML = `
+        <img src="${COVERAGE_MEDIA[coverageKey].image}" alt="${COVERAGE_MEDIA[coverageKey].alt}" loading="lazy">
+      `;
 
       const input = document.createElement("input");
       input.type = "number";
@@ -167,11 +188,18 @@
       input.step = "1";
       input.value = "0";
       input.dataset.coverageKey = coverageKey;
+      input.placeholder = "0";
       input.addEventListener("input", updateSummary);
 
+      const helper = document.createElement("small");
+      helper.className = "coverage-helper";
+      helper.textContent = "Hojas";
+
       label.appendChild(input);
-      row.appendChild(label);
-      els.coverageGrid.appendChild(row);
+      label.appendChild(helper);
+      card.appendChild(media);
+      card.appendChild(label);
+      els.coverageGrid.appendChild(card);
       state.coverageInputs[coverageKey] = input;
     });
   }

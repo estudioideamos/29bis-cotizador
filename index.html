@@ -38,23 +38,23 @@
 
       <form id="quote-form" novalidate>
         <div class="grid">
-          <label class="field">
-            <span>Tipo de impresión</span>
+          <label class="field field--machine">
+            <span><span class="label-icon">⎙</span>Tipo de impresión</span>
             <select id="machine" required></select>
           </label>
 
-          <label class="field">
-            <span>Tipo de papel</span>
+          <label class="field field--paper">
+            <span><span class="label-icon">▤</span>Tipo de papel</span>
             <select id="paper" required></select>
           </label>
 
-          <label class="field">
-            <span>Tamaño</span>
+          <label class="field field--size">
+            <span><span class="label-icon">⤢</span>Tamaño</span>
             <select id="size" required></select>
           </label>
 
-          <label class="field" id="sides-field">
-            <span>Faz</span>
+          <label class="field field--sides" id="sides-field">
+            <span><span class="label-icon">⇆</span>Faz</span>
             <select id="sides"></select>
           </label>
         </div>
@@ -66,8 +66,8 @@
         </div>
 
         <div class="grid" id="quantity-grid">
-          <label class="field">
-            <span>Cantidad de hojas</span>
+          <label class="field field--quantity">
+            <span><span class="label-icon">№</span>Cantidad de hojas</span>
             <input id="quantity" type="number" min="1" step="1" value="1" required>
           </label>
         </div>
