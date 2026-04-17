@@ -52,22 +52,57 @@
       <form id="quote-form" novalidate>
         <div class="grid">
           <label class="field field--machine">
-            <span><span class="label-icon" aria-hidden="true"></span>Tipo de impresión</span>
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="6" y="3" width="12" height="6" rx="1"></rect>
+                  <rect x="4" y="9" width="16" height="8" rx="2"></rect>
+                  <rect x="7" y="14" width="10" height="7" rx="1"></rect>
+                </svg>
+              </span>
+              Tipo de impresión
+            </span>
             <select id="machine" required></select>
           </label>
 
           <label class="field field--paper">
-            <span><span class="label-icon" aria-hidden="true"></span>Tipo de papel</span>
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 3h7l4 4v14H7z"></path>
+                  <path d="M14 3v5h5"></path>
+                </svg>
+              </span>
+              Tipo de papel
+            </span>
             <select id="paper" required></select>
           </label>
 
           <label class="field field--size">
-            <span><span class="label-icon" aria-hidden="true"></span>Tamaño</span>
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="6" width="16" height="12" rx="1"></rect>
+                  <path d="M4 10h16"></path>
+                </svg>
+              </span>
+              Tamaño
+            </span>
             <select id="size" required></select>
           </label>
 
           <label class="field field--sides" id="sides-field">
-            <span><span class="label-icon" aria-hidden="true"></span>Faz</span>
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 8h10"></path>
+                  <path d="M13 4l4 4-4 4"></path>
+                  <path d="M17 16H7"></path>
+                  <path d="M11 12l-4 4 4 4"></path>
+                </svg>
+              </span>
+              Faz
+            </span>
             <select id="sides"></select>
           </label>
         </div>
@@ -86,7 +121,17 @@
 
         <div class="grid" id="quantity-grid">
           <label class="field field--quantity">
-            <span><span class="label-icon" aria-hidden="true"></span>Cantidad de hojas</span>
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 4v16"></path>
+                  <path d="M15 4v16"></path>
+                  <path d="M5 9h14"></path>
+                  <path d="M5 15h14"></path>
+                </svg>
+              </span>
+              Cantidad de hojas
+            </span>
             <input id="quantity" type="number" min="1" step="1" value="1" required>
           </label>
         </div>
@@ -118,10 +163,13 @@
           <textarea id="notes" rows="3" placeholder="Aclaraciones sobre archivo, terminación, etc."></textarea>
         </label>
 
-        <label class="field">
-          <span>Archivo para impresión (opcional)</span>
-          <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip">
-        </label>
+        <div class="upload-panel">
+          <label class="field">
+            <span>Archivo para impresión</span>
+            <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip" required>
+          </label>
+          <p class="upload-note">Campo obligatorio: necesitamos el archivo para poder imprimir tu pedido.</p>
+        </div>
 
         <p class="disclaimer">
           Si no se completa fecha/hora de retiro, se toma como <strong>trabajo urgente</strong>.
