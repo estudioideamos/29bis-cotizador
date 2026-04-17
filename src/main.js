@@ -515,6 +515,15 @@
     }
 
     if (aggregated.discountRate > 0) {
+      const badgeRow = document.createElement("div");
+      badgeRow.className = "discount-badge-row";
+      badgeRow.innerHTML = `
+        <span class="discount-badge">
+          ✅ Descuento aplicado por ${aggregated.laserSheets} hojas láser acumuladas en este pedido
+        </span>
+      `;
+      frag.appendChild(badgeRow);
+
       const ruleRow = document.createElement("div");
       ruleRow.className = "row";
       ruleRow.innerHTML = `<span>Base descuento láser</span><strong>${aggregated.laserSheets} hojas</strong>`;
