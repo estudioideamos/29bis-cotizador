@@ -17,6 +17,9 @@
     toggleItemsBtn: document.getElementById("toggle-items-btn"),
     itemsPanel: document.getElementById("items-panel"),
     itemsList: document.getElementById("items-list"),
+    paymentMethodRadios: document.querySelectorAll("input[name='payment-method']"),
+    paymentTransferInfo: document.getElementById("payment-transfer-info"),
+    paymentLocalInfo: document.getElementById("payment-local-info"),
     summary: document.getElementById("summary"),
     recalcBtn: document.getElementById("recalc-btn"),
     status: document.getElementById("status"),
@@ -542,6 +545,25 @@
     })).filter((entry) => entry.sheets > 0);
   }
 
+  function getSelectedPaymentMethod() {
+    const selected = Array.from(els.paymentMethodRadios).find((radio) => radio.checked);
+    if (!selected) {
+      return null;
+    }
+    if (selected.value === "transferencia") {
+      return { key: "transferencia", label: "Transferencia bancaria" };
+    }
+    return { key: "local", label: "Pagar en el local" };
+  }
+
+  function updatePaymentUI() {
+    const method = getSelectedPaymentMethod();
+    const isTransfer = method?.key === "transferencia";
+    const isLocal = method?.key === "local";
+    els.paymentTransferInfo.classList.toggle("hidden", !isTransfer);
+    els.paymentLocalInfo.classList.toggle("hidden", !isLocal);
+  }
+
   function validateForm() {
     if (!els.form.checkValidity()) {
       els.form.reportValidity();
@@ -566,6 +588,7 @@
   function buildOrderPayload(orderItems) {
     const urgent = !els.pickupDatetime.value;
     const pricingTotals = getAggregatedPricing(orderItems);
+    const paymentMethod = getSelectedPaymentMethod();
 
     return {
       orderId: `29BIS-${Date.now()}`,
@@ -578,6 +601,7 @@
       },
       pickupDateTime: els.pickupDatetime.value || null,
       urgent,
+      payment: paymentMethod,
       notes: els.notes.value.trim(),
       fileName: els.fileInput.files[0] ? els.fileInput.files[0].name : null,
       pricing: {
@@ -647,6 +671,9 @@
     els.sides.addEventListener("change", updateSummary);
     els.quantity.addEventListener("input", updateSummary);
     els.recalcBtn.addEventListener("click", updateSummary);
+    els.paymentMethodRadios.forEach((radio) => {
+      radio.addEventListener("change", updatePaymentUI);
+    });
 
     els.addItemBtn.addEventListener("click", () => {
       updateSummary();
@@ -715,6 +742,8 @@
         state.savedItems = [];
         state.showItemsPanel = false;
         renderItemsPanel();
+        els.paymentMethodRadios.forEach((radio) => { radio.checked = false; });
+        updatePaymentUI();
         Object.values(state.coverageInputs).forEach((input) => { input.value = "0"; });
         els.quantity.value = "";
         syncUI();
@@ -733,6 +762,7 @@
     buildSidesOptions();
     buildCoverageInputs();
     bindEvents();
+    updatePaymentUI();
     syncUI();
   }
 

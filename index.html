@@ -191,6 +191,33 @@
     <aside class="card sticky">
       <h2>Resumen</h2>
       <div id="summary" class="summary"></div>
+
+      <section class="payment-panel">
+        <h3>Forma de pago</h3>
+        <label class="payment-option">
+          <input type="radio" name="payment-method" value="transferencia" required>
+          <span>Transferencia bancaria</span>
+        </label>
+        <label class="payment-option">
+          <input type="radio" name="payment-method" value="local">
+          <span>Pagar en el local</span>
+        </label>
+
+        <div id="payment-transfer-info" class="payment-transfer-info hidden">
+          <p><strong>Datos para transferencia:</strong></p>
+          <p>Banco: Santander</p>
+          <p>Titular: 29 BIS</p>
+          <p>CBU: 0000003100000000000000</p>
+          <p>Alias: 29BIS.IMPRESIONES</p>
+          <p>CUIT: 00-00000000-0</p>
+          <p class="payment-note">Luego de transferir, enviá el comprobante a <strong>pedidos@29bis.com.ar</strong>.</p>
+        </div>
+
+        <div id="payment-local-info" class="payment-local-info hidden">
+          <p>Podés abonar personalmente al retirar tu pedido en el local.</p>
+        </div>
+      </section>
+
       <p id="status" class="status" aria-live="polite"></p>
       <div class="mascot-card">
         <img

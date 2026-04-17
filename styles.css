@@ -468,6 +468,55 @@ textarea:focus {
   gap: 0.55rem;
 }
 
+.payment-panel {
+  margin-top: 1rem;
+  border: 1px solid #e7ded3;
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: linear-gradient(180deg, #fff 0%, #fffcf8 100%);
+}
+
+.payment-panel h3 {
+  margin: 0 0 0.55rem;
+  font-size: 1.1rem;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+  color: #3f3a34;
+  font-weight: 600;
+}
+
+.payment-option input[type="radio"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.payment-transfer-info,
+.payment-local-info {
+  margin-top: 0.5rem;
+  border-radius: 10px;
+  padding: 0.6rem;
+  border: 1px solid #eadfce;
+  background: #fff;
+}
+
+.payment-transfer-info p,
+.payment-local-info p {
+  margin: 0 0 0.22rem;
+  font-size: 0.9rem;
+  color: #4a453f;
+}
+
+.payment-note {
+  margin-top: 0.4rem !important;
+  color: #7d2d52 !important;
+  font-weight: 700;
+}
+
 .row {
   display: flex;
   justify-content: space-between;
