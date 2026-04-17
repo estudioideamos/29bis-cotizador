@@ -203,6 +203,25 @@ textarea:focus {
   background: linear-gradient(180deg, #fff 0%, #fffcf7 100%);
 }
 
+.coverage-guide {
+  margin: 0 0 0.7rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 10px;
+  background: #fff8ef;
+  border: 1px solid #f4e1c7;
+}
+
+.coverage-guide p {
+  margin: 0 0 0.32rem;
+  color: #4e4a43;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.coverage-guide p:last-child {
+  margin-bottom: 0;
+}
+
 .coverage-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
