@@ -10,6 +10,7 @@ function apply29BISPremiumSheets() {
   const prices = ss.getSheetByName("prices");
   const meta = ss.getSheetByName("meta");
   const dashboard = getOrCreateSheet_(ss, "dashboard");
+  const operacion = getOrCreateSheet_(ss, "operacion");
 
   if (!orders || !prices || !meta) {
     throw new Error("Faltan hojas requeridas: orders, prices, meta.");
@@ -19,6 +20,7 @@ function apply29BISPremiumSheets() {
   stylePrices_(prices);
   styleMeta_(meta);
   buildDashboard_(dashboard);
+  buildOperacion_(operacion, orders);
 }
 
 function styleOrders_(sheet) {
@@ -191,6 +193,92 @@ function buildDashboard_(sheet) {
     .setFontWeight("bold");
   sheet.getRange("E14:E21").setNumberFormat("\"$\" #,##0");
   sheet.getRange("A14:F21").setBackground("#ffffff").setFontColor("#1c1c1a");
+}
+
+function buildOperacion_(sheet, ordersSheet) {
+  sheet.clear({ contentsOnly: true, formatOnly: true });
+  sheet.setHiddenGridlines(true);
+
+  const headers = [[
+    "N° pedido",
+    "Fecha",
+    "Cliente",
+    "Telefono",
+    "Email",
+    "Tipo impresion",
+    "Tipo papel",
+    "Tamano",
+    "Faz",
+    "Nombre archivos",
+    "Links archivos",
+    "Estado pago",
+    "Estado pedido",
+    "Total",
+    "Retiro",
+    "Urgente",
+    "Observaciones"
+  ]];
+
+  sheet.getRange(1, 1, 1, headers[0].length).setValues(headers);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, headers[0].length)
+    .setBackground("#1c1c1a")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle");
+
+  const lastRow = ordersSheet.getLastRow();
+  if (lastRow < 2) {
+    sheet.getRange("A2").setValue("Sin pedidos cargados todavía.");
+    sheet.setColumnWidths(1, headers[0].length, 170);
+    sheet.getRange("K:K").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    return;
+  }
+
+  const values = ordersSheet.getRange(2, 1, lastRow - 1, 33).getValues();
+  const rows = values
+    .map((r) => [
+      r[1] || "-",   // B numero pedido
+      r[0] || "-",   // A fecha
+      r[2] || "-",   // C cliente
+      r[3] || "-",   // D telefono
+      r[4] || "-",   // E email
+      r[5] || "-",   // F tipo impresion
+      r[6] || "-",   // G tipo papel
+      r[7] || "-",   // H tamano
+      r[11] || "-",  // L faz
+      r[23] || "-",  // X nombre archivos
+      r[24] || "-",  // Y links archivos
+      r[19] || "-",  // T estado pago
+      r[20] || "-",  // U estado produccion
+      Number(r[17] || 0), // R total
+      r[21] || "-",  // V retiro
+      r[22] || "-",  // W urgente
+      r[27] || "-"   // AB observaciones
+    ])
+    .reverse();
+
+  sheet.getRange(2, 1, rows.length, headers[0].length).setValues(rows);
+  sheet.getRange(2, 1, rows.length, headers[0].length)
+    .setBackground("#ffffff")
+    .setFontColor("#1c1c1a")
+    .setVerticalAlignment("middle");
+
+  sheet.getRange("B:B").setNumberFormat("dd/mm/yyyy hh:mm");
+  sheet.getRange("N:N").setNumberFormat("\"$\" #,##0");
+  sheet.getRange("K:K").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange("J:J").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange("Q:Q").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+
+  // Auto-fit en casi todas las columnas
+  const autoFitCols = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17];
+  autoFitCols.forEach((col) => sheet.autoResizeColumn(col));
+
+  // Anchuras controladas para campos largos
+  sheet.setColumnWidth(10, 260); // Nombre archivos
+  sheet.setColumnWidth(11, 200); // Links archivos
+  sheet.setColumnWidth(17, 280); // Observaciones
 }
 
 function applyOrdersDropdowns_(sheet) {

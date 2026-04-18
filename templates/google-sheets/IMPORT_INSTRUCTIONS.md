@@ -70,12 +70,14 @@ Esto deja:
 - validaciones y formatos de moneda/fecha
 - formato condicional por estado
 - hoja `dashboard` con indicadores de gestion
+- hoja `operacion` (vista simple para uso diario) con columnas autoajustadas
 
 ## 6) Estructura final de hojas
 - `orders`: pedidos entrantes + links de archivos en Drive (`file_urls`) + IDs (`file_ids`) + cantidad de archivos.
 - `prices`: tabla editable de precios y disponibilidad (`active` TRUE/FALSE).
 - `meta`: catalogos de estados.
 - `dashboard`: panel visual de control operativo.
+- `operacion`: vista operativa simple para chequear cliente, archivos y estados.
 
 ## 7) Notas importantes
 - `order_number` lo genera Apps Script automaticamente.
