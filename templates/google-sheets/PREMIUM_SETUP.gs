@@ -282,6 +282,22 @@ function buildOperacion_(sheet, ordersSheet) {
 }
 
 function applyOrdersDropdowns_(sheet) {
+  const pricesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("prices");
+
+  const paperOptions = getUniqueValuesFromColumn_(pricesSheet, 3); // C: papel (nombre)
+  const sizeOptions = getUniqueValuesFromColumn_(pricesSheet, 4); // D: tamano (codigo)
+  const sideCodeOptions = getUniqueValuesFromColumn_(pricesSheet, 6); // F: faz (codigo)
+  const sideOptions = mapSideCodesToLabels_(sideCodeOptions);
+
+  const printTypeOptions = [
+    "Láser (Canon C710)",
+    "Plotter (Canon iPF830)"
+  ];
+  const paymentMethodOptions = [
+    "Transferencia bancaria",
+    "Pagar en el local"
+  ];
+  const urgentOptions = ["SI", "NO"];
   const paymentRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(["Pendiente", "Pagado"], true)
     .setAllowInvalid(false)
@@ -298,9 +314,39 @@ function applyOrdersDropdowns_(sheet) {
     .requireValueInList(["No", "Si"], true)
     .setAllowInvalid(false)
     .build();
+  const printTypeRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(printTypeOptions, true)
+    .setAllowInvalid(false)
+    .build();
+  const paperRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(paperOptions.length ? paperOptions : ["-"], true)
+    .setAllowInvalid(false)
+    .build();
+  const sizeRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(sizeOptions.length ? sizeOptions : ["-"], true)
+    .setAllowInvalid(false)
+    .build();
+  const sideRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(sideOptions.length ? sideOptions : ["Simple faz"], true)
+    .setAllowInvalid(false)
+    .build();
+  const paymentMethodRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(paymentMethodOptions, true)
+    .setAllowInvalid(false)
+    .build();
+  const urgentRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(urgentOptions, true)
+    .setAllowInvalid(false)
+    .build();
 
+  sheet.getRange("F2:F").setDataValidation(printTypeRule);
+  sheet.getRange("G2:G").setDataValidation(paperRule);
+  sheet.getRange("H2:H").setDataValidation(sizeRule);
+  sheet.getRange("L2:L").setDataValidation(sideRule);
+  sheet.getRange("S2:S").setDataValidation(paymentMethodRule);
   sheet.getRange("T2:T").setDataValidation(paymentRule);
   sheet.getRange("U2:U").setDataValidation(productionRule);
+  sheet.getRange("W2:W").setDataValidation(urgentRule);
   sheet.getRange("AD2:AD").setDataValidation(priorityRule);
   sheet.getRange("AG2:AG").setDataValidation(notifiedRule);
 }
@@ -378,6 +424,60 @@ function buildDashboardMetrics_() {
   metrics.latestOrders.reverse();
   metrics.latestOrders = metrics.latestOrders.slice(0, 8);
   return metrics;
+}
+
+function getUniqueValuesFromColumn_(sheet, colIndex) {
+  if (!sheet) {
+    return [];
+  }
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  const values = sheet.getRange(2, colIndex, lastRow - 1, 1).getValues();
+  const uniques = [];
+  const seen = {};
+  values.forEach((row) => {
+    const raw = row[0];
+    const value = String(raw || "").trim();
+    if (!value) {
+      return;
+    }
+    const key = value.toLowerCase();
+    if (!seen[key]) {
+      seen[key] = true;
+      uniques.push(value);
+    }
+  });
+  return uniques;
+}
+
+function mapSideCodesToLabels_(codes) {
+  const result = [];
+  const seen = {};
+  (codes || []).forEach((code) => {
+    const normalized = String(code || "").toLowerCase();
+    let label = "";
+    if (normalized === "sf") {
+      label = "Simple faz";
+    } else if (normalized === "df") {
+      label = "Doble faz";
+    }
+    if (label && !seen[label]) {
+      seen[label] = true;
+      result.push(label);
+    }
+  });
+  if (!seen["Simple faz"]) {
+    result.push("Simple faz");
+  }
+  if (!seen["Doble faz"]) {
+    result.push("Doble faz");
+  }
+  if (!seen["N/A"]) {
+    result.push("N/A");
+  }
+  return result;
 }
 
 function getOrCreateSheet_(ss, name) {

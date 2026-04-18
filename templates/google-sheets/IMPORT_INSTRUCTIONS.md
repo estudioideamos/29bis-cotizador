@@ -67,10 +67,22 @@ En `Extensiones > Apps Script` del mismo spreadsheet:
 Esto deja:
 - headers premium alineados a paleta 29 BIS
 - columnas optimizadas
-- validaciones y formatos de moneda/fecha
+- validaciones (dropdowns) y formatos de moneda/fecha
 - formato condicional por estado
 - hoja `dashboard` con indicadores de gestion
 - hoja `operacion` (vista simple para uso diario) con columnas autoajustadas
+
+Dropdowns automáticos en `orders`:
+- tipo de impresion
+- tipo de papel
+- tamano
+- faz
+- forma de pago
+- estado de pago
+- estado de produccion
+- urgente
+- prioridad interna
+- cliente notificado
 
 ## 6) Estructura final de hojas
 - `orders`: pedidos entrantes + links de archivos en Drive (`file_urls`) + IDs (`file_ids`) + cantidad de archivos.
