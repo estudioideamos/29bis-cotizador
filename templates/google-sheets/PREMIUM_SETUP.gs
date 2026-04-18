@@ -70,14 +70,14 @@ function stylePrices_(sheet) {
   const lastCol = Math.max(sheet.getLastColumn(), 8);
   const lastRow = Math.max(sheet.getLastRow(), 2);
   const readableHeaders = [[
-    "tipo_impresion",
-    "codigo_papel",
-    "nombre_papel",
-    "codigo_tamano",
-    "codigo_cobertura",
-    "codigo_faz",
-    "precio",
-    "activo"
+    "tipo de impresion",
+    "papel (codigo)",
+    "papel (nombre)",
+    "tamano (codigo)",
+    "cobertura (codigo)",
+    "faz (codigo)",
+    "precio unitario",
+    "disponible"
   ]];
 
   sheet.getRange(1, 1, 1, 8).setValues(readableHeaders);

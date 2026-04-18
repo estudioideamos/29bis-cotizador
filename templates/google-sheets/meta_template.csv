@@ -1,12 +1,12 @@
-categoria,valor,color_hex,orden
-payment_status,Pendiente,#fab948,10
-payment_status,Pagado,#82bfb7,20
-production_status,Recibido,#1c1c1a,10
-production_status,En revision,#fab948,20
-production_status,En produccion,#e84883,30
-production_status,Listo para retirar,#82bfb7,40
-production_status,Entregado,#3f8f66,50
-production_status,Cancelado,#c0392b,60
-internal_priority,Baja,#82bfb7,10
-internal_priority,Media,#fab948,20
-internal_priority,Alta,#e84883,30
+categoria,opcion,color,orden
+estado de pago,Pendiente,#fab948,10
+estado de pago,Pagado,#82bfb7,20
+estado de produccion,Recibido,#1c1c1a,10
+estado de produccion,En revision,#fab948,20
+estado de produccion,En produccion,#e84883,30
+estado de produccion,Listo para retirar,#82bfb7,40
+estado de produccion,Entregado,#3f8f66,50
+estado de produccion,Cancelado,#c0392b,60
+prioridad interna,Baja,#82bfb7,10
+prioridad interna,Media,#fab948,20
+prioridad interna,Alta,#e84883,30
