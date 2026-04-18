@@ -780,7 +780,7 @@
 
     const response = await fetch(config.ordersWebhookUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     });
 
@@ -951,7 +951,12 @@
         updateFileMeta();
         syncUI();
       } catch (err) {
-        setStatus(err.message || "Error al enviar el pedido.", "error");
+        const msg = String(err && err.message ? err.message : "");
+        if (/Failed to fetch/i.test(msg)) {
+          setStatus("No se pudo conectar con Google Apps Script. Revisá el deploy (Aplicación web), acceso en 'Cualquiera' y volvé a implementar.", "error");
+        } else {
+          setStatus(err.message || "Error al enviar el pedido.", "error");
+        }
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Enviar pedido";
