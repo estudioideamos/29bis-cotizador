@@ -91,6 +91,25 @@
           </label>
         </div>
 
+        <div id="custom-size-panel" class="custom-size-panel hidden">
+          <h3>Tamaño personalizado (plotter)</h3>
+          <p class="muted">Ingresá ancho y alto en metros. El sistema calcula m² y lo multiplica por el precio por m².</p>
+          <div class="grid">
+            <label class="field">
+              <span>Ancho (m)</span>
+              <input id="custom-width" type="number" min="0.01" step="0.01" inputmode="decimal">
+            </label>
+            <label class="field">
+              <span>Alto (m)</span>
+              <input id="custom-height" type="number" min="0.01" step="0.01" inputmode="decimal">
+            </label>
+          </div>
+          <p id="custom-area-preview" class="custom-area-preview">Área: 0.00 m²</p>
+          <a id="custom-whatsapp-link" class="custom-whatsapp-link hidden" href="#" target="_blank" rel="noopener noreferrer">
+            Si necesitás otro tamaño consultanos por WhatsApp y te pasamos cotización
+          </a>
+        </div>
+
         <div class="coverage-wrap hidden" id="coverage-wrap">
           <h3>Cobertura y cantidad</h3>
           <p class="muted">Podés dividir una misma orden por tipo de cobertura.</p>

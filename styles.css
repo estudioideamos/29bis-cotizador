@@ -195,6 +195,40 @@ textarea:focus {
   background: linear-gradient(180deg, #fff 0%, #fffcf7 100%);
 }
 
+.custom-size-panel {
+  margin-top: 0.9rem;
+  border: 1px dashed #d8ccb9;
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: linear-gradient(180deg, #fff 0%, #f9fcff 100%);
+}
+
+.custom-size-panel h3 {
+  margin: 0 0 0.35rem;
+}
+
+.custom-size-panel .grid {
+  margin-bottom: 0;
+}
+
+.custom-area-preview {
+  margin: 0.55rem 0 0.35rem;
+  font-weight: 700;
+  color: #2e4669;
+}
+
+.custom-whatsapp-link {
+  display: inline-block;
+  text-decoration: none;
+  color: #0a6b3a;
+  background: #e9fff3;
+  border: 1px solid #bde6ce;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 .coverage-guide {
   margin: 0 0 0.7rem;
   padding: 0.55rem 0.6rem;

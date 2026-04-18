@@ -7,6 +7,11 @@
     machine: document.getElementById("machine"),
     paper: document.getElementById("paper"),
     size: document.getElementById("size"),
+    customSizePanel: document.getElementById("custom-size-panel"),
+    customWidth: document.getElementById("custom-width"),
+    customHeight: document.getElementById("custom-height"),
+    customAreaPreview: document.getElementById("custom-area-preview"),
+    customWhatsappLink: document.getElementById("custom-whatsapp-link"),
     sidesField: document.getElementById("sides-field"),
     sides: document.getElementById("sides"),
     quantity: document.getElementById("quantity"),
@@ -109,8 +114,56 @@
     return pricing.papers[paperKey]?.type || "";
   }
 
+  function isPaperAvailable(paperKey) {
+    if (!paperKey) {
+      return false;
+    }
+    if (Object.prototype.hasOwnProperty.call(config.paperAvailabilityOverrides || {}, paperKey)) {
+      return Boolean(config.paperAvailabilityOverrides[paperKey]);
+    }
+    return true;
+  }
+
   function usesCoverage(machineKey, paperKey) {
     return isPlotter(machineKey) || (isLaser(machineKey) && paperKey === "obra_80");
+  }
+
+  function isCustomPlotterSize() {
+    return els.machine.value === "plotter" && els.size.value === "100x100_personalizado";
+  }
+
+  function parseDimension(inputValue) {
+    const normalized = String(inputValue || "").replace(",", ".").trim();
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function getCustomDimensions() {
+    const widthM = parseDimension(els.customWidth.value);
+    const heightM = parseDimension(els.customHeight.value);
+    const areaM2 = widthM * heightM;
+    return { widthM, heightM, areaM2 };
+  }
+
+  function updateCustomAreaPreview() {
+    const { widthM, heightM, areaM2 } = getCustomDimensions();
+    const show = isCustomPlotterSize();
+    els.customSizePanel.classList.toggle("hidden", !show);
+    if (!show) {
+      return;
+    }
+    els.customAreaPreview.textContent = `Área: ${areaM2.toFixed(2)} m² (${widthM.toFixed(2)} m × ${heightM.toFixed(2)} m)`;
+  }
+
+  function updateCustomWhatsappLink() {
+    const hasNumber = Boolean(config.whatsappNumber);
+    const show = isCustomPlotterSize() && hasNumber;
+    els.customWhatsappLink.classList.toggle("hidden", !show);
+    if (!show) {
+      return;
+    }
+    const msg = encodeURIComponent(config.whatsappMessage || "Hola! Necesito cotizar una impresión en tamaño personalizado.");
+    els.customWhatsappLink.href = `https://wa.me/${config.whatsappNumber}?text=${msg}`;
   }
 
   function getAllowedSizes(machineKey, paperKey) {
@@ -152,8 +205,18 @@
     const machineKey = els.machine.value;
     const machine = pricing.machines[machineKey];
     machine.papers.forEach((paperKey) => {
-      els.paper.appendChild(createOption(paperKey, getPaperLabel(paperKey)));
+      const opt = createOption(paperKey, getPaperLabel(paperKey));
+      if (!isPaperAvailable(paperKey)) {
+        opt.disabled = true;
+        opt.textContent = `${getPaperLabel(paperKey)} (sin stock)`;
+      }
+      els.paper.appendChild(opt);
     });
+
+    const firstAvailable = Array.from(els.paper.options).find((opt) => !opt.disabled);
+    if (firstAvailable) {
+      els.paper.value = firstAvailable.value;
+    }
   }
 
   function buildSizeOptions() {
@@ -243,6 +306,9 @@
     if (showSides && !isSideAvailable(els.paper.value, els.size.value, els.sides.value)) {
       els.sides.value = "sf";
     }
+
+    updateCustomAreaPreview();
+    updateCustomWhatsappLink();
   }
 
   function isSideAvailable(paperKey, sizeKey, sideKey) {
@@ -294,6 +360,8 @@
 
     let subtotal = 0;
     let detailLines = [];
+    const customSize = isCustomPlotterSize() ? getCustomDimensions() : null;
+    const areaMultiplier = customSize ? customSize.areaM2 : 1;
 
     if (withCoverage) {
       Object.entries(state.coverageInputs).forEach(([coverageKey, input]) => {
@@ -305,10 +373,10 @@
         if (!unit) {
           return;
         }
-        const lineTotal = unit * qty;
+        const lineTotal = unit * areaMultiplier * qty;
         subtotal += lineTotal;
         detailLines.push({
-          name: `${getCoverageLabel(coverageKey)} (${qty} hojas)`,
+          name: `${getCoverageLabel(coverageKey)} (${qty} hojas${customSize ? ` · ${customSize.areaM2.toFixed(2)} m²` : ""})`,
           amount: lineTotal
         });
       });
@@ -316,10 +384,10 @@
       const qty = Number(els.quantity.value) || 0;
       const unit = getUnitPrice({ machineKey, paperKey, sizeKey, sideKey });
       if (qty > 0 && unit) {
-        const lineTotal = unit * qty;
+        const lineTotal = unit * areaMultiplier * qty;
         subtotal += lineTotal;
         detailLines.push({
-          name: `${qty} hojas x ${currency.format(unit)}`,
+          name: `${qty} hojas x ${currency.format(unit)}${customSize ? ` x ${customSize.areaM2.toFixed(2)} m²` : ""}`,
           amount: lineTotal
         });
       }
@@ -335,6 +403,7 @@
       paperKey,
       sizeKey,
       sideKey,
+      customSize,
       subtotal,
       discountRate,
       discountAmount,
@@ -370,6 +439,7 @@
         key: sizeKey,
         label: getSizeLabel(sizeKey)
       },
+      customSize: totals.customSize,
       sides: sideKey ? { key: sideKey, label: pricing.labels.sides[sideKey] } : null,
       quantity: usesCoverage(machineKey, paperKey) ? null : Number(els.quantity.value) || 0,
       coverageDistribution: usesCoverage(machineKey, paperKey) ? getCoverageDistribution() : [],
@@ -431,10 +501,13 @@
     state.savedItems.forEach((item, index) => {
       const row = document.createElement("div");
       row.className = "item-row";
+      const customSizeText = item.customSize
+        ? ` · ${item.customSize.widthM.toFixed(2)}m x ${item.customSize.heightM.toFixed(2)}m`
+        : "";
       row.innerHTML = `
         <div>
           <strong>Trabajo ${index + 1}</strong>
-          <p>${item.machine.label} · ${item.paper.label} · ${item.size.label}${item.sides ? ` · ${item.sides.label}` : ""}</p>
+          <p>${item.machine.label} · ${item.paper.label} · ${item.size.label}${customSizeText}${item.sides ? ` · ${item.sides.label}` : ""}</p>
           <small>${item.pricing.totalSheets} hojas · ${currency.format(item.pricing.total)}</small>
         </div>
         <button type="button" class="item-remove" data-item-id="${item.id}">Quitar</button>
@@ -478,6 +551,10 @@
       ["Faz", sideText],
       ["Hojas totales (pedido)", String(aggregated.totalSheets)]
     ];
+    if (isCustomPlotterSize()) {
+      const custom = getCustomDimensions();
+      rows.splice(3, 0, ["Medida personalizada", `${custom.widthM.toFixed(2)} m × ${custom.heightM.toFixed(2)} m`]);
+    }
 
     rows.forEach(([label, value]) => {
       const row = document.createElement("div");
@@ -576,6 +653,14 @@
       return false;
     }
 
+    if (isCustomPlotterSize()) {
+      const { widthM, heightM, areaM2 } = getCustomDimensions();
+      if (widthM <= 0 || heightM <= 0 || areaM2 <= 0) {
+        setStatus("Ingresá ancho y alto válidos en metros para el tamaño personalizado.", "error");
+        return false;
+      }
+    }
+
     const currentWork = getCurrentWorkSnapshot();
     if (!currentWork && state.savedItems.length === 0) {
       setStatus("Agregá al menos un trabajo con cantidad de hojas mayor a 0.", "error");
@@ -670,6 +755,8 @@
 
     els.sides.addEventListener("change", updateSummary);
     els.quantity.addEventListener("input", updateSummary);
+    els.customWidth.addEventListener("input", updateSummary);
+    els.customHeight.addEventListener("input", updateSummary);
     els.recalcBtn.addEventListener("click", updateSummary);
     els.paymentMethodRadios.forEach((radio) => {
       radio.addEventListener("change", updatePaymentUI);
@@ -746,6 +833,8 @@
         updatePaymentUI();
         Object.values(state.coverageInputs).forEach((input) => { input.value = "0"; });
         els.quantity.value = "";
+        els.customWidth.value = "";
+        els.customHeight.value = "";
         syncUI();
       } catch (err) {
         setStatus(err.message || "Error al enviar el pedido.", "error");

@@ -203,7 +203,7 @@ window.PRICING_DATA = {
       "35x50": "35 x 50",
       "50x70": "50 x 70",
       "70x100": "70 x 100",
-      "100x100_personalizado": "Personalizado (base 100x100)"
+      "100x100_personalizado": "Personalizado (por m²)"
     },
     sides: {
       sf: "Simple faz",
