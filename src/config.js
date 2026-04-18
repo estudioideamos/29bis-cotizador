@@ -15,6 +15,6 @@ window.APP_CONFIG = {
 
   // WhatsApp para consultas de tamaño personalizado de plotter
   // Formato internacional sin '+' ni espacios. Ejemplo: "5491122334455"
-  whatsappNumber: "",
-  whatsappMessage: "Hola! Necesito cotizar una impresión en tamaño personalizado."
+  whatsappNumber: "543417466857",
+  whatsappMessage: "Hola! Quiero cotizar un pedido en tamaño personalizado."
 };

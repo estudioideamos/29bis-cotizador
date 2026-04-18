@@ -156,14 +156,26 @@
   }
 
   function updateCustomWhatsappLink() {
-    const hasNumber = Boolean(config.whatsappNumber);
+    const phone = String(config.whatsappNumber || "").replace(/\D/g, "");
+    const hasNumber = Boolean(phone);
     const show = isCustomPlotterSize() && hasNumber;
     els.customWhatsappLink.classList.toggle("hidden", !show);
     if (!show) {
       return;
     }
-    const msg = encodeURIComponent(config.whatsappMessage || "Hola! Necesito cotizar una impresión en tamaño personalizado.");
-    els.customWhatsappLink.href = `https://wa.me/${config.whatsappNumber}?text=${msg}`;
+
+    const { widthM, heightM, areaM2 } = getCustomDimensions();
+    const machineLabel = pricing.machines[els.machine.value]?.label || "Plotter";
+    const paperLabel = getPaperLabel(els.paper.value);
+    const msg = [
+      config.whatsappMessage || "Hola! Quiero cotizar un pedido en tamaño personalizado.",
+      `Máquina: ${machineLabel}`,
+      `Papel: ${paperLabel}`,
+      `Medidas: ${widthM.toFixed(2)} m x ${heightM.toFixed(2)} m`,
+      `Superficie: ${areaM2.toFixed(2)} m²`
+    ].join("\n");
+
+    els.customWhatsappLink.href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   }
 
   function getAllowedSizes(machineKey, paperKey) {
@@ -521,6 +533,8 @@
   function updateSummary() {
     state.currentTotals = getCurrentQuote();
 
+    updateCustomAreaPreview();
+    updateCustomWhatsappLink();
     renderItemsPanel();
     renderSummary();
   }
