@@ -8,9 +8,9 @@
  * - DRIVE_FOLDER_ID: ID de la carpeta destino en Drive para los archivos.
  */
 
-const SHEET_ID = "REEMPLAZAR_CON_ID_DE_TU_SPREADSHEET";
+const SHEET_ID = "12rXU8RzKk3FvV7mxF7fGCjLlpecQmXr8zazRj3cEbPQ";
 const ORDERS_SHEET = "orders";
-const DRIVE_FOLDER_ID = "REEMPLAZAR_CON_ID_DE_CARPETA_DRIVE";
+const DRIVE_FOLDER_ID = "1FSVN4ads-CID2H19JN2u3H2EfnNetCWk";
 
 function doPost(e) {
   try {
@@ -60,11 +60,14 @@ function doPost(e) {
       JSON.stringify(body)
     ]);
 
+    const mailSent = sendOrderConfirmationEmail_(body, orderNumber);
+
     return jsonResponse({
       ok: true,
-      message: "Pedido guardado con archivos en Drive.",
+      message: "Pedido registrado correctamente.",
       orderNumber: orderNumber,
-      fileUrls: fileUrls
+      fileUrls: fileUrls,
+      mailSent: mailSent
     });
   } catch (err) {
     return jsonResponse({
@@ -72,6 +75,64 @@ function doPost(e) {
       message: "Error al guardar pedido.",
       detail: String(err)
     });
+  }
+}
+
+function sendOrderConfirmationEmail_(body, orderNumber) {
+  const customer = body && body.customer ? body.customer : {};
+  const email = String(customer.email || "").trim();
+  if (!email) {
+    return false;
+  }
+
+  const customerName = String(customer.name || "Cliente").trim();
+  const total = body && body.pricing && body.pricing.total ? body.pricing.total : 0;
+  const totalSheets = body && body.pricing && body.pricing.totalSheets ? body.pricing.totalSheets : 0;
+  const paymentLabel = body && body.payment && body.payment.label ? body.payment.label : "-";
+  const pickup = body && body.pickupDateTime ? body.pickupDateTime : "Sin fecha/hora (trabajo urgente)";
+  const fileNames = Array.isArray(body.fileNames) ? body.fileNames : [];
+  const filesText = fileNames.length ? fileNames.join(", ") : "Sin detalle";
+
+  const subject = `29 BIS - Confirmacion de pedido ${orderNumber}`;
+  const textBody = [
+    `Hola ${customerName},`,
+    "",
+    "Recibimos tu pedido correctamente.",
+    `Numero de pedido: ${orderNumber}`,
+    "",
+    "Resumen:",
+    `- Hojas totales: ${totalSheets}`,
+    `- Total estimado: $ ${formatNumber_(total)}`,
+    `- Forma de pago: ${paymentLabel}`,
+    `- Retiro: ${pickup}`,
+    `- Archivos: ${filesText}`,
+    "",
+    "Si abonaste por transferencia, envia el comprobante a pedidos@29bis.com.ar indicando el numero de pedido.",
+    "",
+    "Gracias por elegir 29 BIS."
+  ].join("\n");
+
+  const htmlBody = [
+    `<p>Hola <strong>${escapeHtml_(customerName)}</strong>,</p>`,
+    "<p>Recibimos tu pedido correctamente.</p>",
+    `<p><strong>Numero de pedido:</strong> ${escapeHtml_(orderNumber)}</p>`,
+    "<p><strong>Resumen:</strong></p>",
+    "<ul>",
+    `<li>Hojas totales: ${escapeHtml_(String(totalSheets))}</li>`,
+    `<li>Total estimado: $ ${escapeHtml_(formatNumber_(total))}</li>`,
+    `<li>Forma de pago: ${escapeHtml_(paymentLabel)}</li>`,
+    `<li>Retiro: ${escapeHtml_(pickup)}</li>`,
+    `<li>Archivos: ${escapeHtml_(filesText)}</li>`,
+    "</ul>",
+    "<p>Si abonaste por transferencia, envia el comprobante a <strong>pedidos@29bis.com.ar</strong> indicando el numero de pedido.</p>",
+    "<p>Gracias por elegir 29 BIS.</p>"
+  ].join("");
+
+  try {
+    GmailApp.sendEmail(email, subject, textBody, { htmlBody: htmlBody });
+    return true;
+  } catch (err) {
+    return false;
   }
 }
 
@@ -173,6 +234,19 @@ function pad_(num, size) {
     value = `0${value}`;
   }
   return value;
+}
+
+function formatNumber_(value) {
+  return String(Math.round(Number(value || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function escapeHtml_(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function ensureOrdersHeader_(sheet) {

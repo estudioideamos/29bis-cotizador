@@ -933,10 +933,13 @@
         const result = await submitOrder(payload);
         if (result.mode === "local-preview") {
           saveLocalPreview(payload);
-          setStatus("Pedido generado. No hay webhook configurado: quedó guardado en vista local (localStorage).", "ok");
+          setStatus("Pedido generado en modo local de prueba.", "ok");
         } else {
-          const orderNumberText = result.orderNumber ? ` N.º ${result.orderNumber}.` : "";
-          setStatus(`Pedido enviado correctamente y guardado en Google Sheets.${orderNumberText}`, "ok");
+          const orderNumberText = result.orderNumber ? `Tu número de pedido es ${result.orderNumber}.` : "Tu pedido fue enviado correctamente.";
+          const mailText = result.mailSent
+            ? " Te enviamos un email con el resumen del pedido."
+            : "";
+          setStatus(`${orderNumberText}${mailText}`, "ok");
         }
         els.form.reset();
         state.savedItems = [];
