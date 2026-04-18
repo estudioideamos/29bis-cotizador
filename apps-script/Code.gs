@@ -41,11 +41,13 @@ function doPost(e) {
 
     const firstItem = getFirstOrderItem_(body.orderItems);
     const customSize = firstItem && firstItem.customSize ? firstItem.customSize : null;
+    const createdAtDisplay = formatDateTimeAr_(body.createdAt) || formatDateTimeAr_(new Date()) || new Date().toISOString();
+    const pickupDateTimeDisplay = formatDateTimeAr_(body.pickupDateTime);
 
     const mailResult = sendOrderConfirmationEmail_(body, orderNumber);
 
     sh.appendRow([
-      body.createdAt || new Date().toISOString(),
+      createdAtDisplay,
       orderNumber,
       body.customer && body.customer.name ? body.customer.name : "",
       body.customer && body.customer.phone ? body.customer.phone : "",
@@ -66,7 +68,7 @@ function doPost(e) {
       body.payment && body.payment.label ? body.payment.label : "",
       "Pendiente",
       "Recibido",
-      body.pickupDateTime || "",
+      pickupDateTimeDisplay || "",
       body.urgent ? "SI" : "NO",
       fileNames.join(" | "),
       fileUrls.join(" | "),
@@ -109,7 +111,9 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   const total = body && body.pricing && body.pricing.total ? body.pricing.total : 0;
   const totalSheets = body && body.pricing && body.pricing.totalSheets ? body.pricing.totalSheets : 0;
   const paymentLabel = body && body.payment && body.payment.label ? body.payment.label : "-";
-  const pickup = body && body.pickupDateTime ? body.pickupDateTime : "Sin fecha/hora (trabajo urgente)";
+  const pickup = body && body.pickupDateTime
+    ? (formatDateTimeAr_(body.pickupDateTime) || "Sin fecha/hora (trabajo urgente)")
+    : "Sin fecha/hora (trabajo urgente)";
   const fileNames = Array.isArray(body.fileNames) ? body.fileNames : [];
   const filesText = fileNames.length ? fileNames.join(", ") : "Sin detalle";
 
@@ -166,6 +170,17 @@ function isValidEmail_(email) {
   const value = String(email || "").trim();
   // Validación pragmática para evitar fallos de MailApp por direcciones mal formadas.
   return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value);
+}
+
+function formatDateTimeAr_(value) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  return Utilities.formatDate(date, "America/Argentina/Buenos_Aires", "dd/MM/yyyy HH:mm");
 }
 
 function uploadFilesToDrive_(uploadedFiles, orderNumber) {
