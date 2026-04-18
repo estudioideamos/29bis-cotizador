@@ -28,6 +28,8 @@ function doPost(e) {
     const firstItem = getFirstOrderItem_(body.orderItems);
     const customSize = firstItem && firstItem.customSize ? firstItem.customSize : null;
 
+    const mailResult = sendOrderConfirmationEmail_(body, orderNumber);
+
     sh.appendRow([
       body.createdAt || new Date().toISOString(),
       orderNumber,
@@ -57,10 +59,10 @@ function doPost(e) {
       fileIds.join(" | "),
       uploaded.length,
       body.notes || "",
-      JSON.stringify(body)
+      JSON.stringify(body),
+      mailResult.ok ? "SI" : "NO",
+      mailResult.error || ""
     ]);
-
-    const mailResult = sendOrderConfirmationEmail_(body, orderNumber);
 
     return jsonResponse({
       ok: true,
@@ -324,7 +326,9 @@ function ensureOrdersHeader_(sheet) {
     "prioridad interna",
     "asignado a",
     "fecha cambio de estado",
-    "cliente notificado"
+    "cliente notificado",
+    "mail enviado",
+    "detalle error mail"
   ]);
 }
 
