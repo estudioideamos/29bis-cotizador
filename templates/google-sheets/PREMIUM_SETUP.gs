@@ -233,6 +233,7 @@ function buildOperacion_(sheet, ordersSheet) {
     sheet.getRange("A2").setValue("Sin pedidos cargados todavía.");
     sheet.setColumnWidths(1, headers[0].length, 170);
     sheet.getRange("K:K").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    applyOperacionDropdowns_(sheet);
     return;
   }
 
@@ -244,10 +245,10 @@ function buildOperacion_(sheet, ordersSheet) {
       r[2] || "-",   // C cliente
       r[3] || "-",   // D telefono
       r[4] || "-",   // E email
-      r[5] || "-",   // F tipo impresion
-      r[6] || "-",   // G tipo papel
-      r[7] || "-",   // H tamano
-      r[11] || "-",  // L faz
+      cleanWorkLabel_(r[5]) || "-",   // F tipo impresion
+      cleanWorkLabel_(r[6]) || "-",   // G tipo papel
+      cleanWorkLabel_(r[7]) || "-",   // H tamano
+      cleanWorkLabel_(r[11]) || "-",  // L faz
       r[23] || "-",  // X nombre archivos
       r[24] || "-",  // Y links archivos
       r[19] || "-",  // T estado pago
@@ -263,22 +264,73 @@ function buildOperacion_(sheet, ordersSheet) {
   sheet.getRange(2, 1, rows.length, headers[0].length)
     .setBackground("#ffffff")
     .setFontColor("#1c1c1a")
-    .setVerticalAlignment("middle");
+    .setVerticalAlignment("middle")
+    .setHorizontalAlignment("left");
 
   sheet.getRange("B:B").setNumberFormat("dd/mm/yyyy hh:mm");
   sheet.getRange("N:N").setNumberFormat("\"$\" #,##0");
-  sheet.getRange("K:K").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
-  sheet.getRange("J:J").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
-  sheet.getRange("Q:Q").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange("A:Q").setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 
-  // Auto-fit en casi todas las columnas
-  const autoFitCols = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17];
-  autoFitCols.forEach((col) => sheet.autoResizeColumn(col));
+  // Anchuras pensadas para operación diaria (rápido y claro)
+  sheet.setColumnWidth(1, 175);  // N° pedido
+  sheet.setColumnWidth(2, 190);  // Fecha
+  sheet.setColumnWidth(3, 210);  // Cliente
+  sheet.setColumnWidth(4, 130);  // Telefono
+  sheet.setColumnWidth(5, 230);  // Email
+  sheet.setColumnWidth(6, 210);  // Tipo impresion
+  sheet.setColumnWidth(7, 185);  // Tipo papel
+  sheet.setColumnWidth(8, 140);  // Tamano
+  sheet.setColumnWidth(9, 130);  // Faz
+  sheet.setColumnWidth(10, 250); // Nombre archivos
+  sheet.setColumnWidth(11, 190); // Links archivos
+  sheet.setColumnWidth(12, 130); // Estado pago
+  sheet.setColumnWidth(13, 160); // Estado pedido
+  sheet.setColumnWidth(14, 120); // Total
+  sheet.setColumnWidth(15, 180); // Retiro
+  sheet.setColumnWidth(16, 100); // Urgente
+  sheet.setColumnWidth(17, 260); // Observaciones
 
-  // Anchuras controladas para campos largos
-  sheet.setColumnWidth(10, 260); // Nombre archivos
-  sheet.setColumnWidth(11, 200); // Links archivos
-  sheet.setColumnWidth(17, 280); // Observaciones
+  applyOperacionDropdowns_(sheet);
+}
+
+function applyOperacionDropdowns_(sheet) {
+  const pricesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("prices");
+
+  const paperOptions = getUniqueValuesFromColumn_(pricesSheet, 3); // C: papel (nombre)
+  const sizeOptions = getUniqueValuesFromColumn_(pricesSheet, 4); // D: tamano (codigo)
+  const sideCodeOptions = getUniqueValuesFromColumn_(pricesSheet, 6); // F: faz (codigo)
+  const sideOptions = mapSideCodesToLabels_(sideCodeOptions);
+
+  const printTypeOptions = ["Láser (Canon C710)", "Plotter (Canon iPF830)"];
+  const paymentStatusOptions = ["Pendiente", "Pagado"];
+  const productionStatusOptions = ["Recibido", "En revision", "En produccion", "Listo para retirar", "Entregado", "Cancelado"];
+  const urgentOptions = ["SI", "NO"];
+
+  const printTypeRule = SpreadsheetApp.newDataValidation().requireValueInList(printTypeOptions, true).setAllowInvalid(false).build();
+  const paperRule = SpreadsheetApp.newDataValidation().requireValueInList(paperOptions.length ? paperOptions : ["-"], true).setAllowInvalid(false).build();
+  const sizeRule = SpreadsheetApp.newDataValidation().requireValueInList(sizeOptions.length ? sizeOptions : ["-"], true).setAllowInvalid(false).build();
+  const sideRule = SpreadsheetApp.newDataValidation().requireValueInList(sideOptions.length ? sideOptions : ["Simple faz"], true).setAllowInvalid(false).build();
+  const paymentStatusRule = SpreadsheetApp.newDataValidation().requireValueInList(paymentStatusOptions, true).setAllowInvalid(false).build();
+  const productionStatusRule = SpreadsheetApp.newDataValidation().requireValueInList(productionStatusOptions, true).setAllowInvalid(false).build();
+  const urgentRule = SpreadsheetApp.newDataValidation().requireValueInList(urgentOptions, true).setAllowInvalid(false).build();
+
+  // F,G,H,I,L,M,P en hoja operacion
+  sheet.getRange("F2:F").setDataValidation(printTypeRule);
+  sheet.getRange("G2:G").setDataValidation(paperRule);
+  sheet.getRange("H2:H").setDataValidation(sizeRule);
+  sheet.getRange("I2:I").setDataValidation(sideRule);
+  sheet.getRange("L2:L").setDataValidation(paymentStatusRule);
+  sheet.getRange("M2:M").setDataValidation(productionStatusRule);
+  sheet.getRange("P2:P").setDataValidation(urgentRule);
+}
+
+function cleanWorkLabel_(value) {
+  const raw = String(value || "");
+  if (!raw) {
+    return "";
+  }
+  const cleaned = raw.replace(/Trabajo\s*\d+\s*:\s*/gi, "");
+  return cleaned.replace(/\s*\|\s*/g, " | ").trim();
 }
 
 function applyOrdersDropdowns_(sheet) {

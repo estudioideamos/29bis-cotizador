@@ -197,21 +197,23 @@ function summarizeItems_(items, key) {
   if (!list.length) {
     return "";
   }
-  return list.map((item, i) => {
+  const values = list.map((item) => {
     if (key === "machine") {
-      return `Trabajo ${i + 1}: ${(item.machine && item.machine.label) || ""}`;
+      return (item.machine && item.machine.label) || "";
     }
     if (key === "paper") {
-      return `Trabajo ${i + 1}: ${(item.paper && item.paper.label) || ""}`;
+      return (item.paper && item.paper.label) || "";
     }
     if (key === "size") {
-      return `Trabajo ${i + 1}: ${(item.size && item.size.label) || ""}`;
+      return (item.size && item.size.label) || "";
     }
     if (key === "sides") {
-      return `Trabajo ${i + 1}: ${(item.sides && item.sides.label) || "N/A"}`;
+      return (item.sides && item.sides.label) || "N/A";
     }
     return "";
-  }).join(" || ");
+  }).filter((v) => String(v || "").trim());
+
+  return uniqueValues_(values).join(" | ");
 }
 
 function getFirstOrderItem_(items) {
@@ -319,4 +321,21 @@ function jsonResponse(data) {
 function getOrCreateSheet_(ss, name) {
   const existing = ss.getSheetByName(name);
   return existing || ss.insertSheet(name);
+}
+
+function uniqueValues_(values) {
+  const seen = {};
+  const output = [];
+  (values || []).forEach((raw) => {
+    const value = String(raw || "").trim();
+    if (!value) {
+      return;
+    }
+    const key = value.toLowerCase();
+    if (!seen[key]) {
+      seen[key] = true;
+      output.push(value);
+    }
+  });
+  return output;
 }
