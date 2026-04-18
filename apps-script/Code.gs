@@ -85,6 +85,9 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   if (!email) {
     return { ok: false, error: "El pedido no tiene email." };
   }
+  if (!isValidEmail_(email)) {
+    return { ok: false, error: `Email inválido en pedido: ${email}` };
+  }
 
   const customerName = String(customer.name || "Cliente").trim();
   const total = body && body.pricing && body.pricing.total ? body.pricing.total : 0;
@@ -141,6 +144,12 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   } catch (err) {
     return { ok: false, error: String(err) };
   }
+}
+
+function isValidEmail_(email) {
+  const value = String(email || "").trim();
+  // Validación pragmática para evitar fallos de MailApp por direcciones mal formadas.
+  return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value);
 }
 
 function uploadFilesToDrive_(uploadedFiles, orderNumber) {

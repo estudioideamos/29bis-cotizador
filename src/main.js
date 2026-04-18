@@ -944,7 +944,7 @@
           const orderNumberText = result.orderNumber ? `Tu número de pedido es ${result.orderNumber}.` : "Tu pedido fue enviado correctamente.";
           const mailText = result.mailSent
             ? " Te enviamos un email con el resumen del pedido."
-            : " Pedido registrado, pero no pudimos enviar el email automático.";
+            : ` Pedido registrado, pero no pudimos enviar el email automático.${result.mailError ? ` (${result.mailError})` : ""}`;
           setStatus(`${orderNumberText}${mailText}`, "ok");
         }
         els.form.reset();
