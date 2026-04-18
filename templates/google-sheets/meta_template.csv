@@ -1,4 +1,4 @@
-key,value,color_hex,sort_order
+categoria,valor,color_hex,orden
 payment_status,Pendiente,#fab948,10
 payment_status,Pagado,#82bfb7,20
 production_status,Recibido,#1c1c1a,10
