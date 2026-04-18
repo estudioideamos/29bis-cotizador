@@ -1,4 +1,4 @@
-machine,paper_key,paper_label,size_key,coverage_key,side_key,price,active
+tipo_impresion,codigo_papel,nombre_papel,codigo_tamano,codigo_cobertura,codigo_faz,precio,activo
 laser,obra_80,Obra 80gr,A4,lineas,sf,600,TRUE
 laser,obra_80,Obra 80gr,A4,lineas,df,1100,TRUE
 laser,obra_80,Obra 80gr,A4,mixto,sf,800,TRUE
