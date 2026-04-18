@@ -57,7 +57,11 @@ function styleOrders_(sheet) {
   sheet.setColumnWidths(28, 2, 210);  // notes/raw
   sheet.setColumnWidths(30, 4, 160);  // internal fields
 
-  applyAlternatingRows_(sheet, 2, 1, lastRow - 1, lastCol, "#ffffff", "#fdfaf5");
+  const dataRows = Math.max(1, lastRow - 1);
+  sheet.getRange(2, 1, dataRows, lastCol)
+    .setBackground("#ffffff")
+    .setFontColor("#1c1c1a");
+
   applyOrdersConditionalFormatting_(sheet);
   applyOrdersDropdowns_(sheet);
 }
@@ -72,7 +76,11 @@ function stylePrices_(sheet) {
     .setFontWeight("bold")
     .setHorizontalAlignment("center");
 
-  applyAlternatingRows_(sheet, 2, 1, lastRow - 1, lastCol, "#ffffff", "#f9fcfb");
+  const dataRows = Math.max(1, lastRow - 1);
+  sheet.getRange(2, 1, dataRows, lastCol)
+    .setBackground("#ffffff")
+    .setFontColor("#1c1c1a");
+
   sheet.getRange("G:G").setNumberFormat("\"$\" #,##0");
   sheet.setColumnWidths(1, 8, 170);
 }
@@ -86,7 +94,11 @@ function styleMeta_(sheet) {
     .setFontColor("#ffffff")
     .setFontWeight("bold")
     .setHorizontalAlignment("center");
-  applyAlternatingRows_(sheet, 2, 1, lastRow - 1, lastCol, "#ffffff", "#fff8ef");
+  const dataRows = Math.max(1, lastRow - 1);
+  sheet.getRange(2, 1, dataRows, lastCol)
+    .setBackground("#ffffff")
+    .setFontColor("#1c1c1a");
+
   sheet.setColumnWidths(1, 1, 150);
   sheet.setColumnWidths(2, 1, 180);
   sheet.setColumnWidths(3, 1, 120);
@@ -97,7 +109,7 @@ function buildDashboard_(sheet) {
   sheet.clear({ contentsOnly: true, formatOnly: true });
   sheet.setHiddenGridlines(true);
   sheet.setColumnWidths(1, 6, 190);
-  sheet.setRowHeights(1, 20, 34);
+  sheet.setRowHeights(1, 24, 34);
 
   sheet.getRange("A1:F1")
     .merge()
@@ -109,13 +121,14 @@ function buildDashboard_(sheet) {
     .setHorizontalAlignment("center")
     .setVerticalAlignment("middle");
 
+  const metrics = buildDashboardMetrics_();
   const cards = [
-    { cell: "A3", label: "Pedidos totales", formula: '=COUNTA(orders!B2:B)' },
-    { cell: "C3", label: "Pagados", formula: '=COUNTIF(orders!T2:T,"Pagado")' },
-    { cell: "E3", label: "Pendientes de pago", formula: '=COUNTIF(orders!T2:T,"Pendiente")' },
-    { cell: "A7", label: "En produccion", formula: '=COUNTIF(orders!U2:U,"En produccion")' },
-    { cell: "C7", label: "Listos para retirar", formula: '=COUNTIF(orders!U2:U,"Listo para retirar")' },
-    { cell: "E7", label: "Facturacion total", formula: '=SUM(orders!R2:R)', money: true }
+    { cell: "A3", label: "Pedidos totales", value: metrics.totalOrders },
+    { cell: "C3", label: "Pagados", value: metrics.paidOrders },
+    { cell: "E3", label: "Pendientes de pago", value: metrics.pendingPaymentOrders },
+    { cell: "A7", label: "En produccion", value: metrics.inProductionOrders },
+    { cell: "C7", label: "Listos para retirar", value: metrics.readyToPickupOrders },
+    { cell: "E7", label: "Facturacion total", value: metrics.totalAmount, money: true }
   ];
 
   cards.forEach((card) => {
@@ -129,7 +142,7 @@ function buildDashboard_(sheet) {
       .setFontColor("#1c1c1a")
       .setHorizontalAlignment("left")
       .setVerticalAlignment("middle");
-    sheet.getRange(row + 1, col, 1, 2).merge().setFormula(card.formula)
+    sheet.getRange(row + 1, col, 1, 2).merge().setValue(card.value)
       .setBackground("#ffffff")
       .setFontSize(18)
       .setFontWeight("bold")
@@ -150,23 +163,22 @@ function buildDashboard_(sheet) {
     .setFontWeight("bold")
     .setHorizontalAlignment("left");
 
-  sheet.getRange("A13:F20").setFormula('=QUERY(orders!A:U,"select B,C,T,U,R where B is not null order by A desc limit 8",0)');
+  const tableHeader = [["Numero pedido", "Cliente", "Estado pago", "Estado produccion", "Total", "Retiro"]];
+  const tableRows = metrics.latestOrders;
+  const filledRows = [];
+  for (let i = 0; i < 8; i += 1) {
+    filledRows.push(tableRows[i] || ["-", "-", "-", "-", "-", "-"]);
+  }
+
+  sheet.getRange("A13:F13").setValues(tableHeader);
+  sheet.getRange("A14:F21").setValues(filledRows);
+
   sheet.getRange("A13:F13")
     .setBackground("#1c1c1a")
     .setFontColor("#ffffff")
     .setFontWeight("bold");
-  sheet.getRange("E:E").setNumberFormat("\"$\" #,##0");
-}
-
-function applyAlternatingRows_(sheet, startRow, startCol, numRows, numCols, colorA, colorB) {
-  if (numRows <= 0 || numCols <= 0) {
-    return;
-  }
-  const range = sheet.getRange(startRow, startCol, numRows, numCols);
-  const banding = range.applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY);
-  banding.setFirstRowColor(colorA);
-  banding.setSecondRowColor(colorB);
-  banding.setHeaderRowColor("#1c1c1a");
+  sheet.getRange("E14:E21").setNumberFormat("\"$\" #,##0");
+  sheet.getRange("A14:F21").setBackground("#ffffff").setFontColor("#1c1c1a");
 }
 
 function applyOrdersDropdowns_(sheet) {
@@ -208,6 +220,64 @@ function applyOrdersConditionalFormatting_(sheet) {
   );
 
   sheet.setConditionalFormatRules(rules);
+}
+
+function buildDashboardMetrics_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const orders = ss.getSheetByName("orders");
+  const lastRow = orders.getLastRow();
+  const metrics = {
+    totalOrders: 0,
+    paidOrders: 0,
+    pendingPaymentOrders: 0,
+    inProductionOrders: 0,
+    readyToPickupOrders: 0,
+    totalAmount: 0,
+    latestOrders: []
+  };
+
+  if (lastRow < 2) {
+    return metrics;
+  }
+
+  const values = orders.getRange(2, 1, lastRow - 1, 33).getValues();
+  metrics.totalOrders = values.length;
+
+  values.forEach((row) => {
+    const orderNumber = String(row[1] || "");
+    const customerName = String(row[2] || "");
+    const paymentStatus = String(row[19] || "");
+    const productionStatus = String(row[20] || "");
+    const pickupDate = row[21] ? String(row[21]) : "-";
+    const totalAmount = Number(row[17] || 0);
+
+    if (paymentStatus === "Pagado") {
+      metrics.paidOrders += 1;
+    }
+    if (paymentStatus === "Pendiente") {
+      metrics.pendingPaymentOrders += 1;
+    }
+    if (productionStatus === "En produccion") {
+      metrics.inProductionOrders += 1;
+    }
+    if (productionStatus === "Listo para retirar") {
+      metrics.readyToPickupOrders += 1;
+    }
+
+    metrics.totalAmount += totalAmount;
+    metrics.latestOrders.push([
+      orderNumber || "-",
+      customerName || "-",
+      paymentStatus || "-",
+      productionStatus || "-",
+      totalAmount || 0,
+      pickupDate
+    ]);
+  });
+
+  metrics.latestOrders.reverse();
+  metrics.latestOrders = metrics.latestOrders.slice(0, 8);
+  return metrics;
 }
 
 function getOrCreateSheet_(ss, name) {
