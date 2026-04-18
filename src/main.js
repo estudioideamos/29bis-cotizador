@@ -647,6 +647,34 @@
     return { key: "local", label: "Pagar en el local" };
   }
 
+  function fileToPayload(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || "");
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve({
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size || 0,
+          base64
+        });
+      };
+      reader.onerror = () => {
+        reject(new Error(`No se pudo leer el archivo: ${file.name}`));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function buildFilesPayload(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) {
+      return [];
+    }
+    return Promise.all(files.map(fileToPayload));
+  }
+
   function updatePaymentUI() {
     const method = getSelectedPaymentMethod();
     const isTransfer = method?.key === "transferencia";
@@ -684,10 +712,12 @@
     return true;
   }
 
-  function buildOrderPayload(orderItems) {
+  async function buildOrderPayload(orderItems) {
     const urgent = !els.pickupDatetime.value;
     const pricingTotals = getAggregatedPricing(orderItems);
     const paymentMethod = getSelectedPaymentMethod();
+    const uploadedFiles = await buildFilesPayload(els.fileInput.files);
+    const firstFileName = uploadedFiles[0] ? uploadedFiles[0].name : null;
 
     return {
       orderId: `29BIS-${Date.now()}`,
@@ -702,7 +732,9 @@
       urgent,
       payment: paymentMethod,
       notes: els.notes.value.trim(),
-      fileName: els.fileInput.files[0] ? els.fileInput.files[0].name : null,
+      fileName: firstFileName,
+      fileNames: uploadedFiles.map((file) => file.name),
+      uploadedFiles,
       pricing: {
         subtotal: pricingTotals.subtotal,
         discountRate: pricingTotals.discountRate,
@@ -726,8 +758,15 @@
     if (!response.ok) {
       throw new Error("No se pudo guardar el pedido en Google Sheets.");
     }
-
-    return { ok: true, mode: "sheets" };
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error(data.message || "No se pudo guardar el pedido.");
+    }
+    return {
+      ok: true,
+      mode: "sheets",
+      orderNumber: data.orderNumber || payload.orderId
+    };
   }
 
   function saveLocalPreview(payload) {
@@ -826,7 +865,7 @@
         orderItems.push(currentWork);
       }
 
-      const payload = buildOrderPayload(orderItems);
+      const payload = await buildOrderPayload(orderItems);
       const submitBtn = els.form.querySelector("button[type='submit']");
       submitBtn.disabled = true;
       submitBtn.textContent = "Enviando...";
@@ -837,7 +876,8 @@
           saveLocalPreview(payload);
           setStatus("Pedido generado. No hay webhook configurado: quedó guardado en vista local (localStorage).", "ok");
         } else {
-          setStatus("Pedido enviado correctamente y guardado en Google Sheets.", "ok");
+          const orderNumberText = result.orderNumber ? ` N.º ${result.orderNumber}.` : "";
+          setStatus(`Pedido enviado correctamente y guardado en Google Sheets.${orderNumberText}`, "ok");
         }
         els.form.reset();
         state.savedItems = [];
