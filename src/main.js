@@ -800,7 +800,9 @@
     return {
       ok: true,
       mode: "sheets",
-      orderNumber: data.orderNumber || payload.orderId
+      orderNumber: data.orderNumber || payload.orderId,
+      mailSent: Boolean(data.mailSent),
+      mailError: data.mailError || ""
     };
   }
 

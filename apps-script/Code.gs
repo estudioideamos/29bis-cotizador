@@ -15,6 +15,20 @@ const DRIVE_FOLDER_ID = "1FSVN4ads-CID2H19JN2u3H2EfnNetCWk";
 function doPost(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+    const customerEmail = String(body && body.customer && body.customer.email ? body.customer.email : "").trim();
+    if (!customerEmail) {
+      return jsonResponse({
+        ok: false,
+        message: "El email del cliente es obligatorio."
+      });
+    }
+    if (!isValidEmail_(customerEmail)) {
+      return jsonResponse({
+        ok: false,
+        message: `El email ingresado no es válido: ${customerEmail}`
+      });
+    }
+
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sh = getOrCreateSheet_(ss, ORDERS_SHEET);
     ensureOrdersHeader_(sh);
@@ -35,7 +49,7 @@ function doPost(e) {
       orderNumber,
       body.customer && body.customer.name ? body.customer.name : "",
       body.customer && body.customer.phone ? body.customer.phone : "",
-      body.customer && body.customer.email ? body.customer.email : "",
+      customerEmail,
       body.machine && body.machine.label ? body.machine.label : summarizeItems_(body.orderItems, "machine"),
       body.paper && body.paper.label ? body.paper.label : summarizeItems_(body.orderItems, "paper"),
       body.size && body.size.label ? body.size.label : summarizeItems_(body.orderItems, "size"),
