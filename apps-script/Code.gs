@@ -60,14 +60,15 @@ function doPost(e) {
       JSON.stringify(body)
     ]);
 
-    const mailSent = sendOrderConfirmationEmail_(body, orderNumber);
+    const mailResult = sendOrderConfirmationEmail_(body, orderNumber);
 
     return jsonResponse({
       ok: true,
       message: "Pedido registrado correctamente.",
       orderNumber: orderNumber,
       fileUrls: fileUrls,
-      mailSent: mailSent
+      mailSent: mailResult.ok,
+      mailError: mailResult.error || ""
     });
   } catch (err) {
     return jsonResponse({
@@ -82,7 +83,7 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   const customer = body && body.customer ? body.customer : {};
   const email = String(customer.email || "").trim();
   if (!email) {
-    return false;
+    return { ok: false, error: "El pedido no tiene email." };
   }
 
   const customerName = String(customer.name || "Cliente").trim();
@@ -129,10 +130,16 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   ].join("");
 
   try {
-    GmailApp.sendEmail(email, subject, textBody, { htmlBody: htmlBody });
-    return true;
+    MailApp.sendEmail({
+      to: email,
+      subject: subject,
+      body: textBody,
+      htmlBody: htmlBody,
+      name: "29 BIS"
+    });
+    return { ok: true };
   } catch (err) {
-    return false;
+    return { ok: false, error: String(err) };
   }
 }
 
