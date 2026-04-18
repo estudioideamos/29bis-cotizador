@@ -34,6 +34,11 @@
       <p class="muted">Completá los datos y el sistema calcula automáticamente el precio.</p>
 
       <form id="quote-form" novalidate>
+        <div class="premium-steps" aria-hidden="true">
+          <span class="premium-step is-active">1. Configurá</span>
+          <span class="premium-step">2. Adjuntá archivos</span>
+          <span class="premium-step">3. Confirmá pedido</span>
+        </div>
         <div class="grid">
           <label class="field field--machine">
             <span>
@@ -184,6 +189,7 @@
             <span>Archivo(s) para impresión</span>
             <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip" multiple required>
           </label>
+          <p id="file-meta" class="upload-meta">Aún no seleccionaste archivos.</p>
           <p class="upload-note">Campo obligatorio: necesitamos al menos un archivo para poder imprimir tu pedido.</p>
         </div>
 

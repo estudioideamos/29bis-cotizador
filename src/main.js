@@ -33,7 +33,9 @@
     customerEmail: document.getElementById("customer-email"),
     pickupDatetime: document.getElementById("pickup-datetime"),
     notes: document.getElementById("notes"),
-    fileInput: document.getElementById("file-input")
+    fileInput: document.getElementById("file-input"),
+    uploadPanel: document.querySelector(".upload-panel"),
+    fileMeta: document.getElementById("file-meta")
   };
 
   let pricing = null;
@@ -72,6 +74,33 @@
     if (kind) {
       els.status.classList.add(kind);
     }
+  }
+
+  function formatBytes(size) {
+    const units = ["B", "KB", "MB", "GB"];
+    let value = Number(size) || 0;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    const decimals = unitIndex === 0 ? 0 : 1;
+    return `${value.toFixed(decimals)} ${units[unitIndex]}`;
+  }
+
+  function updateFileMeta() {
+    if (!els.fileMeta) {
+      return;
+    }
+    const files = Array.from(els.fileInput.files || []);
+    if (!files.length) {
+      els.fileMeta.textContent = "Aún no seleccionaste archivos.";
+      return;
+    }
+    const totalBytes = files.reduce((acc, file) => acc + (file.size || 0), 0);
+    const names = files.slice(0, 2).map((file) => file.name).join(" · ");
+    const suffix = files.length > 2 ? ` +${files.length - 2} más` : "";
+    els.fileMeta.textContent = `${files.length} archivo(s) · ${formatBytes(totalBytes)} · ${names}${suffix}`;
   }
 
   function createOption(value, label) {
@@ -811,9 +840,39 @@
     els.customWidth.addEventListener("input", updateSummary);
     els.customHeight.addEventListener("input", updateSummary);
     els.recalcBtn.addEventListener("click", updateSummary);
+    els.fileInput.addEventListener("change", updateFileMeta);
     els.paymentMethodRadios.forEach((radio) => {
       radio.addEventListener("change", updatePaymentUI);
     });
+
+    const clearDragState = () => {
+      if (els.uploadPanel) {
+        els.uploadPanel.classList.remove("is-dragover");
+      }
+    };
+
+    if (els.uploadPanel) {
+      ["dragenter", "dragover"].forEach((evtName) => {
+        els.uploadPanel.addEventListener(evtName, (event) => {
+          event.preventDefault();
+          els.uploadPanel.classList.add("is-dragover");
+        });
+      });
+      ["dragleave", "drop"].forEach((evtName) => {
+        els.uploadPanel.addEventListener(evtName, (event) => {
+          event.preventDefault();
+          clearDragState();
+          if (evtName === "drop" && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) {
+            try {
+              els.fileInput.files = event.dataTransfer.files;
+              updateFileMeta();
+            } catch (err) {
+              // Fallback silencioso: en algunos navegadores no se permite asignar FileList.
+            }
+          }
+        });
+      });
+    }
 
     els.addItemBtn.addEventListener("click", () => {
       updateSummary();
@@ -889,6 +948,7 @@
         els.quantity.value = "";
         els.customWidth.value = "";
         els.customHeight.value = "";
+        updateFileMeta();
         syncUI();
       } catch (err) {
         setStatus(err.message || "Error al enviar el pedido.", "error");
@@ -905,6 +965,7 @@
     buildSidesOptions();
     buildCoverageInputs();
     bindEvents();
+    updateFileMeta();
     updatePaymentUI();
     syncUI();
   }
