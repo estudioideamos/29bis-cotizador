@@ -146,7 +146,9 @@ function uploadFilesToDrive_(uploadedFiles, orderNumber) {
 
   const rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
   const safeOrderNumber = String(orderNumber || "pedido").replace(/[^\w-]/g, "_");
-  const orderFolder = getOrCreateSubfolder_(rootFolder, safeOrderNumber);
+  const monthFolderName = buildMonthFolderName_(orderNumber);
+  const monthFolder = getOrCreateSubfolder_(rootFolder, monthFolderName);
+  const orderFolder = getOrCreateSubfolder_(monthFolder, safeOrderNumber);
   const output = [];
 
   uploadedFiles.forEach((fileObj, index) => {
@@ -179,6 +181,15 @@ function getOrCreateSubfolder_(parentFolder, folderName) {
     return existing.next();
   }
   return parentFolder.createFolder(folderName);
+}
+
+function buildMonthFolderName_(orderNumber) {
+  const raw = String(orderNumber || "");
+  const match = raw.match(/29BIS-(\d{4})(\d{2})\d{2}-\d+/);
+  if (match) {
+    return `${match[1]}-${match[2]}`;
+  }
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM");
 }
 
 function summarizeItems_(items, key) {
