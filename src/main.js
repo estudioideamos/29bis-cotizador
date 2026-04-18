@@ -718,6 +718,12 @@
       return false;
     }
 
+    const paymentMethod = getSelectedPaymentMethod();
+    if (!paymentMethod) {
+      setStatus("Seleccioná una forma de pago: transferencia bancaria o pagar en el local.", "error");
+      return false;
+    }
+
     const machine = els.machine.value;
     if (machine === "laser" && !isSideAvailable(els.paper.value, els.size.value, els.sides.value)) {
       setStatus("Ese papel no permite doble faz en este tamaño.", "error");
