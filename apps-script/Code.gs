@@ -144,8 +144,9 @@ function uploadFilesToDrive_(uploadedFiles, orderNumber) {
     throw new Error("Configurá DRIVE_FOLDER_ID antes de usar subida de archivos.");
   }
 
-  const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  const rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
   const safeOrderNumber = String(orderNumber || "pedido").replace(/[^\w-]/g, "_");
+  const orderFolder = getOrCreateSubfolder_(rootFolder, safeOrderNumber);
   const output = [];
 
   uploadedFiles.forEach((fileObj, index) => {
@@ -157,8 +158,8 @@ function uploadFilesToDrive_(uploadedFiles, orderNumber) {
     }
 
     const bytes = Utilities.base64Decode(base64);
-    const blob = Utilities.newBlob(bytes, mimeType, `${safeOrderNumber}__${name}`);
-    const created = folder.createFile(blob);
+    const blob = Utilities.newBlob(bytes, mimeType, name);
+    const created = orderFolder.createFile(blob);
 
     output.push({
       id: created.getId(),
@@ -170,6 +171,14 @@ function uploadFilesToDrive_(uploadedFiles, orderNumber) {
   });
 
   return output;
+}
+
+function getOrCreateSubfolder_(parentFolder, folderName) {
+  const existing = parentFolder.getFoldersByName(folderName);
+  if (existing.hasNext()) {
+    return existing.next();
+  }
+  return parentFolder.createFolder(folderName);
 }
 
 function summarizeItems_(items, key) {
