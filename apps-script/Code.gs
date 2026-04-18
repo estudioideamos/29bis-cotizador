@@ -208,7 +208,11 @@ function ensureOrdersHeader_(sheet) {
     "file_ids",
     "file_count",
     "notes",
-    "raw_payload"
+    "raw_payload",
+    "internal_priority",
+    "assigned_to",
+    "status_changed_at",
+    "customer_notified"
   ]);
 }
 

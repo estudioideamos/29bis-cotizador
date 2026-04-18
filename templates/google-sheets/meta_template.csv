@@ -1,9 +1,12 @@
-key,value
-payment_status,Pendiente
-payment_status,Pagado
-production_status,Recibido
-production_status,En revisi?n
-production_status,En producci?n
-production_status,Listo para retirar
-production_status,Entregado
-production_status,Cancelado
+key,value,color_hex,sort_order
+payment_status,Pendiente,#fab948,10
+payment_status,Pagado,#82bfb7,20
+production_status,Recibido,#1c1c1a,10
+production_status,En revision,#fab948,20
+production_status,En produccion,#e84883,30
+production_status,Listo para retirar,#82bfb7,40
+production_status,Entregado,#3f8f66,50
+production_status,Cancelado,#c0392b,60
+internal_priority,Baja,#82bfb7,10
+internal_priority,Media,#fab948,20
+internal_priority,Alta,#e84883,30
