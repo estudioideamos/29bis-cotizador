@@ -1,0 +1,184 @@
+machine,paper_key,paper_label,size_key,coverage_key,side_key,price,active
+laser,obra_80,Obra 80gr,A4,lineas,sf,600,TRUE
+laser,obra_80,Obra 80gr,A4,lineas,df,1100,TRUE
+laser,obra_80,Obra 80gr,A4,mixto,sf,800,TRUE
+laser,obra_80,Obra 80gr,A4,mixto,df,1400,TRUE
+laser,obra_80,Obra 80gr,A4,pleno,sf,1100,TRUE
+laser,obra_80,Obra 80gr,A4,pleno,df,2000,TRUE
+laser,obra_80,Obra 80gr,A3,lineas,sf,1300,TRUE
+laser,obra_80,Obra 80gr,A3,lineas,df,2300,TRUE
+laser,obra_80,Obra 80gr,A3,mixto,sf,1600,TRUE
+laser,obra_80,Obra 80gr,A3,mixto,df,2800,TRUE
+laser,obra_80,Obra 80gr,A3,pleno,sf,2100,TRUE
+laser,obra_80,Obra 80gr,A3,pleno,df,4000,TRUE
+laser,chambril_90,Chambril 90gr,A4,,sf,1700,TRUE
+laser,chambril_90,Chambril 90gr,A4,,df,2300,TRUE
+laser,ilustracion_115,Ilustración 115gr,A4,,sf,1700,TRUE
+laser,ilustracion_115,Ilustración 115gr,A4,,df,2300,TRUE
+laser,chambril_150,Chambril 150gr,A4,,sf,1800,TRUE
+laser,chambril_150,Chambril 150gr,A4,,df,2400,TRUE
+laser,ilustracion_150,Ilustración 150gr,A4,,sf,1800,TRUE
+laser,ilustracion_150,Ilustración 150gr,A4,,df,2400,TRUE
+laser,chambril_180,Chambril 180gr,A4,,sf,2000,TRUE
+laser,chambril_180,Chambril 180gr,A4,,df,2500,TRUE
+laser,ilustracion_210,Ilustración 210gr,A4,,sf,2000,TRUE
+laser,ilustracion_210,Ilustración 210gr,A4,,df,2500,TRUE
+laser,chambril_240,Chambril 240gr,A4,,sf,2400,TRUE
+laser,chambril_240,Chambril 240gr,A4,,df,2900,TRUE
+laser,ilustracion_300,Ilustración 300gr,A4,,sf,2400,TRUE
+laser,ilustracion_300,Ilustración 300gr,A4,,df,2900,TRUE
+laser,kraft_125,Kraft 125gr,A4,,sf,2300,TRUE
+laser,kraft_125,Kraft 125gr,A4,,df,3100,TRUE
+laser,vegetal,Vegetal,A4,,sf,2500,TRUE
+laser,autoadhesivo_obra,Autoadhesivo obra,A4,,sf,2100,TRUE
+laser,autoadhesivo_brillo,Autoadhesivo brillo (ilustración),A4,,sf,2100,TRUE
+laser,chambril_90,Chambril 90gr,SA3,,sf,2600,TRUE
+laser,chambril_90,Chambril 90gr,SA3,,df,3400,TRUE
+laser,ilustracion_115,Ilustración 115gr,SA3,,sf,2600,TRUE
+laser,ilustracion_115,Ilustración 115gr,SA3,,df,3400,TRUE
+laser,chambril_150,Chambril 150gr,SA3,,sf,3000,TRUE
+laser,chambril_150,Chambril 150gr,SA3,,df,4000,TRUE
+laser,ilustracion_150,Ilustración 150gr,SA3,,sf,3000,TRUE
+laser,ilustracion_150,Ilustración 150gr,SA3,,df,4000,TRUE
+laser,chambril_180,Chambril 180gr,SA3,,sf,3400,TRUE
+laser,chambril_180,Chambril 180gr,SA3,,df,4300,TRUE
+laser,ilustracion_210,Ilustración 210gr,SA3,,sf,3400,TRUE
+laser,ilustracion_210,Ilustración 210gr,SA3,,df,4300,TRUE
+laser,chambril_240,Chambril 240gr,SA3,,sf,4000,TRUE
+laser,chambril_240,Chambril 240gr,SA3,,df,4800,TRUE
+laser,ilustracion_300,Ilustración 300gr,SA3,,sf,4000,TRUE
+laser,ilustracion_300,Ilustración 300gr,SA3,,df,4800,TRUE
+laser,kraft_125,Kraft 125gr,SA3,,sf,3900,TRUE
+laser,kraft_125,Kraft 125gr,SA3,,df,4700,TRUE
+laser,vegetal,Vegetal,SA3,,sf,4900,TRUE
+laser,autoadhesivo_obra,Autoadhesivo obra,SA3,,sf,4100,TRUE
+laser,autoadhesivo_brillo,Autoadhesivo brillo (ilustración),SA3,,sf,4100,TRUE
+laser,opp,OPP,SA3,,sf,13900,TRUE
+laser,cartulina_encapada_280,Cartulina encapada 280gr,SA3,,sf,5400,TRUE
+laser,cartulina_encapada_280,Cartulina encapada 280gr,SA3,,df,7600,TRUE
+plotter,plotter_obra_90,Obra 90gr,A2,lineas,,1900,TRUE
+plotter,plotter_obra_90,Obra 90gr,A2,mixto,,2800,TRUE
+plotter,plotter_obra_90,Obra 90gr,A2,pleno,,4590,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A2,lineas,,3850,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A2,mixto,,4750,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A2,pleno,,6530,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A2,lineas,,4460,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A2,mixto,,5360,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A2,pleno,,7140,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A2,lineas,,9500,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A2,mixto,,10400,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A2,pleno,,12180,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A2,lineas,,4890,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A2,mixto,,5780,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A2,pleno,,7560,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A2,lineas,,14960,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A2,mixto,,15860,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A2,pleno,,17640,TRUE
+plotter,plotter_obra_90,Obra 90gr,A1,lineas,,3120,TRUE
+plotter,plotter_obra_90,Obra 90gr,A1,mixto,,4910,TRUE
+plotter,plotter_obra_90,Obra 90gr,A1,pleno,,8470,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A1,lineas,,5900,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A1,mixto,,7690,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A1,pleno,,11250,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A1,lineas,,6770,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A1,mixto,,8560,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A1,pleno,,12120,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A1,lineas,,13970,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A1,mixto,,15760,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A1,pleno,,19320,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A1,lineas,,7370,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A1,mixto,,9160,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A1,pleno,,12720,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A1,lineas,,21770,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A1,mixto,,23560,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A1,pleno,,27120,TRUE
+plotter,plotter_obra_90,Obra 90gr,A0,lineas,,6230,TRUE
+plotter,plotter_obra_90,Obra 90gr,A0,mixto,,9830,TRUE
+plotter,plotter_obra_90,Obra 90gr,A0,pleno,,16950,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A0,lineas,,11800,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A0,mixto,,15390,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,A0,pleno,,22510,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A0,lineas,,13540,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A0,mixto,,17130,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,A0,pleno,,24250,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A0,lineas,,27940,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A0,mixto,,31530,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,A0,pleno,,38650,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A0,lineas,,14740,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A0,mixto,,18330,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,A0,pleno,,25450,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A0,lineas,,43540,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A0,mixto,,47130,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,A0,pleno,,54250,TRUE
+plotter,plotter_obra_90,Obra 90gr,35x50,lineas,,1500,TRUE
+plotter,plotter_obra_90,Obra 90gr,35x50,mixto,,2120,TRUE
+plotter,plotter_obra_90,Obra 90gr,35x50,pleno,,3350,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,35x50,lineas,,3120,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,35x50,mixto,,3740,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,35x50,pleno,,4980,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,35x50,lineas,,3630,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,35x50,mixto,,4250,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,35x50,pleno,,5480,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,35x50,lineas,,7820,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,35x50,mixto,,8450,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,35x50,pleno,,9680,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,35x50,lineas,,3970,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,35x50,mixto,,4600,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,35x50,pleno,,5830,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,35x50,lineas,,12370,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,35x50,mixto,,13000,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,35x50,pleno,,14230,TRUE
+plotter,plotter_obra_90,Obra 90gr,50x70,lineas,,2410,TRUE
+plotter,plotter_obra_90,Obra 90gr,50x70,mixto,,3650,TRUE
+plotter,plotter_obra_90,Obra 90gr,50x70,pleno,,6130,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,50x70,lineas,,4720,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,50x70,mixto,,5970,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,50x70,pleno,,8450,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,50x70,lineas,,5450,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,50x70,mixto,,6700,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,50x70,pleno,,9170,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,50x70,lineas,,11450,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,50x70,mixto,,12700,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,50x70,pleno,,15170,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,50x70,lineas,,5950,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,50x70,mixto,,7200,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,50x70,pleno,,9670,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,50x70,lineas,,17950,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,50x70,mixto,,19200,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,50x70,pleno,,21670,TRUE
+plotter,plotter_obra_90,Obra 90gr,70x100,lineas,,3940,TRUE
+plotter,plotter_obra_90,Obra 90gr,70x100,mixto,,6430,TRUE
+plotter,plotter_obra_90,Obra 90gr,70x100,pleno,,11380,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,70x100,lineas,,7180,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,70x100,mixto,,9680,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,70x100,pleno,,14630,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,70x100,lineas,,8200,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,70x100,mixto,,10700,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,70x100,pleno,,15640,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,70x100,lineas,,16600,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,70x100,mixto,,19100,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,70x100,pleno,,24040,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,70x100,lineas,,8900,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,70x100,mixto,,11400,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,70x100,pleno,,16340,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,70x100,lineas,,25700,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,70x100,mixto,,28200,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,70x100,pleno,,33140,TRUE
+plotter,plotter_obra_90,Obra 90gr,100x100_personalizado,lineas,,5630,TRUE
+plotter,plotter_obra_90,Obra 90gr,100x100_personalizado,mixto,,9200,TRUE
+plotter,plotter_obra_90,Obra 90gr,100x100_personalizado,pleno,,16260,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,100x100_personalizado,lineas,,10270,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,100x100_personalizado,mixto,,13830,TRUE
+plotter,plotter_cartulina_130,Cartulina 130gr,100x100_personalizado,pleno,,20900,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,100x100_personalizado,lineas,,11720,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,100x100_personalizado,mixto,,15280,TRUE
+plotter,plotter_cartulina_170,Cartulina 170gr,100x100_personalizado,pleno,,22350,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,100x100_personalizado,lineas,,23720,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,100x100_personalizado,mixto,,27280,TRUE
+plotter,plotter_fotografico_180,Fotográfico 180gr,100x100_personalizado,pleno,,33450,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,100x100_personalizado,lineas,,12720,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,100x100_personalizado,mixto,,16280,TRUE
+plotter,plotter_vegetal,Vegetal 90gr,100x100_personalizado,pleno,,23350,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,100x100_personalizado,lineas,,36720,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,100x100_personalizado,mixto,,40280,TRUE
+plotter,plotter_poliester_100,Poliéster 100 mic,100x100_personalizado,pleno,,47350,TRUE

@@ -1,0 +1,9 @@
+key,value
+payment_status,Pendiente
+payment_status,Pagado
+production_status,Recibido
+production_status,En revisi?n
+production_status,En producci?n
+production_status,Listo para retirar
+production_status,Entregado
+production_status,Cancelado

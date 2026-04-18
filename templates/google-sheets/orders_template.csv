@@ -1,0 +1,1 @@
+created_at,order_number,customer_name,customer_phone,customer_email,machine,paper,size,custom_width_m,custom_height_m,custom_area_m2,sides,coverage_distribution,total_sheets,subtotal,discount_rate,discount_amount,total,payment_method,payment_status,production_status,pickup_datetime,urgent,file_name,file_url,notes,raw_payload
