@@ -248,6 +248,26 @@
     </section>
 
     <section class="section">
+      <h2>Cuando no hay stock de un papel (inhabilitar opcion)</h2>
+      <p>Si un papel se queda sin stock, se puede ocultar del cotizador en menos de 1 minuto:</p>
+      <ol>
+        <li>Ir a la pestaña <strong>prices</strong>.</li>
+        <li>Buscar el papel sin stock (podes filtrar por columna <strong>papel (nombre)</strong>).</li>
+        <li>En la columna <strong>disponible</strong>, cambiar el valor a <code>FALSE</code> en todas las filas de ese papel.</li>
+        <li>Guardar: el cambio impacta en la web automaticamente.</li>
+      </ol>
+      <div class="ok">
+        Resultado: ese papel deja de aparecer como opcion para el cliente en el formulario.
+      </div>
+      <h3>Volver a habilitar cuando entra stock</h3>
+      <ol>
+        <li>Volver a <strong>prices</strong>.</li>
+        <li>En esas mismas filas, poner <code>disponible = TRUE</code>.</li>
+      </ol>
+      <p><strong>Recomendacion:</strong> usar siempre <code>TRUE</code> / <code>FALSE</code> (en mayusculas) para evitar errores.</p>
+    </section>
+
+    <section class="section">
       <h2>Archivado de pedidos (mensual)</h2>
       <p>Para mantener la hoja liviana, archivar pedidos <strong>Entregados</strong> de meses anteriores.</p>
       <ol>
