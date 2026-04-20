@@ -259,7 +259,13 @@
         <li>En la columna <strong>disponible</strong>, elegir <code>FALSE</code> en el dropdown en todas las filas de ese papel.</li>
         <li>Guardar: el cambio impacta en la web automaticamente.</li>
       </ol>
-      <p>Si la columna no tiene dropdown, ejecutar una vez desde menu: <strong>29 BIS Gestion -> Configurar dropdown stock en prices</strong>.</p>
+      <p>Si la columna no tiene dropdown, crearlo una vez desde Apps Script ejecutando la funcion <code>configurarDropdownStockPrices29</code>.</p>
+      <ol>
+        <li>Abrir <strong>Extensiones -> Apps Script</strong>.</li>
+        <li>Crear archivo script nuevo (por ejemplo: <code>STOCK_DROPDOWN</code>).</li>
+        <li>Pegar la funcion <code>configurarDropdownStockPrices29</code>.</li>
+        <li>Guardar y ejecutar esa funcion una vez.</li>
+      </ol>
       <div class="ok">
         Resultado: ese papel deja de aparecer como opcion para el cliente en el formulario.
       </div>
