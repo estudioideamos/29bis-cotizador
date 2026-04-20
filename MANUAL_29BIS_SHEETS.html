@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>29 BIS - Manual de uso (Google Sheets)</title>
+  <title>29 BIS - Manual de gestión de pedidos</title>
   <style>
     :root {
       --pink: #e84883;
@@ -84,7 +84,7 @@
       color: var(--dark);
     }
     h3 {
-      margin: 16px 0 8px;
+      margin: 14px 0 8px;
       font-size: 17px;
       color: var(--dark);
     }
@@ -145,218 +145,118 @@
   <div class="wrap">
     <header class="hero">
       <div class="hero-top">
-        <h1>Manual de uso - Google Sheets 29 BIS</h1>
-        <p>Guia clara para operar pedidos, pagos y preparacion sin tocar codigo.</p>
+        <h1>Manual de gestión - 29 BIS</h1>
+        <p>Guía simple para operar pedidos y precios. Sin pasos técnicos.</p>
       </div>
       <div class="hero-meta">
         <span class="chip pink">Sistema: Cotizador 29 BIS</span>
-        <span class="chip mint">Fecha: 20/04/2026</span>
-        <span class="chip gold">Uso: operativo diario</span>
+        <span class="chip mint">Uso diario de mostrador</span>
+        <span class="chip gold">Actualizado: 20/04/2026</span>
       </div>
     </header>
 
     <section class="section">
-      <h2>Datos del local (visibles en la web)</h2>
+      <h2>Datos del local</h2>
       <ul>
-        <li><strong>Direccion:</strong> Riobamba 162 bis, Rosario, Santa Fe, Argentina.</li>
-        <li><strong>Horario de atencion:</strong> lunes a viernes de 7:30 a 19:30.</li>
+        <li><strong>Dirección:</strong> Riobamba 162 bis, Rosario, Santa Fe, Argentina.</li>
+        <li><strong>Horario:</strong> lunes a viernes de 7:30 a 19:30.</li>
       </ul>
     </section>
 
     <section class="section">
-      <h2>Inicio rapido (2 minutos)</h2>
-      <ol>
-        <li>Abrir la pestaña <strong>operacion</strong>.</li>
-        <li>Buscar el pedido por <strong>Numero de pedido</strong> o cliente.</li>
-        <li>Revisar <strong>link de archivos</strong> y detalles.</li>
-        <li>Actualizar <strong>Estado de pago</strong> y <strong>Estado de pedido</strong>.</li>
-      </ol>
-      <div class="ok">
-        <strong>Objetivo diario:</strong> mantener al dia los estados para saber que esta pendiente, que esta en preparacion y que esta listo para retirar.
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>Que hace cada pestaña</h2>
+      <h2>Qué pestañas usar</h2>
       <div class="grid">
         <article class="card">
           <h4>dashboard</h4>
-          <p>Resumen general del negocio y ultimos pedidos.</p>
-          <p><strong>Uso:</strong> solo lectura (se actualiza automatico cada minuto).</p>
+          <p>Resumen general (pedidos, pagos, facturación). Solo lectura.</p>
         </article>
         <article class="card">
           <h4>operacion</h4>
-          <p>Vista recomendada para trabajar todos los dias.</p>
-          <p><strong>Uso:</strong> actualizar estados y seguimiento.</p>
-        </article>
-        <article class="card">
-          <h4>orders</h4>
-          <p>Base completa de pedidos que llegan desde la web.</p>
-          <p><strong>Uso:</strong> control, filtros y auditoria.</p>
+          <p>Pestaña principal para trabajar: cambiar estados y revisar pedidos.</p>
         </article>
         <article class="card">
           <h4>prices</h4>
-          <p>Tabla de precios del cotizador.</p>
-          <p><strong>Uso:</strong> editar precios y disponibilidad.</p>
-        </article>
-        <article class="card">
-          <h4>meta</h4>
-          <p>Listas internas para dropdowns (estados, prioridad, etc.).</p>
-          <p><strong>Uso:</strong> editar solo si hace falta agregar opciones.</p>
+          <p>Editar precios y stock de papeles.</p>
         </article>
         <article class="card">
           <h4>orders_archivo</h4>
-          <p>Pedidos entregados de meses anteriores.</p>
-          <p><strong>Uso:</strong> historial sin recargar la hoja principal.</p>
+          <p>Historial de pedidos archivados.</p>
         </article>
       </div>
-    </section>
-
-    <section class="section">
-      <h2>Flujo recomendado de trabajo (paso a paso)</h2>
-      <h3>1. Control de pedido</h3>
-      <ol>
-        <li>Entrar en <strong>operacion</strong>.</li>
-        <li>Filtrar por estado o buscar por cliente.</li>
-        <li>Verificar archivo, tamaño, papel y retiro.</li>
-      </ol>
-
-      <h3>2. Estado de pago</h3>
-      <ol>
-        <li>Usar el dropdown de <strong>Estado de pago</strong>.</li>
-        <li>Opciones sugeridas: Pendiente / Pagado.</li>
-      </ol>
-
-      <h3>3. Estado de produccion</h3>
-      <ol>
-        <li>Usar el dropdown de <strong>Estado de pedido</strong>.</li>
-        <li>Estados definidos para operar: <strong>En revision</strong> (por defecto), <strong>En preparacion</strong>, <strong>Listo para retirar</strong>.</li>
-      </ol>
-    </section>
-
-    <section class="section">
-      <h2>Como actualizar precios</h2>
-      <ol>
-        <li>Abrir <strong>prices</strong>.</li>
-        <li>Buscar la fila que corresponda (papel, tamaño, cobertura, faz).</li>
-        <li>Editar <strong>precio unitario</strong>.</li>
-        <li>Si un papel no se vende temporalmente, poner <code>disponible = FALSE</code>.</li>
-      </ol>
-      <div class="warn">
-        <strong>Importante:</strong> no borres filas de precios. Solo actualiza valor o disponibilidad.
+      <div class="danger">
+        <strong>No tocar:</strong> pestañas <code>orders</code> y <code>meta</code>, ni Apps Script.
+        Si necesitan nuevas opciones o cambios estructurales, te contactan a vos.
       </div>
+    </section>
+
+    <section class="section">
+      <h2>Gestión diaria de pedidos</h2>
+      <ol>
+        <li>Entrar a <strong>operacion</strong>.</li>
+        <li>Buscar el pedido por número o cliente.</li>
+        <li>Abrir <strong>Links archivos</strong> para descargar/ver lo que hay que imprimir.</li>
+        <li>Actualizar:
+          <ul>
+            <li><strong>Estado pago:</strong> Pendiente / Pagado.</li>
+            <li><strong>Estado pedido:</strong> En revisión / En preparación / Listo para retirar.</li>
+          </ul>
+        </li>
+      </ol>
       <div class="ok">
-        <strong>Sincronizacion activa:</strong> los cambios en <strong>prices</strong> (precio y disponible) impactan en la web automaticamente.
+        El dashboard se actualiza automáticamente con lo que vayan cambiando.
       </div>
     </section>
 
     <section class="section">
-      <h2>Cuando no hay stock de un papel (inhabilitar opcion)</h2>
-      <p>Si un papel se queda sin stock, se puede ocultar del cotizador en menos de 1 minuto:</p>
+      <h2>Cómo cambiar precios</h2>
       <ol>
         <li>Ir a la pestaña <strong>prices</strong>.</li>
-        <li>Buscar el papel sin stock (podes filtrar por columna <strong>papel (nombre)</strong>).</li>
-        <li>En la columna <strong>disponible</strong>, elegir <code>FALSE</code> en el dropdown en todas las filas de ese papel.</li>
-        <li>Guardar: el cambio impacta en la web automaticamente.</li>
-      </ol>
-      <p>Si la columna no tiene dropdown, crearlo una vez desde Apps Script ejecutando la funcion <code>configurarDropdownStockPrices29</code>.</p>
-      <ol>
-        <li>Abrir <strong>Extensiones -> Apps Script</strong>.</li>
-        <li>Crear archivo script nuevo (por ejemplo: <code>STOCK_DROPDOWN</code>).</li>
-        <li>Pegar la funcion <code>configurarDropdownStockPrices29</code>.</li>
-        <li>Guardar y ejecutar esa funcion una vez.</li>
+        <li>Buscar la fila del papel/tamaño/faz que querés actualizar.</li>
+        <li>Modificar la celda de <strong>precio unitario</strong>.</li>
       </ol>
       <div class="ok">
-        Resultado: ese papel deja de aparecer como opcion para el cliente en el formulario.
+        <strong>Importante:</strong> sí, está sincronizado con la web.
+        Si cambian un precio en <strong>prices</strong>, ese precio se usa en el cotizador online.
       </div>
-      <h3>Volver a habilitar cuando entra stock</h3>
-      <ol>
-        <li>Volver a <strong>prices</strong>.</li>
-        <li>En esas mismas filas, elegir <code>TRUE</code> en el dropdown.</li>
-      </ol>
-      <p><strong>Recomendacion:</strong> usar siempre <code>TRUE</code> / <code>FALSE</code> (en mayusculas) para evitar errores.</p>
-    </section>
-
-    <section class="section">
-      <h2>Sincronizacion web con Google Sheets (precios y stock)</h2>
-      <ol>
-        <li>El sitio consulta Apps Script con <code>?action=prices</code>.</li>
-        <li>Apps Script lee la hoja <strong>prices</strong> y devuelve precio + disponible.</li>
-        <li>El cotizador usa esos valores en tiempo real para mostrar opciones y calcular total.</li>
-      </ol>
       <div class="warn">
-        Si no ves un cambio inmediato en la web, recargar con <strong>Ctrl + F5</strong>.
+        Si no se refleja al instante en el navegador, recargar con <strong>Ctrl + F5</strong>.
       </div>
     </section>
 
     <section class="section">
-      <h2>Archivado de pedidos (mensual)</h2>
-      <p>Para mantener la hoja liviana, archivar pedidos <strong>Entregados</strong> de meses anteriores.</p>
+      <h2>Qué hacer si un papel se queda sin stock</h2>
       <ol>
-        <li>En Apps Script ejecutar <code>previewArchiveDeliveredOrdersMonthly()</code> para ver que moveria.</li>
-        <li>Ejecutar <code>archiveDeliveredOrdersMonthly()</code> para moverlos a <strong>orders_archivo</strong>.</li>
+        <li>Ir a <strong>prices</strong>.</li>
+        <li>En la columna <strong>disponible</strong>, elegir <code>FALSE</code> para ese papel.</li>
       </ol>
+      <p>Cuando vuelva el stock, volver a <code>TRUE</code>.</p>
       <div class="ok">
-        El archivado no borra historial: solo lo ordena en otra pestaña.
+        Con <code>FALSE</code>, ese papel deja de aparecer en la web para el cliente.
       </div>
     </section>
 
     <section class="section">
-      <h2>Eliminar pedidos sin romper nada</h2>
+      <h2>Eliminar pedidos de forma segura</h2>
       <ol>
-        <li>Ir a la pestaña <strong>operacion</strong>.</li>
-        <li>Seleccionar cualquier celda de la fila del pedido que queres eliminar.</li>
-        <li>Ir al menu superior <strong>29 BIS Gestion</strong> -> <strong>Eliminar pedido seleccionado</strong>.</li>
-        <li>Confirmar en el cartel.</li>
+        <li>Ir a <strong>operacion</strong>.</li>
+        <li>Seleccionar una celda de la fila del pedido.</li>
+        <li>Menú <strong>29 BIS Gestión</strong> → <strong>Eliminar pedido seleccionado</strong>.</li>
       </ol>
       <div class="warn">
-        Este metodo elimina correctamente en <strong>orders</strong> y actualiza la vista de <strong>operacion</strong>. No borrar filas manualmente en otras hojas.
+        No borrar filas manualmente en otras pestañas.
       </div>
     </section>
 
     <section class="section">
-      <h2>Errores frecuentes y solucion</h2>
-      <h3>Error #REF! en "Ultimos pedidos" (dashboard)</h3>
-      <ol>
-        <li>Borrar solo valores en <strong>A14:F200</strong> (o mas abajo) dentro de dashboard.</li>
-        <li>En <strong>A14</strong> pegar esta formula:</li>
-      </ol>
-      <p><code>=SI.ERROR(QUERY(orders!A2:AG;"select B,C,T,U,R,V where B is not null order by A desc limit 6";0);"")</code></p>
-
-      <h3>Dashboard en cero aunque hay pedidos</h3>
-      <p>Verificar estas formulas en dashboard:</p>
+      <h2>Si algo no funciona</h2>
       <ul>
-        <li><code>A4 =CONTARA(orders!B2:B)</code></li>
-        <li><code>C4 =CONTAR.SI(orders!T2:T;"Pagado")</code></li>
-        <li><code>E4 =A4-C4</code></li>
-        <li><code>A8 =CONTAR.SI(orders!U2:U;"En preparacion")</code></li>
-        <li><code>C8 =CONTAR.SI(orders!U2:U;"Listo para retirar")</code></li>
-        <li><code>E8 =SUMA(SI.ERROR(VALOR(SUSTITUIR(SUSTITUIR(orders!R2:R;"$ ";"");".";""));0))</code></li>
+        <li>No editar fórmulas ni estructura de hojas.</li>
+        <li>No renombrar pestañas.</li>
+        <li>Si necesitan una opción nueva o cambio técnico, derivarlo a soporte.</li>
       </ul>
-      <p>Y en <strong>Archivo -> Configuracion -> Calculo</strong> poner <strong>Al cambiar y cada minuto</strong>.</p>
-
-      <h3>No llega mail automatico</h3>
-      <ol>
-        <li>Verificar email del cliente en el pedido.</li>
-        <li>Revisar Apps Script -> Registros de ejecucion -> <code>doPost</code>.</li>
-        <li>Si hubo cambios de codigo, volver a implementar Web App.</li>
-      </ol>
     </section>
 
-    <section class="section">
-      <h2>Que no hay que tocar</h2>
-      <div class="danger">
-        <ul>
-          <li>No borrar encabezados (fila 1) en ninguna pestaña.</li>
-          <li>No borrar formulas del dashboard.</li>
-          <li>No escribir manualmente en el bloque de "Ultimos pedidos".</li>
-          <li>No borrar columnas tecnicas en orders.</li>
-          <li>No cambiar nombres de pestañas: <code>dashboard</code>, <code>operacion</code>, <code>orders</code>, <code>prices</code>, <code>meta</code>, <code>orders_archivo</code>.</li>
-        </ul>
-      </div>
-    </section>
-
-    <p class="footer">&copy;2026 29 BIS - Creado con ❤️ por <a href="https://ideamos.com.ar">Estudio Ideamos</a></p>
+    <p class="footer">&copy;2026 29 BIS · Creado con ❤️ por <a href="https://ideamos.com.ar">Estudio Ideamos</a></p>
   </div>
 </body>
 </html>
