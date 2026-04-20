@@ -25,7 +25,7 @@ const OP_HEADER = [
   "Tamano",            // H
   "Faz",               // I
   "Nombre archivos",   // J
-  "Links archivos",    // K
+  "Adjuntos",          // K
   "Estado pago",       // L (editable)
   "Estado pedido",     // M (editable)
   "Total",             // N
@@ -83,7 +83,7 @@ function setupOperacionEditable() {
   op.hideColumns(OP_COL_HELPER_ROW);
 
   // anchos sugeridos
-  const widths = [180, 150, 220, 130, 220, 200, 170, 110, 120, 220, 260, 130, 150, 110, 140, 90, 260, 80];
+  const widths = [180, 150, 220, 130, 220, 200, 170, 110, 120, 220, 140, 130, 150, 110, 140, 90, 260, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   // Validaciones dropdown estados
@@ -136,7 +136,7 @@ function refreshOperacionEditable() {
         safe_(r[7]),          // H Tamano
         safe_(r[11]),         // I Faz
         safe_(r[23]),         // J Nombre archivos (X)
-        safe_(r[24]),         // K Links archivos (Y)
+        buildAdjuntosFormula_(r[24]), // K Adjuntos (Y)
         safe_(r[19]),         // L Estado pago (T)
         safe_(r[20]),         // M Estado pedido (U)
         num_(r[17]),          // N Total (R)
@@ -306,6 +306,22 @@ function parseMixedDate_(value) {
 
 function safe_(v) {
   return v == null ? "" : v;
+}
+
+function buildAdjuntosFormula_(rawLinkValue) {
+  const text = String(rawLinkValue == null ? "" : rawLinkValue).trim();
+  if (!text) {
+    return "";
+  }
+
+  // Si hay varios links viejos separados por "|", toma el primero.
+  const first = text.split("|")[0].trim();
+  if (!first) {
+    return "";
+  }
+
+  // Mostrar texto corto en vez de URL larga.
+  return `=HYPERLINK("${first.replace(/"/g, '""')}","Abrir adjuntos")`;
 }
 
 function num_(v) {

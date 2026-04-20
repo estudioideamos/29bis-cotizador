@@ -57,7 +57,9 @@ function doPost(e) {
     ensureOrdersHeader_(sh);
 
     const orderNumber = buildOrderNumber_(sh);
-    const uploaded = uploadFilesToDrive_(body.uploadedFiles || [], orderNumber);
+    const uploadedResult = uploadFilesToDrive_(body.uploadedFiles || [], orderNumber);
+    const uploaded = uploadedResult.files || [];
+    const folderUrl = String(uploadedResult.folderUrl || "").trim();
     const fileNames = uploaded.map((f) => f.name);
     const fileUrls = uploaded.map((f) => f.url);
     const fileIds = uploaded.map((f) => f.id);
@@ -94,7 +96,7 @@ function doPost(e) {
       pickupDateTimeDisplay || "",
       body.urgent ? "SI" : "NO",
       fileNames.join(" | "),
-      fileUrls.join(" | "),
+      folderUrl || fileUrls.join(" | "),
       fileIds.join(" | "),
       uploaded.length,
       body.notes || "",
@@ -108,6 +110,7 @@ function doPost(e) {
       message: "Pedido registrado correctamente.",
       orderNumber: orderNumber,
       fileUrls: fileUrls,
+      folderUrl: folderUrl,
       mailSent: mailResult.ok,
       mailError: mailResult.error || ""
     });
@@ -397,7 +400,7 @@ function formatDateTimeAr_(value) {
 
 function uploadFilesToDrive_(uploadedFiles, orderNumber) {
   if (!uploadedFiles || !uploadedFiles.length) {
-    return [];
+    return { files: [], folderUrl: "" };
   }
   if (!DRIVE_FOLDER_ID || DRIVE_FOLDER_ID.indexOf("REEMPLAZAR_") === 0) {
     throw new Error("ConfigurÃ¡ DRIVE_FOLDER_ID antes de usar subida de archivos.");
@@ -431,7 +434,10 @@ function uploadFilesToDrive_(uploadedFiles, orderNumber) {
     });
   });
 
-  return output;
+  return {
+    files: output,
+    folderUrl: orderFolder.getUrl()
+  };
 }
 
 function getOrCreateSubfolder_(parentFolder, folderName) {
