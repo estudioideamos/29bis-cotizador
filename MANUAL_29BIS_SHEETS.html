@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>29 BIS - Manual de gestiÃ³n de pedidos</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>29 BIS - Manual de gestion de pedidos</title>
   <style>
     :root {
       --pink: #e84883;
@@ -70,7 +70,6 @@
     .chip.pink { background: #fff3f8; border-color: #f6bfd3; color: #8c325a; }
     .chip.mint { background: #eff8f6; border-color: #bfe0da; color: #215b54; }
     .chip.gold { background: #fff8ea; border-color: #f6dd9e; color: #7b560d; }
-
     .section {
       margin-top: 16px;
       background: #fff;
@@ -81,11 +80,6 @@
     h2 {
       margin: 0 0 10px;
       font-size: 22px;
-      color: var(--dark);
-    }
-    h3 {
-      margin: 14px 0 8px;
-      font-size: 17px;
       color: var(--dark);
     }
     p, li { font-size: 15px; }
@@ -145,8 +139,8 @@
   <div class="wrap">
     <header class="hero">
       <div class="hero-top">
-        <h1>Manual de gestiÃ³n - 29 BIS</h1>
-        <p>GuÃ­a simple para operar pedidos y precios. Sin pasos tÃ©cnicos.</p>
+        <h1>Manual de gestion - 29 BIS</h1>
+        <p>Guia simple para operar pedidos y precios. Sin pasos tecnicos.</p>
       </div>
       <div class="hero-meta">
         <span class="chip pink">Sistema: Cotizador 29 BIS</span>
@@ -158,21 +152,21 @@
     <section class="section">
       <h2>Datos del local</h2>
       <ul>
-        <li><strong>DirecciÃ³n:</strong> Riobamba 162 bis, Rosario, Santa Fe, Argentina.</li>
+        <li><strong>Direccion:</strong> Riobamba 162 bis, Rosario, Santa Fe, Argentina.</li>
         <li><strong>Horario:</strong> lunes a viernes de 7:30 a 19:30.</li>
       </ul>
     </section>
 
     <section class="section">
-      <h2>QuÃ© pestañas usar</h2>
+      <h2>Que pestanas usar</h2>
       <div class="grid">
         <article class="card">
           <h4>dashboard</h4>
-          <p>Resumen general (pedidos, pagos, facturaciÃ³n). Solo lectura.</p>
+          <p>Resumen general (pedidos, pagos, facturacion). Solo lectura.</p>
         </article>
         <article class="card">
           <h4>operacion</h4>
-          <p>PestaÃ±a principal para trabajar: cambiar estados y revisar pedidos.</p>
+          <p>Pestana principal para trabajar: cambiar estados y revisar pedidos.</p>
         </article>
         <article class="card">
           <h4>prices</h4>
@@ -184,38 +178,38 @@
         </article>
       </div>
       <div class="danger">
-        <strong>No tocar:</strong> pestañas <code>orders</code> y <code>meta</code>.
-        Si necesitan cambios de lógica, nuevos campos o configuraciones, escribir a <strong>hola@ideamos.com.ar</strong> para cotizarlo.
+        <strong>No tocar:</strong> pestanas <code>orders</code> y <code>meta</code>.
+        Si necesitan cambios de logica, nuevos campos o configuraciones, escribir a <strong>hola@ideamos.com.ar</strong> para cotizarlo.
       </div>
     </section>
 
     <section class="section">
-      <h2>GestiÃ³n diaria de pedidos</h2>
+      <h2>Gestion diaria de pedidos</h2>
       <ol>
         <li>Entrar a <strong>operacion</strong>.</li>
-        <li>Buscar el pedido por nÃºmero o cliente.</li>
+        <li>Buscar el pedido por numero o cliente.</li>
         <li>Abrir <strong>Links archivos</strong> para descargar/ver lo que hay que imprimir.</li>
         <li>Actualizar:
           <ul>
             <li><strong>Estado pago:</strong> Pendiente / Pagado.</li>
-            <li><strong>Estado pedido:</strong> En revisiÃ³n / En preparaciÃ³n / Listo para retirar.</li>
+            <li><strong>Estado pedido:</strong> En revision / En preparacion / Listo para retirar.</li>
           </ul>
         </li>
       </ol>
       <div class="ok">
-        El dashboard se actualiza automÃ¡ticamente con lo que vayan cambiando.
+        El dashboard se actualiza automaticamente con lo que vayan cambiando.
       </div>
     </section>
 
     <section class="section">
-      <h2>CÃ³mo cambiar precios</h2>
+      <h2>Como cambiar precios</h2>
       <ol>
-        <li>Ir a la pestaÃ±a <strong>prices</strong>.</li>
-        <li>Buscar la fila del papel/tamaÃ±o/faz que querÃ©s actualizar.</li>
+        <li>Ir a la pestana <strong>prices</strong>.</li>
+        <li>Buscar la fila del papel/tamano/faz que quieren actualizar.</li>
         <li>Modificar la celda de <strong>precio unitario</strong>.</li>
       </ol>
       <div class="ok">
-        <strong>Importante:</strong> sÃ­, estÃ¡ sincronizado con la web.
+        <strong>Importante:</strong> esta sincronizado con la web.
         Si cambian un precio en <strong>prices</strong>, ese precio se usa en el cotizador online.
       </div>
       <div class="warn">
@@ -224,7 +218,7 @@
     </section>
 
     <section class="section">
-      <h2>QuÃ© hacer si un papel se queda sin stock</h2>
+      <h2>Que hacer si un papel se queda sin stock</h2>
       <ol>
         <li>Ir a <strong>prices</strong>.</li>
         <li>En la columna <strong>disponible</strong>, elegir <code>FALSE</code> para ese papel.</li>
@@ -240,26 +234,24 @@
       <ol>
         <li>Ir a <strong>operacion</strong>.</li>
         <li>Seleccionar una celda de la fila del pedido.</li>
-        <li>MenÃº <strong>29 BIS GestiÃ³n</strong> â†’ <strong>Eliminar pedido seleccionado</strong>.</li>
+        <li>Menu <strong>29 BIS Gestion</strong> -> <strong>Eliminar pedido seleccionado</strong>.</li>
       </ol>
       <div class="warn">
-        No borrar filas manualmente en otras pestañas.
+        No borrar filas manualmente en otras pestanas.
       </div>
     </section>
 
     <section class="section">
       <h2>Si algo no funciona</h2>
       <ul>
-        <li>No editar fórmulas ni estructura de hojas.</li>
-        <li>No renombrar pestañas.</li>
-        <li>Volver a cargar la página con <strong>Ctrl + F5</strong>.</li>
-        <li>Si necesitan cambios de lógica, nuevos campos o configuraciones, escribir a <strong>hola@ideamos.com.ar</strong> para cotizarlo.</li>
+        <li>No editar formulas ni estructura de hojas.</li>
+        <li>No renombrar pestanas.</li>
+        <li>Volver a cargar la pagina con <strong>Ctrl + F5</strong>.</li>
+        <li>Si necesitan cambios de logica, nuevos campos o configuraciones, escribir a <strong>hola@ideamos.com.ar</strong> para cotizarlo.</li>
       </ul>
     </section>
 
-    <p class="footer">&copy;2026 29 BIS Â· Creado con â¤ï¸ por <a href="https://ideamos.com.ar">Estudio Ideamos</a></p>
+    <p class="footer">&copy;2026 29 BIS - Creado con corazon por <a href="https://ideamos.com.ar">Estudio Ideamos</a></p>
   </div>
 </body>
 </html>
-
-
