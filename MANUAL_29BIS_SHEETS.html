@@ -245,6 +245,9 @@
       <div class="warn">
         <strong>Importante:</strong> no borres filas de precios. Solo actualiza valor o disponibilidad.
       </div>
+      <div class="ok">
+        <strong>Sincronizacion activa:</strong> los cambios en <strong>prices</strong> (precio y disponible) impactan en la web automaticamente.
+      </div>
     </section>
 
     <section class="section">
@@ -266,6 +269,18 @@
         <li>En esas mismas filas, elegir <code>TRUE</code> en el dropdown.</li>
       </ol>
       <p><strong>Recomendacion:</strong> usar siempre <code>TRUE</code> / <code>FALSE</code> (en mayusculas) para evitar errores.</p>
+    </section>
+
+    <section class="section">
+      <h2>Sincronizacion web con Google Sheets (precios y stock)</h2>
+      <ol>
+        <li>El sitio consulta Apps Script con <code>?action=prices</code>.</li>
+        <li>Apps Script lee la hoja <strong>prices</strong> y devuelve precio + disponible.</li>
+        <li>El cotizador usa esos valores en tiempo real para mostrar opciones y calcular total.</li>
+      </ol>
+      <div class="warn">
+        Si no ves un cambio inmediato en la web, recargar con <strong>Ctrl + F5</strong>.
+      </div>
     </section>
 
     <section class="section">

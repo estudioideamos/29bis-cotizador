@@ -39,6 +39,7 @@
   };
 
   let pricing = null;
+  let runtimePaperAvailability = { ...(config.paperAvailabilityOverrides || {}) };
 
   const currency = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -122,19 +123,136 @@
     }
   }
 
-  async function loadPricingData() {
-    if (config.pricesMode === "remote-json" && config.pricesJsonUrl) {
-      try {
-        const response = await fetch(config.pricesJsonUrl, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error("No se pudo leer el JSON remoto de precios.");
-        }
-        return await response.json();
-      } catch (err) {
-        setStatus(`${err.message} Se usará la tabla local.`, "error");
-      }
+  function deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  function normalizeBool(value, fallback = true) {
+    if (typeof value === "boolean") {
+      return value;
     }
-    return fallbackData;
+    if (typeof value === "number") {
+      return value !== 0;
+    }
+    const text = String(value || "").trim().toLowerCase();
+    if (["true", "1", "si", "sí", "yes"].includes(text)) {
+      return true;
+    }
+    if (["false", "0", "no"].includes(text)) {
+      return false;
+    }
+    return fallback;
+  }
+
+  function toNumber(value) {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+    const cleaned = String(value || "")
+      .replace(/\s/g, "")
+      .replace(/\$/g, "")
+      .replace(/\./g, "")
+      .replace(",", ".");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function patchPricingFromRows(basePricing, priceRows) {
+    (priceRows || []).forEach((row) => {
+      const machine = String(row.machine || "").trim();
+      const paperKey = String(row.paper_key || "").trim();
+      const sizeKey = String(row.size_key || "").trim();
+      const coverageKey = String(row.coverage_key || "").trim();
+      const sideKey = String(row.side_key || "").trim();
+      const price = toNumber(row.price);
+      if (!machine || !paperKey || !sizeKey || price == null) {
+        return;
+      }
+
+      if (machine === "plotter") {
+        if (!coverageKey) {
+          return;
+        }
+        if (!basePricing.plotter.prices[sizeKey]) {
+          basePricing.plotter.prices[sizeKey] = {};
+        }
+        if (!basePricing.plotter.prices[sizeKey][paperKey]) {
+          basePricing.plotter.prices[sizeKey][paperKey] = {};
+        }
+        basePricing.plotter.prices[sizeKey][paperKey][coverageKey] = price;
+        return;
+      }
+
+      if (machine === "laser") {
+        if (paperKey === "obra_80") {
+          if (!coverageKey || !sideKey) {
+            return;
+          }
+          if (!basePricing.laser.common.prices[sizeKey]) {
+            basePricing.laser.common.prices[sizeKey] = {};
+          }
+          if (!basePricing.laser.common.prices[sizeKey][coverageKey]) {
+            basePricing.laser.common.prices[sizeKey][coverageKey] = {};
+          }
+          basePricing.laser.common.prices[sizeKey][coverageKey][sideKey] = price;
+          return;
+        }
+
+        if (!sideKey) {
+          return;
+        }
+        if (!basePricing.laser.special.prices[sizeKey]) {
+          basePricing.laser.special.prices[sizeKey] = {};
+        }
+        if (!basePricing.laser.special.prices[sizeKey][paperKey]) {
+          basePricing.laser.special.prices[sizeKey][paperKey] = {};
+        }
+        basePricing.laser.special.prices[sizeKey][paperKey][sideKey] = price;
+      }
+    });
+  }
+
+  async function loadPricingData() {
+    const base = deepClone(fallbackData);
+    runtimePaperAvailability = { ...(config.paperAvailabilityOverrides || {}) };
+
+    if (config.pricesMode !== "remote-json" || !config.pricesJsonUrl) {
+      return base;
+    }
+
+    try {
+      const response = await fetch(config.pricesJsonUrl, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("No se pudo leer el JSON remoto de precios.");
+      }
+      const remote = await response.json();
+
+      if (remote && remote.mode === "price-rows" && Array.isArray(remote.priceRows)) {
+        patchPricingFromRows(base, remote.priceRows);
+        if (remote.paperAvailability && typeof remote.paperAvailability === "object") {
+          Object.entries(remote.paperAvailability).forEach(([paperKey, isAvailable]) => {
+            runtimePaperAvailability[paperKey] = normalizeBool(isAvailable, true);
+          });
+        }
+        return base;
+      }
+
+      // Compatibilidad si algún día el endpoint devuelve estructura completa.
+      if (remote && remote.machines && remote.papers && remote.laser && remote.plotter) {
+        if (remote.paperAvailabilityOverrides && typeof remote.paperAvailabilityOverrides === "object") {
+          runtimePaperAvailability = {
+            ...runtimePaperAvailability,
+            ...remote.paperAvailabilityOverrides
+          };
+        }
+        return remote;
+      }
+
+      return base;
+    } catch (err) {
+      setStatus(`${err.message} Se usará la tabla local.`, "error");
+      return base;
+    }
   }
 
   function isLaser(machineKey) {
@@ -153,8 +271,8 @@
     if (!paperKey) {
       return false;
     }
-    if (Object.prototype.hasOwnProperty.call(config.paperAvailabilityOverrides || {}, paperKey)) {
-      return Boolean(config.paperAvailabilityOverrides[paperKey]);
+    if (Object.prototype.hasOwnProperty.call(runtimePaperAvailability || {}, paperKey)) {
+      return Boolean(runtimePaperAvailability[paperKey]);
     }
     return true;
   }

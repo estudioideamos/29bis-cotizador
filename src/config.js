@@ -1,9 +1,9 @@
 ﻿window.APP_CONFIG = {
   // Opciones: "local" o "remote-json"
-  pricesMode: "local",
+  pricesMode: "remote-json",
 
-  // Si pricesMode = "remote-json", el JSON debe tener la misma estructura que PRICING_DATA
-  pricesJsonUrl: "",
+  // Si pricesMode = "remote-json", consulta Apps Script con ?action=prices
+  pricesJsonUrl: "https://script.google.com/macros/s/AKfycbwKbtDBiQv7gk31fNzfZlCf6cPDb3o_9SkokmdB_zQhC41GmAeROw83o9BGenyuk8MwfA/exec?action=prices",
 
   // Web App de Apps Script para guardar pedidos en Google Sheets
   // y subir archivos adjuntos a Google Drive.

@@ -11,6 +11,29 @@
 const SHEET_ID = "12rXU8RzKk3FvV7mxF7fGCjLlpecQmXr8zazRj3cEbPQ";
 const ORDERS_SHEET = "orders";
 const DRIVE_FOLDER_ID = "1FSVN4ads-CID2H19JN2u3H2EfnNetCWk";
+const PRICES_SHEET = "prices";
+
+function doGet(e) {
+  try {
+    const action = String((e && e.parameter && e.parameter.action) || "").trim().toLowerCase();
+
+    if (action === "prices") {
+      return jsonResponse(buildPricesPayload_());
+    }
+
+    return jsonResponse({
+      ok: true,
+      message: "API 29 BIS activa",
+      actions: ["prices"]
+    });
+  } catch (err) {
+    return jsonResponse({
+      ok: false,
+      message: "Error en GET.",
+      detail: String(err)
+    });
+  }
+}
 
 function doPost(e) {
   try {
@@ -67,7 +90,7 @@ function doPost(e) {
       body.pricing && body.pricing.total ? body.pricing.total : 0,
       body.payment && body.payment.label ? body.payment.label : "",
       "Pendiente",
-      "Recibido",
+      "En revisión",
       pickupDateTimeDisplay || "",
       body.urgent ? "SI" : "NO",
       fileNames.join(" | "),
@@ -95,6 +118,145 @@ function doPost(e) {
       detail: String(err)
     });
   }
+}
+
+function buildPricesPayload_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = ss.getSheetByName(PRICES_SHEET);
+  if (!sh) {
+    throw new Error(`No existe la hoja "${PRICES_SHEET}".`);
+  }
+
+  const values = sh.getDataRange().getValues();
+  if (!values || values.length < 2) {
+    return {
+      ok: true,
+      mode: "price-rows",
+      priceRows: [],
+      paperAvailability: {},
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  const header = values[0].map((h) => normalizeHeader_(h));
+  const idxMachine = findHeaderIndex_(header, ["tipo de impresion", "machine"]);
+  const idxPaperKey = findHeaderIndex_(header, ["papel (codigo)", "paper_key"]);
+  const idxSizeKey = findHeaderIndex_(header, ["tamano (codigo)", "size_key"]);
+  const idxCoverageKey = findHeaderIndex_(header, ["cobertura (codigo)", "coverage_key"]);
+  const idxSideKey = findHeaderIndex_(header, ["faz (codigo)", "side_key"]);
+  const idxPrice = findHeaderIndex_(header, ["precio unitario", "price"]);
+  const idxActive = findHeaderIndex_(header, ["disponible", "active"]);
+
+  if (idxMachine === -1 || idxPaperKey === -1 || idxSizeKey === -1 || idxPrice === -1) {
+    throw new Error("La hoja prices no tiene los encabezados mínimos requeridos.");
+  }
+
+  const priceRows = [];
+  const availability = {};
+
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const machine = normalizeMachine_(row[idxMachine]);
+    const paperKey = String(row[idxPaperKey] || "").trim();
+    const sizeKey = String(row[idxSizeKey] || "").trim();
+    const coverageKey = idxCoverageKey >= 0 ? String(row[idxCoverageKey] || "").trim() : "";
+    const sideKey = idxSideKey >= 0 ? String(row[idxSideKey] || "").trim() : "";
+    const price = parsePriceNumber_(row[idxPrice]);
+    const active = idxActive >= 0 ? normalizeBoolean_(row[idxActive], true) : true;
+
+    if (!machine || !paperKey || !sizeKey || price == null) {
+      continue;
+    }
+
+    priceRows.push({
+      machine: machine,
+      paper_key: paperKey,
+      size_key: sizeKey,
+      coverage_key: coverageKey,
+      side_key: sideKey,
+      price: price,
+      active: active
+    });
+
+    // Si al menos una fila de ese papel está activa, se considera disponible.
+    if (!Object.prototype.hasOwnProperty.call(availability, paperKey)) {
+      availability[paperKey] = active;
+    } else {
+      availability[paperKey] = Boolean(availability[paperKey] || active);
+    }
+  }
+
+  return {
+    ok: true,
+    mode: "price-rows",
+    priceRows: priceRows,
+    paperAvailability: availability,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function normalizeHeader_(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findHeaderIndex_(headers, candidates) {
+  const list = Array.isArray(candidates) ? candidates : [candidates];
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i];
+    for (let j = 0; j < list.length; j++) {
+      const c = normalizeHeader_(list[j]);
+      if (h === c) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+function normalizeMachine_(value) {
+  const text = normalizeHeader_(value);
+  if (text.indexOf("plotter") !== -1) {
+    return "plotter";
+  }
+  if (text.indexOf("laser") !== -1 || text.indexOf("láser") !== -1) {
+    return "laser";
+  }
+  return "";
+}
+
+function parsePriceNumber_(value) {
+  if (typeof value === "number") {
+    return isNaN(value) ? null : Number(value);
+  }
+  const cleaned = String(value || "")
+    .replace(/\s/g, "")
+    .replace(/\$/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const n = Number(cleaned);
+  return isNaN(n) ? null : n;
+}
+
+function normalizeBoolean_(value, fallback) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  const text = String(value || "").trim().toLowerCase();
+  if (["true", "1", "si", "sí", "yes"].includes(text)) {
+    return true;
+  }
+  if (["false", "0", "no"].includes(text)) {
+    return false;
+  }
+  return fallback;
 }
 
 function sendOrderConfirmationEmail_(body, orderNumber) {
@@ -142,9 +304,9 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
     '<tr><td align="center">',
     '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="640" style="width:640px;max-width:640px;background:#ffffff;border:1px solid #ece7dd;overflow:hidden;">',
     "<tr>",
-    '<td style="padding:22px 24px;background:#1c1c1a;">',
+    '<td style="padding:22px 24px;background:#ffffff;border-bottom:1px solid #ece7dd;">',
     '<img src="https://ideamos.ar/imprenta/wp-content/uploads/2026/03/logo-dark-29-bis.png" alt="29 BIS" width="130" style="display:block;width:130px;max-width:130px;height:auto;border:0;outline:none;text-decoration:none;">',
-    '<p style="margin:10px 0 0 0;color:#f8f8f8;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;">Confirmación de pedido</p>',
+    '<p style="margin:10px 0 0 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;">Confirmación de pedido</p>',
     "</td>",
     "</tr>",
     "<tr>",
