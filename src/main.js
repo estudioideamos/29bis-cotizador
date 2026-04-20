@@ -53,6 +53,12 @@
     showItemsPanel: false
   };
 
+  const pickupSchedule = config.pickupSchedule || {
+    allowedWeekdays: [1, 2, 3, 4, 5],
+    slots: ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"],
+    daysAhead: 21
+  };
+
   const COVERAGE_MEDIA = {
     lineas: {
       image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/linea2.jpg",
@@ -712,6 +718,76 @@
     els.paymentLocalInfo.classList.toggle("hidden", !isLocal);
   }
 
+  function pad2(value) {
+    return String(value).padStart(2, "0");
+  }
+
+  function getPickupOptionLabel(dateObj, hourMinute) {
+    const day = pad2(dateObj.getDate());
+    const month = pad2(dateObj.getMonth() + 1);
+    const year = dateObj.getFullYear();
+    const weekdayLabel = dateObj.toLocaleDateString("es-AR", { weekday: "long" });
+    return `${weekdayLabel} ${day}/${month}/${year} · ${hourMinute}`;
+  }
+
+  function getPickupOptionValue(dateObj, hourMinute) {
+    const year = dateObj.getFullYear();
+    const month = pad2(dateObj.getMonth() + 1);
+    const day = pad2(dateObj.getDate());
+    return `${year}-${month}-${day}T${hourMinute}`;
+  }
+
+  function buildPickupOptions() {
+    if (!els.pickupDatetime) {
+      return;
+    }
+
+    clearSelect(els.pickupDatetime);
+    els.pickupDatetime.appendChild(createOption("", "Sin fecha (trabajo urgente)"));
+
+    const allowedDays = new Set((pickupSchedule.allowedWeekdays || []).map((d) => Number(d)));
+    const slots = Array.isArray(pickupSchedule.slots) ? pickupSchedule.slots : [];
+    const daysAhead = Math.max(1, Number(pickupSchedule.daysAhead || 21));
+    const now = new Date();
+
+    for (let offset = 0; offset <= daysAhead; offset += 1) {
+      const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+      const weekday = currentDate.getDay();
+      if (!allowedDays.has(weekday)) {
+        continue;
+      }
+
+      slots.forEach((hourMinute) => {
+        const [hh, mm] = String(hourMinute).split(":").map((v) => Number(v));
+        if (!Number.isFinite(hh) || !Number.isFinite(mm)) {
+          return;
+        }
+
+        const optionDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate(),
+          hh,
+          mm,
+          0,
+          0
+        );
+
+        // Evita ofrecer horarios ya pasados el mismo día
+        if (optionDate.getTime() <= now.getTime()) {
+          return;
+        }
+
+        els.pickupDatetime.appendChild(
+          createOption(
+            getPickupOptionValue(currentDate, hourMinute),
+            getPickupOptionLabel(currentDate, hourMinute)
+          )
+        );
+      });
+    }
+  }
+
   function validateForm() {
     if (!els.form.checkValidity()) {
       els.form.reportValidity();
@@ -953,6 +1029,7 @@
         state.savedItems = [];
         state.showItemsPanel = false;
         renderItemsPanel();
+        buildPickupOptions();
         els.paymentMethodRadios.forEach((radio) => { radio.checked = false; });
         updatePaymentUI();
         Object.values(state.coverageInputs).forEach((input) => { input.value = "0"; });
@@ -980,6 +1057,7 @@
     buildMachineOptions();
     buildSidesOptions();
     buildCoverageInputs();
+    buildPickupOptions();
     bindEvents();
     updateFileMeta();
     updatePaymentUI();

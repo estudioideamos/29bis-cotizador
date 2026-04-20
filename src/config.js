@@ -1,4 +1,4 @@
-window.APP_CONFIG = {
+﻿window.APP_CONFIG = {
   // Opciones: "local" o "remote-json"
   pricesMode: "local",
 
@@ -17,5 +17,15 @@ window.APP_CONFIG = {
   // WhatsApp para consultas de tamaño personalizado de plotter
   // Formato internacional sin '+' ni espacios. Ejemplo: "5491122334455"
   whatsappNumber: "543417466857",
-  whatsappMessage: "Hola! Quiero cotizar un pedido en tamaño personalizado."
+  whatsappMessage: "Hola! Quiero cotizar un pedido en tamaño personalizado.",
+
+  // Configuración de retiro (opciones cerradas en el front)
+  pickupSchedule: {
+    // 0=domingo, 1=lunes, ... 6=sábado
+    allowedWeekdays: [1, 2, 3, 4, 5],
+    // Horarios habilitados (24 hs)
+    slots: ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"],
+    // Días futuros que se muestran
+    daysAhead: 21
+  }
 };
