@@ -308,7 +308,7 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
     '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="640" style="width:640px;max-width:640px;background:#ffffff;border:1px solid #ece7dd;overflow:hidden;">',
     "<tr>",
     '<td style="padding:22px 24px;background:#ffffff;border-bottom:1px solid #ece7dd;">',
-    '<img src="https://ideamos.ar/imprenta/wp-content/uploads/2026/03/logo-dark-29-bis.png" alt="29 BIS" width="130" style="display:block;width:130px;max-width:130px;height:auto;border:0;outline:none;text-decoration:none;">',
+    '<img src="https://estudioideamos.github.io/29bis-cotizador/assets/logo-29bis-dark.png" alt="29 BIS" width="130" style="display:block;width:130px;max-width:130px;height:auto;border:0;outline:none;text-decoration:none;">',
     '<p style="margin:10px 0 0 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;">Confirmación de pedido</p>',
     "</td>",
     "</tr>",
