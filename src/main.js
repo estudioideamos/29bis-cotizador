@@ -62,15 +62,15 @@
 
   const COVERAGE_MEDIA = {
     lineas: {
-      image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/linea2.jpg",
+      image: "./assets/cobertura-lineas.jpg",
       alt: "Cobertura Líneas"
     },
     mixto: {
-      image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/medio.jpg",
+      image: "./assets/cobertura-medio.jpg",
       alt: "Cobertura medio"
     },
     pleno: {
-      image: "https://ideamos.ar/imprenta/wp-content/uploads/2026/04/pleno.jpg",
+      image: "./assets/cobertura-pleno.jpg",
       alt: "Cobertura pleno"
     }
   };
