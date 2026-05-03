@@ -167,30 +167,6 @@
           </div>
         </div>
 
-        <div class="grid customer-grid">
-          <label class="field">
-            <span>Nombre y apellido</span>
-            <input id="customer-name" type="text" required>
-          </label>
-
-          <label class="field">
-            <span>Teléfono</span>
-            <input id="customer-phone" type="tel" required>
-          </label>
-
-          <label class="field">
-            <span>Email</span>
-            <input id="customer-email" type="email" required>
-          </label>
-
-          <label class="field">
-            <span>Fecha y hora de retiro (opcional)</span>
-            <select id="pickup-datetime">
-              <option value="">Sin fecha (trabajo urgente)</option>
-            </select>
-          </label>
-        </div>
-
         <label class="field">
           <span>Observaciones</span>
           <textarea id="notes" rows="3" placeholder="Aclaraciones sobre archivo, terminación, etc."></textarea>
@@ -210,13 +186,6 @@
           La entrega según lo solicitado queda atada al caudal de trabajo.
         </p>
 
-        <div class="tracking-panel">
-          <button type="button" class="btn btn-track" aria-disabled="true">Hacé seguimiento de tu pedido</button>
-          <p>
-            Muy pronto vas a poder seguir el estado de tu pedido en tiempo real desde esta misma sección.
-            Cuando haya actualizaciones o tu trabajo esté listo para retirar, te avisaremos por email.
-          </p>
-        </div>
       </form>
     </section>
 
@@ -243,6 +212,34 @@
         <div id="payment-local-info" class="payment-local-info hidden">
           <p>Podés abonar personalmente al retirar tu pedido en el local.</p>
         </div>
+      </section>
+
+      <section class="customer-panel">
+        <h3>Datos de contacto</h3>
+        <label class="field">
+          <span>Nombre y apellido</span>
+          <input id="customer-name" type="text" form="quote-form" required>
+        </label>
+        <div class="grid customer-grid-right">
+          <label class="field">
+            <span>Teléfono</span>
+            <input id="customer-phone" type="tel" form="quote-form" required>
+          </label>
+          <label class="field">
+            <span>DNI</span>
+            <input id="customer-dni" type="text" form="quote-form" required>
+          </label>
+        </div>
+        <label class="field">
+          <span>Email</span>
+          <input id="customer-email" type="email" form="quote-form" required>
+        </label>
+        <label class="field">
+          <span>Fecha y hora de retiro (opcional)</span>
+          <select id="pickup-datetime" form="quote-form">
+            <option value="">Sin fecha (trabajo urgente)</option>
+          </select>
+        </label>
       </section>
 
       <div class="actions summary-actions">

@@ -30,6 +30,7 @@
     status: document.getElementById("status"),
     customerName: document.getElementById("customer-name"),
     customerPhone: document.getElementById("customer-phone"),
+    customerDni: document.getElementById("customer-dni"),
     customerEmail: document.getElementById("customer-email"),
     pickupDatetime: document.getElementById("pickup-datetime"),
     notes: document.getElementById("notes"),
@@ -968,6 +969,7 @@
       customer: {
         name: els.customerName.value.trim(),
         phone: els.customerPhone.value.trim(),
+        dni: els.customerDni.value.trim(),
         email: els.customerEmail.value.trim()
       },
       pickupDateTime: els.pickupDatetime.value || null,
