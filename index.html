@@ -167,11 +167,6 @@
           </div>
         </div>
 
-        <label class="field">
-          <span>Observaciones</span>
-          <textarea id="notes" rows="3" placeholder="Aclaraciones sobre archivo, terminación, etc."></textarea>
-        </label>
-
         <div class="upload-panel">
           <label class="field">
             <span>Archivo(s) para impresión</span>
@@ -181,10 +176,10 @@
           <p class="upload-note">Campo obligatorio: necesitamos al menos un archivo para poder imprimir tu pedido.</p>
         </div>
 
-        <p class="disclaimer">
-          Si no se completa fecha/hora de retiro, se toma como <strong>trabajo urgente</strong>.
-          La entrega según lo solicitado queda atada al caudal de trabajo.
-        </p>
+        <label class="field">
+          <span>Observaciones</span>
+          <textarea id="notes" rows="3" placeholder="Aclaraciones sobre archivo, terminación, etc."></textarea>
+        </label>
 
       </form>
     </section>
@@ -240,6 +235,10 @@
             <option value="">Sin fecha (trabajo urgente)</option>
           </select>
         </label>
+        <p class="disclaimer">
+          Si no se completa fecha/hora de retiro, se toma como <strong>trabajo urgente</strong>.
+          La entrega según lo solicitado queda atada al caudal de trabajo.
+        </p>
       </section>
 
       <div class="actions summary-actions">
