@@ -210,11 +210,6 @@
           La entrega según lo solicitado queda atada al caudal de trabajo.
         </p>
 
-        <div class="actions">
-          <button type="button" id="recalc-btn" class="btn btn-secondary">Recalcular</button>
-          <button type="submit" class="btn btn-primary">Enviar pedido</button>
-        </div>
-
         <div class="tracking-panel">
           <button type="button" class="btn btn-track" aria-disabled="true">Hacé seguimiento de tu pedido</button>
           <p>
@@ -249,6 +244,11 @@
           <p>Podés abonar personalmente al retirar tu pedido en el local.</p>
         </div>
       </section>
+
+      <div class="actions summary-actions">
+        <button type="button" id="recalc-btn" class="btn btn-secondary">Recalcular</button>
+        <button type="submit" id="submit-order-btn" form="quote-form" class="btn btn-primary">Enviar pedido</button>
+      </div>
 
       <p id="status" class="status" aria-live="polite"></p>
       <div class="mascot-card">

@@ -1143,7 +1143,7 @@
       }
 
       const payload = await buildOrderPayload(orderItems);
-      const submitBtn = els.form.querySelector("button[type='submit']");
+      const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
       submitBtn.disabled = true;
       submitBtn.textContent = "Enviando...";
 
