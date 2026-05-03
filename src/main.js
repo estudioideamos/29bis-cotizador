@@ -26,7 +26,6 @@
     paymentTransferInfo: document.getElementById("payment-transfer-info"),
     paymentLocalInfo: document.getElementById("payment-local-info"),
     summary: document.getElementById("summary"),
-    recalcBtn: document.getElementById("recalc-btn"),
     status: document.getElementById("status"),
     customerName: document.getElementById("customer-name"),
     customerPhone: document.getElementById("customer-phone"),
@@ -1059,7 +1058,6 @@
     els.quantity.addEventListener("input", updateSummary);
     els.customWidth.addEventListener("input", updateSummary);
     els.customHeight.addEventListener("input", updateSummary);
-    els.recalcBtn.addEventListener("click", updateSummary);
     els.fileInput.addEventListener("change", updateFileMeta);
     els.paymentMethodRadios.forEach((radio) => {
       radio.addEventListener("change", updatePaymentUI);
