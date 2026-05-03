@@ -277,8 +277,15 @@
     return true;
   }
 
-  function usesCoverage(machineKey, paperKey) {
-    return isPlotter(machineKey) || (isLaser(machineKey) && paperKey === "obra_80");
+  function usesCoverage(machineKey, paperKey, sideKey) {
+    if (isPlotter(machineKey)) {
+      return true;
+    }
+    // Regla comercial: láser + obra 80gr + doble faz se cotiza con precio único (sin coberturas).
+    if (isLaser(machineKey) && paperKey === "obra_80" && sideKey === "df") {
+      return false;
+    }
+    return isLaser(machineKey) && paperKey === "obra_80";
   }
 
   function isCustomPlotterSize() {
@@ -460,7 +467,7 @@
   function toggleConditionalFields() {
     const machineKey = els.machine.value;
     const paperKey = els.paper.value;
-    const showCoverage = usesCoverage(machineKey, paperKey);
+    const showCoverage = usesCoverage(machineKey, paperKey, els.sides.value);
 
     els.coverageWrap.classList.toggle("hidden", !showCoverage);
     els.quantityGrid.classList.toggle("hidden", showCoverage);
@@ -504,7 +511,7 @@
   function getQuantityTotal() {
     const machineKey = els.machine.value;
     const paperKey = els.paper.value;
-    if (!usesCoverage(machineKey, paperKey)) {
+    if (!usesCoverage(machineKey, paperKey, els.sides.value)) {
       return Number(els.quantity.value) || 0;
     }
     return Object.values(state.coverageInputs)
@@ -521,7 +528,7 @@
     const paperKey = els.paper.value;
     const sizeKey = els.size.value;
     const sideKey = els.sides.value;
-    const withCoverage = usesCoverage(machineKey, paperKey);
+    const withCoverage = usesCoverage(machineKey, paperKey, sideKey);
 
     let subtotal = 0;
     let detailLines = [];
@@ -547,7 +554,13 @@
       });
     } else {
       const qty = Number(els.quantity.value) || 0;
-      const unit = getUnitPrice({ machineKey, paperKey, sizeKey, sideKey });
+      const unit = getUnitPrice({
+        machineKey,
+        paperKey,
+        sizeKey,
+        sideKey,
+        coverageKey: isLaser(machineKey) && paperKey === "obra_80" ? "lineas" : undefined
+      });
       if (qty > 0 && unit) {
         const lineTotal = unit * areaMultiplier * qty;
         subtotal += lineTotal;
@@ -607,7 +620,7 @@
       customSize: totals.customSize,
       sides: sideKey ? { key: sideKey, label: pricing.labels.sides[sideKey] } : null,
       quantity: usesCoverage(machineKey, paperKey) ? null : Number(els.quantity.value) || 0,
-      coverageDistribution: usesCoverage(machineKey, paperKey) ? getCoverageDistribution() : [],
+      coverageDistribution: usesCoverage(machineKey, paperKey, sideKey) ? getCoverageDistribution() : [],
       pricing: {
         subtotal: totals.subtotal,
         discountRate: totals.discountRate,
@@ -642,7 +655,7 @@
   }
 
   function clearWorkInputsForNextItem() {
-    if (usesCoverage(els.machine.value, els.paper.value)) {
+    if (usesCoverage(els.machine.value, els.paper.value, els.sides.value)) {
       Object.values(state.coverageInputs).forEach((input) => { input.value = "0"; });
     } else {
       els.quantity.value = "";
