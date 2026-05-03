@@ -1050,7 +1050,10 @@
       updateSummary();
     });
 
-    els.sides.addEventListener("change", updateSummary);
+    els.sides.addEventListener("change", () => {
+      toggleConditionalFields();
+      updateSummary();
+    });
     els.quantity.addEventListener("input", updateSummary);
     els.customWidth.addEventListener("input", updateSummary);
     els.customHeight.addEventListener("input", updateSummary);
