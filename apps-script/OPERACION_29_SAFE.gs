@@ -204,23 +204,14 @@ function deleteSelectedOrderSafely() {
     return;
   }
 
-  const active = op.getActiveRange();
-  if (!active) {
-    ui.alert("Selecciona una celda de la fila del pedido que queres eliminar.");
+  const targets = getSelectedOrderTargets_(op);
+  if (!targets.length) {
+    ui.alert("Selecciona una celda de una fila de datos para eliminar.");
     return;
   }
 
-  const row = active.getRow();
-  if (row < 2) {
-    ui.alert("Selecciona una fila de datos (no el encabezado).");
-    return;
-  }
-
-  const orderNumber = String(op.getRange(row, OP_COL_ORDER_NUMBER).getValue() || "").trim();
-  if (!orderNumber) {
-    ui.alert("La fila seleccionada no tiene numero de pedido.");
-    return;
-  }
+  const target = targets[0];
+  const orderNumber = String(target.displayNumber || "").trim();
 
   const response = ui.alert(
     "Eliminar pedido (seguro)",
@@ -234,7 +225,7 @@ function deleteSelectedOrderSafely() {
   const lock = LockService.getDocumentLock();
   lock.waitLock(30000);
   try {
-    let targetOrderRow = Number(op.getRange(row, OP_COL_HELPER_ROW).getValue() || 0);
+    let targetOrderRow = Number(target.helperRow || 0);
 
     if (!targetOrderRow || targetOrderRow < 2) {
       const finder = findOrderRowByNumber_(orders, orderNumber);
