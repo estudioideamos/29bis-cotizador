@@ -377,7 +377,7 @@ function getSelectedOrderTargets_(opSheet) {
     return [];
   }
 
-  const targets = [];
+  const rowNumbers = [];
 
   for (let r = 0; r < ranges.length; r++) {
     const range = ranges[r];
@@ -387,21 +387,26 @@ function getSelectedOrderTargets_(opSheet) {
       continue;
     }
 
-    const numRows = endRow - startRow + 1;
-    const selected = opSheet.getRange(startRow, 1, numRows, OP_HEADER.length).getValues();
-
-    for (let i = 0; i < selected.length; i++) {
-      const row = selected[i];
-      const displayNumber = String(row[OP_COL_ORDER_NUMBER - 1] || "").trim();
-      const helperRow = Number(row[OP_COL_HELPER_ROW - 1] || 0);
-      if (!displayNumber) {
-        continue;
-      }
-      targets.push({
-        displayNumber: displayNumber,
-        helperRow: helperRow
-      });
+    for (let row = startRow; row <= endRow; row++) {
+      rowNumbers.push(row);
     }
+  }
+
+  const uniqueRows = Array.from(new Set(rowNumbers)).sort((a, b) => a - b);
+  const targets = [];
+
+  for (let i = 0; i < uniqueRows.length; i++) {
+    const rowNumber = uniqueRows[i];
+    const displayNumber = String(opSheet.getRange(rowNumber, OP_COL_ORDER_NUMBER).getDisplayValue() || "").trim();
+    const helperRow = Number(opSheet.getRange(rowNumber, OP_COL_HELPER_ROW).getValue() || 0);
+    if (!displayNumber) {
+      continue;
+    }
+
+    targets.push({
+      displayNumber: displayNumber,
+      helperRow: helperRow
+    });
   }
 
   return targets;
