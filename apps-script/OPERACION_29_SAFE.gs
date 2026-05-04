@@ -303,7 +303,15 @@ function parseMixedDate_(value) {
 }
 
 function safe_(v) {
-  return v == null ? "" : v;
+  if (v == null) {
+    return "";
+  }
+
+  if (Object.prototype.toString.call(v) === "[object Date]") {
+    return v;
+  }
+
+  return truncateCellText_(String(v), 45000);
 }
 
 function buildAdjuntosFormula_(rawLinkValue) {
@@ -319,12 +327,22 @@ function buildAdjuntosFormula_(rawLinkValue) {
   }
 
   // Mostrar texto corto en vez de URL larga.
-  return `=HYPERLINK("${first.replace(/"/g, '""')}","Abrir adjuntos")`;
+  const safeUrl = truncateCellText_(first.replace(/"/g, '""'), 40000);
+  return `=HYPERLINK("${safeUrl}","Abrir adjuntos")`;
 }
 
 function num_(v) {
   const n = Number(v);
   return isNaN(n) ? 0 : n;
+}
+
+function truncateCellText_(value, maxLen) {
+  const text = String(value || "");
+  const limit = Number(maxLen) || 45000;
+  if (text.length <= limit) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, limit - 1))}…`;
 }
 
 function displayOrderNumber_(value) {
