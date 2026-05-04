@@ -1,4 +1,6 @@
-Ôªø(function () {
+(function () {
+  const TRACKING_URL = "https://docs.google.com/spreadsheets/d/1DuwnM8yVw1_DM3xEHJ7NSWXpS-a9G4wSeP7bMGjJeIY/edit?usp=drivesdk";
+
   function getQueryParam(name) {
     const params = new URLSearchParams(window.location.search || "");
     return params.get(name);
@@ -41,10 +43,11 @@
     }
 
     card.innerHTML = `
-      <p class="confirmation-kicker">Confirmaci√≥n de pedido</p>
+      <p class="confirmation-kicker">ConfirmaciÛn de pedido</p>
       <h2>No encontramos el detalle</h2>
-      <p class="muted">Este enlace de confirmaci√≥n ya venci√≥ o no tiene datos asociados.</p>
+      <p class="muted">Este enlace de confirmaciÛn ya venciÛ o no tiene datos asociados.</p>
       <div class="actions">
+        <a class="btn btn-secondary" href="${TRACKING_URL}" target="_blank" rel="noopener noreferrer">Hace seguimiento en vivo</a>
         <a class="btn btn-primary" href="./index.html">Volver al cotizador</a>
       </div>
     `;
@@ -62,7 +65,7 @@
     }
 
     const customerName = safeText(data.customerName, "Cliente");
-    greeting.textContent = `Hola ${customerName}, recibimos tu pedido correctamente y ya est√° en producci√≥n.`;
+    greeting.textContent = `Hola ${customerName}, recibimos tu pedido correctamente y ya est· en producciÛn.`;
     orderNumber.textContent = safeText(data.orderNumber, "-");
 
     summary.innerHTML = [
@@ -79,7 +82,7 @@
         transferNote.classList.remove("hidden");
         transferNote.innerHTML = `
           <p class="confirmation-note-alias">ALIAS: 29bis.ploteos</p>
-          <p>Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el n√∫mero de pedido.</p>
+          <p>Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el n˙mero de pedido.</p>
         `;
       } else {
         transferNote.classList.add("hidden");
@@ -89,10 +92,10 @@
 
     if (data.mailSent) {
       mailStatus.className = "status ok";
-      mailStatus.textContent = "Tambi√©n te enviamos este resumen por email.";
+      mailStatus.textContent = "TambiÈn te enviamos este resumen por email.";
     } else {
       mailStatus.className = "status error";
-      const detail = safeText(data.mailError, "No pudimos enviar el email autom√°tico.");
+      const detail = safeText(data.mailError, "No pudimos enviar el email autom·tico.");
       mailStatus.textContent = `Pedido registrado. ${detail}`;
     }
   }

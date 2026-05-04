@@ -1,9 +1,9 @@
-﻿/**
+/**
  * Google Apps Script para:
  * 1) Guardar pedidos por POST.
  * 2) Subir uno o varios archivos del pedido a Google Drive.
  *
- * ConfiguraciÃ³n:
+ * Configuración:
  * - SHEET_ID: ID del Spreadsheet.
  * - DRIVE_FOLDER_ID: ID de la carpeta destino en Drive para los archivos.
  */
@@ -48,7 +48,7 @@ function doPost(e) {
     if (!isValidEmail_(customerEmail)) {
       return jsonResponse({
         ok: false,
-        message: `El email ingresado no es vÃ¡lido: ${customerEmail}`
+        message: `El email ingresado no es válido: ${customerEmail}`
       });
     }
 
@@ -92,7 +92,7 @@ function doPost(e) {
       body.pricing && body.pricing.total ? body.pricing.total : 0,
       body.payment && body.payment.label ? body.payment.label : "",
       "Pendiente",
-      "En revisión",
+      "En revisi�n",
       pickupDateTimeDisplay || "",
       body.urgent ? "SI" : "NO",
       fileNames.join(" | "),
@@ -151,7 +151,7 @@ function buildPricesPayload_() {
   const idxActive = findHeaderIndex_(header, ["disponible", "active"]);
 
   if (idxMachine === -1 || idxPaperKey === -1 || idxSizeKey === -1 || idxPrice === -1) {
-    throw new Error("La hoja prices no tiene los encabezados mínimos requeridos.");
+    throw new Error("La hoja prices no tiene los encabezados m�nimos requeridos.");
   }
 
   const priceRows = [];
@@ -181,7 +181,7 @@ function buildPricesPayload_() {
       active: active
     });
 
-    // Si al menos una fila de ese papel está activa, se considera disponible.
+    // Si al menos una fila de ese papel est� activa, se considera disponible.
     if (!Object.prototype.hasOwnProperty.call(availability, paperKey)) {
       availability[paperKey] = active;
     } else {
@@ -226,7 +226,7 @@ function normalizeMachine_(value) {
   if (text.indexOf("plotter") !== -1) {
     return "plotter";
   }
-  if (text.indexOf("laser") !== -1 || text.indexOf("láser") !== -1) {
+  if (text.indexOf("laser") !== -1 || text.indexOf("l�ser") !== -1) {
     return "laser";
   }
   return "";
@@ -253,7 +253,7 @@ function normalizeBoolean_(value, fallback) {
     return value !== 0;
   }
   const text = String(value || "").trim().toLowerCase();
-  if (["true", "1", "si", "sí", "yes"].includes(text)) {
+  if (["true", "1", "si", "s�", "yes"].includes(text)) {
     return true;
   }
   if (["false", "0", "no"].includes(text)) {
@@ -263,13 +263,14 @@ function normalizeBoolean_(value, fallback) {
 }
 
 function sendOrderConfirmationEmail_(body, orderNumber) {
+  const TRACKING_URL = "https://docs.google.com/spreadsheets/d/1DuwnM8yVw1_DM3xEHJ7NSWXpS-a9G4wSeP7bMGjJeIY/edit?usp=drivesdk";
   const customer = body && body.customer ? body.customer : {};
   const email = String(customer.email || "").trim();
   if (!email) {
     return { ok: false, error: "El pedido no tiene email." };
   }
   if (!isValidEmail_(email)) {
-    return { ok: false, error: `Email inválido en pedido: ${email}` };
+    return { ok: false, error: `Email inv�lido en pedido: ${email}` };
   }
 
   const customerName = String(customer.name || "Cliente").trim();
@@ -306,6 +307,9 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
       ]
       : []),
     "",
+    "Hacele seguimiento a tu pedido en vivo aca:",
+    TRACKING_URL,
+    "",
     "Gracias por elegir 29 BIS."
   ].join("\n");
 
@@ -316,19 +320,19 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
     "<tr>",
     '<td style="padding:22px 24px;background:#ffffff;border-bottom:1px solid #ece7dd;">',
     '<img src="https://estudioideamos.github.io/29bis-cotizador/assets/logo-29bis-dark.png" alt="29 BIS" width="130" style="display:block;width:130px;max-width:130px;height:auto;border:0;outline:none;text-decoration:none;">',
-    '<p style="margin:10px 0 0 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;">Confirmación de pedido</p>',
+    '<p style="margin:10px 0 0 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;">Confirmaci�n de pedido</p>',
     "</td>",
     "</tr>",
     "<tr>",
     '<td style="padding:26px 24px 12px 24px;">',
     `<p style="margin:0 0 12px 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:18px;line-height:1.4;word-break:break-word;overflow-wrap:anywhere;">Hola <strong>${escapeHtml_(customerName)}</strong>,</p>`,
-    '<p style="margin:0;color:#3b3b38;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Recibimos tu pedido correctamente. Ya está ingresado en nuestro flujo de producción.</p>',
+    '<p style="margin:0;color:#3b3b38;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Recibimos tu pedido correctamente. Ya est� ingresado en nuestro flujo de producci�n.</p>',
     "</td>",
     "</tr>",
     "<tr>",
     '<td style="padding:0 24px 10px 24px;">',
     '<div style="border:1px solid #f1b8cf;background:#fff5f9;padding:14px 16px;">',
-    '<p style="margin:0 0 6px 0;color:#7a2b4f;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.6px;text-transform:uppercase;">Número de pedido</p>',
+    '<p style="margin:0 0 6px 0;color:#7a2b4f;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.6px;text-transform:uppercase;">N�mero de pedido</p>',
     `<p style="margin:0;color:#e84883;font-family:Arial,sans-serif;font-size:24px;font-weight:700;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml_(orderNumber)}</p>`,
     "</div>",
     "</td>",
@@ -351,16 +355,20 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
       ? [
         '<div style="border:1px solid #f5d38a;background:#fff8e9;padding:12px 14px;">',
         '<p style="margin:0 0 6px 0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:13px;letter-spacing:0.4px;text-transform:uppercase;"><strong>ALIAS: 29bis.ploteos</strong></p>',
-        '<p style="margin:0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>',
+        '<p style="margin:0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el n�mero de pedido.</p>',
         "</div>"
       ]
       : []),
+    '<div style="margin-top:14px;border:1px solid #f1b8cf;background:#fff5f9;padding:12px 14px;">',
+    '<p style="margin:0 0 8px 0;color:#7a2b4f;font-family:Arial,sans-serif;font-size:13px;font-weight:700;">Hacele seguimiento a tu pedido en vivo:</p>',
+    `<a href="${TRACKING_URL}" target="_blank" style="display:inline-block;background:#e84883;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-size:14px;font-weight:700;padding:10px 14px;border-radius:8px;">Ver seguimiento en vivo</a>`,
+    "</div>",
     '<p style="margin:14px 0 0 0;color:#3b3b38;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;">Gracias por elegir 29 BIS.</p>',
     "</td>",
     "</tr>",
     "<tr>",
     '<td style="padding:14px 24px;background:#f7f6f3;border-top:1px solid #ece7dd;">',
-    '<p style="margin:0;color:#6a6966;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;">©2026 29 BIS · Creado con ❤️ por <a href="https://ideamos.com.ar" style="color:#e84883;text-decoration:none;font-weight:700;word-break:break-word;overflow-wrap:anywhere;">Estudio Ideamos</a></p>',
+    '<p style="margin:0;color:#6a6966;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;">�2026 29 BIS � Creado con ?? por <a href="https://ideamos.com.ar" style="color:#e84883;text-decoration:none;font-weight:700;word-break:break-word;overflow-wrap:anywhere;">Estudio Ideamos</a></p>',
     "</td>",
     "</tr>",
     "</table>",
@@ -391,11 +399,11 @@ function summarizeFileNamesForEmail_(fileNames) {
   if (list.length <= 3) {
     return preview;
   }
-  return `${preview} (+${list.length - 3} archivo(s) más)`;
+  return `${preview} (+${list.length - 3} archivo(s) m�s)`;
 }
 function isValidEmail_(email) {
   const value = String(email || "").trim();
-  // ValidaciÃ³n pragmÃ¡tica para evitar fallos de MailApp por direcciones mal formadas.
+  // Validación pragmática para evitar fallos de MailApp por direcciones mal formadas.
   return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value);
 }
 
@@ -415,7 +423,7 @@ function uploadFilesToDrive_(uploadedFiles, orderNumber) {
     return { files: [], folderUrl: "" };
   }
   if (!DRIVE_FOLDER_ID || DRIVE_FOLDER_ID.indexOf("REEMPLAZAR_") === 0) {
-    throw new Error("ConfigurÃ¡ DRIVE_FOLDER_ID antes de usar subida de archivos.");
+    throw new Error("Configurá DRIVE_FOLDER_ID antes de usar subida de archivos.");
   }
 
   const rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
@@ -618,4 +626,5 @@ function uniqueValues_(values) {
   });
   return output;
 }
+
 
