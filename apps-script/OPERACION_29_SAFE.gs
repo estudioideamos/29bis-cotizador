@@ -47,9 +47,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("29 BIS Gestion")
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
-    .addSeparator()
     .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
-    .addItem("Eliminar filas seleccionadas (sin archivar)", "deleteSelectedOrdersWithoutArchive29")
     .addItem("Eliminar por rango de filas...", "deleteOrdersByRowRange29")
     .addToUi();
 }
