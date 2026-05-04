@@ -619,9 +619,11 @@ function escapeHtml_(value) {
 
 function ensureOrdersHeader_(sheet) {
   if (sheet.getLastRow() > 0) {
+    styleOrdersHeader_(sheet);
     return;
   }
   sheet.appendRow(ORDERS_HEADER);
+  styleOrdersHeader_(sheet);
 }
 
 function ensureOrdersSchema_(sheet) {
@@ -631,10 +633,12 @@ function ensureOrdersSchema_(sheet) {
 
   if (sheet.getLastRow() < 1) {
     sheet.getRange(1, 1, 1, ORDERS_HEADER.length).setValues([ORDERS_HEADER]);
+    styleOrdersHeader_(sheet);
     return;
   }
 
   sheet.getRange(1, 1, 1, ORDERS_HEADER.length).setValues([ORDERS_HEADER]);
+  styleOrdersHeader_(sheet);
 }
 
 function setupOrdersSchema29() {
@@ -642,6 +646,31 @@ function setupOrdersSchema29() {
   const sh = getOrCreateSheet_(ss, ORDERS_SHEET);
   ensureOrdersHeader_(sh);
   ensureOrdersSchema_(sh);
+
+  const archiveSheet = getOrCreateSheet_(ss, "orders_archivo");
+  ensureOrdersHeader_(archiveSheet);
+  ensureOrdersSchema_(archiveSheet);
+}
+
+function styleOrdersHeader_(sheet) {
+  if (!sheet || sheet.getMaxColumns() < ORDERS_HEADER.length) {
+    return;
+  }
+
+  const fullHeader = sheet.getRange(1, 1, 1, ORDERS_HEADER.length);
+  fullHeader
+    .setBackground("#1c1c1a")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold");
+
+  // Bloque de identificacion del pedido.
+  sheet.getRange(1, 1, 1, 2).setBackground("#82bfb7");
+
+  // Bloque de datos del cliente.
+  sheet.getRange(1, 3, 1, 4).setBackground("#d93d79");
+
+  // Bloque de cierre/estado.
+  sheet.getRange(1, 19, 1, 4).setBackground("#fab948");
 }
 
 function jsonResponse(data) {

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -194,15 +194,15 @@
     </section>
 
     <section class="section">
-      <h2>Que pestañas usar</h2>
+      <h2>Que pestaÃ±as usar</h2>
       <div class="grid">
         <article class="card">
           <h4>operacion</h4>
-          <p>Es la pestaña principal. Aca se trabaja el dia a dia.</p>
+          <p>Es la pestaÃ±a principal. Aca se trabaja el dia a dia.</p>
         </article>
         <article class="card">
           <h4>orders_archivo</h4>
-          <p>Es el archivo/historial de pedidos que fueron archivados.</p>
+          <p>Es el archivo/historial de pedidos que fueron archivados. Mantiene la misma logica visual de colores que la hoja operativa para que la lectura sea mas natural.</p>
         </article>
         <article class="card">
           <h4>prices</h4>
@@ -220,13 +220,16 @@
     </section>
 
     <section class="section">
-      <h2>Pestaña principal: operacion</h2>
-      <p>La pestaña <strong>operacion</strong> ya viene preparada para lectura clara:</p>
+      <h2>PestaÃ±a principal: operacion</h2>
+      <p>La pestaÃ±a <strong>operacion</strong> ya viene preparada para lectura clara:</p>
       <ul>
         <li>Los pedidos nuevos se agregan automaticamente.</li>
         <li>Las filas tienen color alternado suave para facilitar la lectura.</li>
         <li>Los encabezados tienen colores para agrupar informacion.</li>
       </ul>
+      <div class="box ok">
+        <strong>Importante:</strong> las hojas <code>operacion</code>, <code>orders</code> y <code>orders_archivo</code> comparten la misma logica visual de encabezados para que sea facil reconocer cada bloque de informacion.
+      </div>
 
       <table class="table-like">
         <thead>
@@ -239,7 +242,7 @@
         <tbody>
           <tr>
             <td>Datos del pedido</td>
-            <td><code>N° pedido</code>, <code>Fecha</code></td>
+            <td><code>NÂ° pedido</code>, <code>Fecha</code></td>
             <td>Identifican el pedido y el momento en que entro.</td>
           </tr>
           <tr>
@@ -264,6 +267,13 @@
           </tr>
         </tbody>
       </table>
+      <h3>Como leer los colores de encabezado</h3>
+      <ul>
+        <li><strong>Verde agua:</strong> identifica el pedido y la fecha.</li>
+        <li><strong>Rosa:</strong> agrupa los datos del cliente.</li>
+        <li><strong>Naranja:</strong> agrupa total, forma de pago y estados.</li>
+        <li><strong>Negro:</strong> queda para los datos tecnicos del trabajo, archivos y detalles internos.</li>
+      </ul>
     </section>
 
     <section class="section">
@@ -280,14 +290,14 @@
     <section class="section">
       <h2>Que se hace todos los dias</h2>
       <ol>
-        <li>Entrar a la pestaña <strong>operacion</strong>.</li>
+        <li>Entrar a la pestaÃ±a <strong>operacion</strong>.</li>
         <li>Buscar el pedido por numero o cliente.</li>
         <li>Hacer clic en <strong>Ver adjuntos</strong> para abrir la carpeta del pedido.</li>
         <li>Leer la columna <strong>Observaciones</strong> por si el cliente dejo instrucciones.</li>
         <li>Revisar y editar:
           <ul>
             <li><strong>Estado pago:</strong> <code>Pendiente</code> o <code>Pagado</code>.</li>
-            <li><strong>Estado pedido:</strong> <code>En revisión</code>, <code>En preparación</code> o <code>Listo para retirar</code>.</li>
+            <li><strong>Estado pedido:</strong> <code>En revisiÃ³n</code>, <code>En preparaciÃ³n</code> o <code>Listo para retirar</code>.</li>
           </ul>
         </li>
       </ol>
@@ -295,7 +305,7 @@
 
     <section class="section">
       <h2>Menu 29 BIS Gestion</h2>
-      <p>El menu fue simplificado para que queden solo 3 opciones utiles:</p>
+      <p>El menu fue simplificado para que queden solo opciones utiles y faciles de entender:</p>
       <table class="table-like">
         <thead>
           <tr>
@@ -306,13 +316,18 @@
         </thead>
         <tbody>
           <tr>
+            <td><strong>Abrir manual de uso</strong></td>
+            <td>Abre este manual desde el mismo menu.</td>
+            <td>Cuando necesitan ayuda o recordar como se hace una tarea.</td>
+          </tr>
+          <tr>
             <td><strong>Actualizar hoja operacion</strong></td>
             <td>Refresca la vista operativa.</td>
             <td>Si sienten que algo no se ve actualizado o quieren forzar una recarga.</td>
           </tr>
           <tr>
-            <td><strong>Archivar filas seleccionadas</strong></td>
-            <td>Mueve pedidos desde <code>operacion</code> a <code>orders_archivo</code>.</td>
+            <td><strong>Archivar por rango de filas...</strong></td>
+            <td>Mueve pedidos desde <code>operacion</code> a <code>orders_archivo</code> usando un rango de filas.</td>
             <td>Cuando el pedido ya no debe quedar en el operativo pero quieren conservarlo en historial.</td>
           </tr>
           <tr>
@@ -328,9 +343,9 @@
       <h2>Como archivar pedidos</h2>
       <ol>
         <li>Entrar a <strong>operacion</strong>.</li>
-        <li>Seleccionar las filas que quieren archivar.</li>
         <li>Ir al menu <strong>29 BIS Gestion</strong>.</li>
-        <li>Elegir <strong>Archivar filas seleccionadas</strong>.</li>
+        <li>Elegir <strong>Archivar por rango de filas...</strong>.</li>
+        <li>Escribir el rango. Ejemplo: <code>4-4</code> o <code>4-10</code>.</li>
         <li>Confirmar.</li>
       </ol>
       <div class="box ok">
@@ -359,7 +374,7 @@
 
     <section class="section">
       <h2>Como eliminar lo que ya esta archivado</h2>
-      <p>Lo archivado no se elimina desde el menu. Se hace manualmente en la pestaña <strong>orders_archivo</strong>.</p>
+      <p>Lo archivado no se elimina desde el menu. Se hace manualmente en la pestaÃ±a <strong>orders_archivo</strong>.</p>
       <ol>
         <li>Ir a <strong>orders_archivo</strong>.</li>
         <li>Seleccionar los numeros de fila de la izquierda.</li>
@@ -374,8 +389,8 @@
     <section class="section">
       <h2>Como cambiar precios</h2>
       <ol>
-        <li>Ir a la pestaña <strong>prices</strong>.</li>
-        <li>Buscar la fila correspondiente al papel, tamaño, tipo de impresion y faz.</li>
+        <li>Ir a la pestaÃ±a <strong>prices</strong>.</li>
+        <li>Buscar la fila correspondiente al papel, tamaÃ±o, tipo de impresion y faz.</li>
         <li>Cambiar el valor de <strong>precio unitario</strong>.</li>
       </ol>
       <div class="box ok">
@@ -406,7 +421,7 @@
     <section class="section">
       <h2>Cosas que no conviene hacer</h2>
       <ul>
-        <li>No editar manualmente la pestaña <code>orders</code>.</li>
+        <li>No editar manualmente la pestaÃ±a <code>orders</code>.</li>
         <li>No borrar encabezados.</li>
         <li>No mover columnas de <strong>operacion</strong> si no es necesario.</li>
         <li>No borrar filas al azar en hojas internas sin saber de donde vienen.</li>
@@ -417,7 +432,7 @@
       <h2>Resumen rapido</h2>
       <ul>
         <li><strong>Para trabajar pedidos:</strong> usar <strong>operacion</strong>.</li>
-        <li><strong>Para guardar pedidos viejos:</strong> usar <strong>Archivar filas seleccionadas</strong>.</li>
+        <li><strong>Para guardar pedidos viejos:</strong> usar <strong>Archivar por rango de filas...</strong>.</li>
         <li><strong>Para borrar pedidos de prueba o desfasados:</strong> usar <strong>Eliminar por rango de filas...</strong>.</li>
         <li><strong>Para borrar archivo viejo:</strong> ir directo a <strong>orders_archivo</strong> y eliminar filas manualmente.</li>
         <li><strong>Para cambiar precios:</strong> usar <strong>prices</strong>.</li>
@@ -431,3 +446,4 @@
   </div>
 </body>
 </html>
+
