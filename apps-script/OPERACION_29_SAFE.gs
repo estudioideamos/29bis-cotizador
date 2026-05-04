@@ -451,7 +451,7 @@ function applyStatusValidations_(sheet, startRow, endRow) {
     .build();
 
   const pedidoRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["En revision", "En preparacion", "Listo para retirar"], true)
+    .requireValueInList(["En revisión", "En preparación", "Listo para retirar"], true)
     .setAllowInvalid(false)
     .build();
 
