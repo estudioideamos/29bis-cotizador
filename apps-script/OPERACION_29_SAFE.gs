@@ -21,19 +21,19 @@ const OP_HEADER = [
   "Faz",               // J
   "Nombre archivos",   // K
   "Adjuntos",          // L
-  "Estado pago",       // M (editable)
-  "Estado pedido",     // N (editable)
-  "Total",             // O
-  "Retiro",            // P
-  "Urgente",           // Q
-  "Observaciones",     // R
+  "Observaciones",     // M
+  "Estado pago",       // N (editable)
+  "Estado pedido",     // O (editable)
+  "Total",             // P
+  "Retiro",            // Q
+  "Urgente",           // R
   "_row_orders"        // S (helper oculta)
 ];
 
 // columnas en "operacion" (1-based)
 const OP_COL_ORDER_NUMBER = 1; // A
-const OP_COL_STATUS_PAGO = 13; // M
-const OP_COL_STATUS_PEDIDO = 14; // N
+const OP_COL_STATUS_PAGO = 14; // N
+const OP_COL_STATUS_PEDIDO = 15; // O
 const OP_COL_HELPER_ROW = 19; // S
 const OP_ARCHIVE_SHEET = "orders_archivo";
 
@@ -78,16 +78,16 @@ function setupOperacionEditable() {
 
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 130, 150, 110, 140, 90, 260, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 260, 130, 150, 110, 140, 90, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
 
-  op.getRange("O:O").setNumberFormat("$ #,##0");
+  op.getRange("P:P").setNumberFormat("$ #,##0");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
   op.getRange("L:L").setWrap(true);
-  op.getRange("R:R").setWrap(true);
+  op.getRange("M:M").setWrap(true);
 
   refreshOperacionEditable();
 }
@@ -134,12 +134,12 @@ function refreshOperacionEditable() {
         safe_(r[12]),         // J Faz
         safe_(r[24]),         // K Nombre archivos (Y)
         adjuntosUrl ? "Ver adjuntos" : "", // L Adjuntos (Z)
-        safe_(r[20]),         // M Estado pago (U)
-        safe_(r[21]),         // N Estado pedido (V)
-        num_(r[18]),          // O Total (S)
-        safe_(r[22]),         // P Retiro (W)
-        safe_(r[23]),         // Q Urgente (X)
-        safe_(r[28]),         // R Observaciones (AC)
+        safe_(r[28]),         // M Observaciones (AC)
+        safe_(r[20]),         // N Estado pago (U)
+        safe_(r[21]),         // O Estado pedido (V)
+        num_(r[18]),          // P Total (S)
+        safe_(r[22]),         // Q Retiro (W)
+        safe_(r[23]),         // R Urgente (X)
         i + 2                 // S helper -> row real en orders
       ]);
 
