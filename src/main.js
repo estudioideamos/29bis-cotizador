@@ -51,7 +51,8 @@
     coverageInputs: {},
     currentTotals: null,
     savedItems: [],
-    showItemsPanel: false
+    showItemsPanel: false,
+    isSubmitting: false
   };
 
   const pickupSchedule = config.pickupSchedule || {
@@ -1205,25 +1206,29 @@
 
     els.form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      setStatus("");
-
-      updateSummary();
-      if (!validateForm()) {
+      if (state.isSubmitting) {
         return;
       }
-
-      const orderItems = [...state.savedItems];
-      const currentWork = getCurrentWorkSnapshot();
-      if (currentWork) {
-        orderItems.push(currentWork);
-      }
-
-      const payload = await buildOrderPayload(orderItems);
-      const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Enviando...";
+      state.isSubmitting = true;
+      setStatus("");
 
       try {
+        updateSummary();
+        if (!validateForm()) {
+          return;
+        }
+
+        const orderItems = [...state.savedItems];
+        const currentWork = getCurrentWorkSnapshot();
+        if (currentWork) {
+          orderItems.push(currentWork);
+        }
+
+        const payload = await buildOrderPayload(orderItems);
+        const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Enviando...";
+
         const result = await submitOrder(payload);
         const confirmationData = buildConfirmationData(payload, result);
         if (result.mode === "local-preview") {
@@ -1259,8 +1264,10 @@
           setStatus(err.message || "Error al enviar el pedido.", "error");
         }
       } finally {
+        const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
         submitBtn.disabled = false;
         submitBtn.textContent = "Enviar pedido";
+        state.isSubmitting = false;
       }
     });
   }

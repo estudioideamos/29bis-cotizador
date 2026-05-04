@@ -28,7 +28,6 @@
 
     try {
       const parsed = JSON.parse(raw);
-      localStorage.removeItem(id);
       return parsed;
     } catch (err) {
       return null;
