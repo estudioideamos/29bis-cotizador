@@ -972,7 +972,7 @@
     const firstFileName = uploadedFiles[0] ? uploadedFiles[0].name : null;
 
     return {
-      orderId: `29BIS-${Date.now()}`,
+      orderId: `${Date.now()}`,
       createdAt: new Date().toISOString(),
       orderItems,
       customer: {

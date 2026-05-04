@@ -462,7 +462,7 @@ function getOrCreateSubfolder_(parentFolder, folderName) {
 
 function buildMonthFolderName_(orderNumber) {
   const raw = String(orderNumber || "");
-  const match = raw.match(/29BIS-(\d{4})(\d{2})\d{2}-\d+/);
+  const match = raw.match(/(\d{4})(\d{2})\d{2}-\d+/);
   if (match) {
     return `${match[1]}-${match[2]}`;
   }
@@ -524,7 +524,7 @@ function getCoverageDistribution_(body) {
 
 function buildOrderNumber_(sheet) {
   const next = Math.max(2, sheet.getLastRow() + 1) - 1;
-  return `29BIS-${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd")}-${pad_(next, 4)}`;
+  return `${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd")}-${pad_(next, 4)}`;
 }
 
 function pad_(num, size) {
