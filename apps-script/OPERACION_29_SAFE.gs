@@ -326,9 +326,8 @@ function buildAdjuntosFormula_(rawLinkValue) {
     return "";
   }
 
-  // Mostrar texto corto en vez de URL larga.
-  const safeUrl = truncateCellText_(first.replace(/"/g, '""'), 40000);
-  return `=HYPERLINK("${safeUrl}","Abrir adjuntos")`;
+  // Dejar la URL directa evita errores de fórmula por localización/región.
+  return truncateCellText_(first, 40000);
 }
 
 function num_(v) {
