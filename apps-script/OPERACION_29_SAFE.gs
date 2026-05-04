@@ -50,7 +50,7 @@ function onOpen() {
     .addItem("Abrir manual de uso", "openManual29Bis")
     .addSeparator()
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
-    .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
+    .addItem("Archivar por rango de filas...", "archiveSelectedOrders29")
     .addItem("Eliminar por rango de filas...", "deleteOrdersByRowRange29")
     .addToUi();
 }
@@ -298,19 +298,54 @@ function archiveSelectedOrders29() {
     return;
   }
 
-  const targets = getSelectedOrderTargets_(op);
+  const response = ui.prompt(
+    "Archivar por rango de filas",
+    'Escribi el rango de filas de "operacion" que queres archivar. Ejemplo: 4-10',
+    ui.ButtonSet.OK_CANCEL
+  );
 
-  if (!targets.length) {
-    ui.alert("No se detectaron pedidos validos en la seleccion.");
+  if (response.getSelectedButton() !== ui.Button.OK) {
     return;
   }
 
-  const response = ui.alert(
+  const raw = String(response.getResponseText() || "").trim();
+  const match = raw.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (!match) {
+    ui.alert('Formato invalido. Usa por ejemplo: 4-10');
+    return;
+  }
+
+  const startRow = Math.max(2, Number(match[1]));
+  const endRow = Math.max(2, Number(match[2]));
+  if (!startRow || !endRow || endRow < startRow) {
+    ui.alert("El rango ingresado no es valido.");
+    return;
+  }
+
+  const targets = [];
+  for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+    const displayNumber = String(op.getRange(rowNumber, OP_COL_ORDER_NUMBER).getDisplayValue() || "").trim();
+    const helperRow = Number(op.getRange(rowNumber, OP_COL_HELPER_ROW).getValue() || 0);
+    if (!displayNumber) {
+      continue;
+    }
+    targets.push({
+      displayNumber: displayNumber,
+      helperRow: helperRow
+    });
+  }
+
+  if (!targets.length) {
+    ui.alert("No se detectaron pedidos validos en ese rango.");
+    return;
+  }
+
+  const confirm = ui.alert(
     "Archivar pedidos seleccionados",
-    `Se archivaran y eliminaran de "orders" ${targets.length} pedido(s). ¿Queres continuar?`,
+    `Se archivaran y eliminaran ${targets.length} pedido(s) del rango ${startRow}-${endRow}. ¿Queres continuar?`,
     ui.ButtonSet.YES_NO
   );
-  if (response !== ui.Button.YES) {
+  if (confirm !== ui.Button.YES) {
     return;
   }
 
