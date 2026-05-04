@@ -270,8 +270,9 @@ function deleteSelectedOrderSafely() {
     }
 
     const rowValues = orders.getRange(targetOrderRow, 1, 1, orders.getLastColumn()).getValues()[0];
+    const archiveRow = sanitizeRowForSheet_(rowValues);
     const archive = getOrCreateArchiveFromOrders_(ss, orders);
-    archive.getRange(archive.getLastRow() + 1, 1, 1, rowValues.length).setValues([rowValues]);
+    archive.getRange(archive.getLastRow() + 1, 1, 1, archiveRow.length).setValues([archiveRow]);
 
     orders.deleteRow(targetOrderRow);
     refreshOperacionEditable();
@@ -358,7 +359,8 @@ function archiveSelectedOrders29() {
     for (let i = 0; i < rowsToDelete.length; i++) {
       const orderRow = rowsToDelete[i];
       const rowValues = orders.getRange(orderRow, 1, 1, orders.getLastColumn()).getValues()[0];
-      archive.getRange(archive.getLastRow() + 1, 1, 1, rowValues.length).setValues([rowValues]);
+      const archiveRow = sanitizeRowForSheet_(rowValues);
+      archive.getRange(archive.getLastRow() + 1, 1, 1, archiveRow.length).setValues([archiveRow]);
     }
 
     rowsToDelete
@@ -682,6 +684,21 @@ function truncateCellText_(value, maxLen) {
     return text;
   }
   return `${text.slice(0, Math.max(0, limit - 1))}...`;
+}
+
+function sanitizeRowForSheet_(rowValues) {
+  return (rowValues || []).map((value) => {
+    if (value == null) {
+      return "";
+    }
+    if (Object.prototype.toString.call(value) === "[object Date]") {
+      return value;
+    }
+    if (typeof value === "number" || typeof value === "boolean") {
+      return value;
+    }
+    return truncateCellText_(String(value), 45000);
+  });
 }
 
 function displayOrderNumber_(value) {
