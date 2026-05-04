@@ -19,27 +19,28 @@ const OP_HEADER = [
   "Fecha",             // B
   "Cliente",           // C
   "Telefono",          // D
-  "Email",             // E
-  "Tipo impresion",    // F
-  "Tipo papel",        // G
-  "Tamano",            // H
-  "Faz",               // I
-  "Nombre archivos",   // J
-  "Adjuntos",          // K
-  "Estado pago",       // L (editable)
-  "Estado pedido",     // M (editable)
-  "Total",             // N
-  "Retiro",            // O
-  "Urgente",           // P
-  "Observaciones",     // Q
-  "_row_orders"        // R (helper oculta)
+  "DNI",               // E
+  "Email",             // F
+  "Tipo impresion",    // G
+  "Tipo papel",        // H
+  "Tamano",            // I
+  "Faz",               // J
+  "Nombre archivos",   // K
+  "Adjuntos",          // L
+  "Estado pago",       // M (editable)
+  "Estado pedido",     // N (editable)
+  "Total",             // O
+  "Retiro",            // P
+  "Urgente",           // Q
+  "Observaciones",     // R
+  "_row_orders"        // S (helper oculta)
 ];
 
 // columnas en "operacion" (1-based)
 const OP_COL_ORDER_NUMBER = 1; // A
-const OP_COL_STATUS_PAGO = 12; // L
-const OP_COL_STATUS_PEDIDO = 13; // M
-const OP_COL_HELPER_ROW = 18; // R
+const OP_COL_STATUS_PAGO = 13; // M
+const OP_COL_STATUS_PEDIDO = 14; // N
+const OP_COL_HELPER_ROW = 19; // S
 const OP_ARCHIVE_SHEET = "orders_archivo";
 
 // columnas en "orders" (1-based)
@@ -83,18 +84,18 @@ function setupOperacionEditable() {
   op.hideColumns(OP_COL_HELPER_ROW);
 
   // anchos sugeridos
-  const widths = [180, 150, 220, 130, 220, 200, 170, 110, 120, 220, 140, 130, 150, 110, 140, 90, 260, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 130, 150, 110, 140, 90, 260, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   // Validaciones dropdown estados
   applyStatusValidations_(op, 2, 1200);
 
   // Formato columnas clave
-  op.getRange("N:N").setNumberFormat("$ #,##0");
+  op.getRange("O:O").setNumberFormat("$ #,##0");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
-  op.getRange("K:K").setWrap(true);
-  op.getRange("Q:Q").setWrap(true);
+  op.getRange("L:L").setWrap(true);
+  op.getRange("R:R").setWrap(true);
 
   refreshOperacionEditable();
 }
@@ -126,24 +127,25 @@ function refreshOperacionEditable() {
       if (!orderNumber) continue;
 
       out.push([
-        orderNumber,          // A N° pedido
+        displayOrderNumber_(orderNumber), // A N° pedido
         safe_(r[0]),          // B Fecha
         safe_(r[2]),          // C Cliente
         safe_(r[3]),          // D Telefono
-        safe_(r[4]),          // E Email
-        safe_(r[5]),          // F Tipo impresion
-        safe_(r[6]),          // G Tipo papel
-        safe_(r[7]),          // H Tamano
-        safe_(r[11]),         // I Faz
-        safe_(r[23]),         // J Nombre archivos (X)
-        buildAdjuntosFormula_(r[24]), // K Adjuntos (Y)
-        safe_(r[19]),         // L Estado pago (T)
-        safe_(r[20]),         // M Estado pedido (U)
-        num_(r[17]),          // N Total (R)
-        safe_(r[21]),         // O Retiro (V)
-        safe_(r[22]),         // P Urgente (W)
-        safe_(r[27]),         // Q Observaciones (AB)
-        i + 2                 // R helper -> row real en orders
+        safe_(r[4]),          // E DNI
+        safe_(r[5]),          // F Email
+        safe_(r[6]),          // G Tipo impresion
+        safe_(r[7]),          // H Tipo papel
+        safe_(r[8]),          // I Tamano
+        safe_(r[12]),         // J Faz
+        safe_(r[24]),         // K Nombre archivos (Y)
+        buildAdjuntosFormula_(r[25]), // L Adjuntos (Z)
+        safe_(r[20]),         // M Estado pago (U)
+        safe_(r[21]),         // N Estado pedido (V)
+        num_(r[18]),          // O Total (S)
+        safe_(r[22]),         // P Retiro (W)
+        safe_(r[23]),         // Q Urgente (X)
+        safe_(r[28]),         // R Observaciones (AC)
+        i + 2                 // S helper -> row real en orders
       ]);
     }
 
@@ -184,7 +186,7 @@ function onEdit(e) {
 
   // fallback por numero de pedido por si no existe helper
   if (!targetOrderRow || targetOrderRow < 2) {
-    const finder = orders.getRange(2, OR_COL_ORDER_NUMBER, Math.max(orders.getLastRow() - 1, 1), 1).createTextFinder(orderNumber).matchEntireCell(true).findNext();
+    const finder = findOrderRowByNumber_(orders, orderNumber);
     if (!finder) return;
     targetOrderRow = finder.getRow();
   }
@@ -242,11 +244,7 @@ function deleteSelectedOrderSafely() {
     let targetOrderRow = Number(op.getRange(row, OP_COL_HELPER_ROW).getValue() || 0);
 
     if (!targetOrderRow || targetOrderRow < 2) {
-      const finder = orders
-        .getRange(2, OR_COL_ORDER_NUMBER, Math.max(orders.getLastRow() - 1, 1), 1)
-        .createTextFinder(orderNumber)
-        .matchEntireCell(true)
-        .findNext();
+      const finder = findOrderRowByNumber_(orders, orderNumber);
       if (!finder) {
         ui.alert(`No se encontró el pedido ${orderNumber} en orders.`);
         return;
@@ -327,6 +325,27 @@ function buildAdjuntosFormula_(rawLinkValue) {
 function num_(v) {
   const n = Number(v);
   return isNaN(n) ? 0 : n;
+}
+
+function displayOrderNumber_(value) {
+  return String(value || "").replace(/^29BIS-/i, "");
+}
+
+function findOrderRowByNumber_(ordersSheet, orderNumberDisplay) {
+  const target = String(orderNumberDisplay || "").trim();
+  if (!target) {
+    return null;
+  }
+
+  const range = ordersSheet.getRange(2, OR_COL_ORDER_NUMBER, Math.max(ordersSheet.getLastRow() - 1, 1), 1);
+
+  const exact = range.createTextFinder(target).matchEntireCell(true).findNext();
+  if (exact) {
+    return exact;
+  }
+
+  const prefixed = /^29BIS-/i.test(target) ? target : `29BIS-${target}`;
+  return range.createTextFinder(prefixed).matchEntireCell(true).findNext();
 }
 
 function getOrCreateArchiveFromOrders_(ss, ordersSheet) {
