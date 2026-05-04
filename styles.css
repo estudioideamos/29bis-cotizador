@@ -39,6 +39,7 @@ body {
   background: var(--secondary);
   top: -100px;
   right: -120px;
+  animation: orbFloatA 12s ease-in-out infinite;
 }
 
 .bg-orb-b {
@@ -47,6 +48,7 @@ body {
   background: var(--accent);
   left: -80px;
   bottom: -80px;
+  animation: orbFloatB 14s ease-in-out infinite;
 }
 
 .topbar {
@@ -58,6 +60,7 @@ body {
   border-bottom: 1px solid #e7e3dc;
   backdrop-filter: blur(6px);
   background: #fff;
+  animation: riseIn 460ms ease both;
 }
 
 .brand {
@@ -91,6 +94,8 @@ body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.7rem;
+  animation: riseIn 520ms ease both;
+  animation-delay: 60ms;
 }
 
 .store-info-item {
@@ -125,6 +130,14 @@ body {
   box-shadow: 0 24px 48px #1c1c1a14;
   padding: 1.25rem;
   animation: riseIn 520ms ease both;
+}
+
+.layout > .card:first-child {
+  animation-delay: 110ms;
+}
+
+.layout > .card:last-child {
+  animation-delay: 180ms;
 }
 
 h2,
@@ -173,6 +186,7 @@ h3 {
   border-color: #d63b74;
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   box-shadow: 0 8px 16px #e848832b;
+  animation: stepPulse 2.2s ease-in-out infinite;
 }
 
 .premium-step.is-complete {
@@ -229,6 +243,11 @@ h3 {
   align-items: center;
   gap: 0.55rem;
   margin-bottom: 0.12rem;
+  transition: color 180ms ease;
+}
+
+.field:focus-within span {
+  color: #2e4d76;
 }
 
 .label-icon {
@@ -570,11 +589,29 @@ textarea:focus {
   color: #fff;
   box-shadow: 0 12px 24px #e8488333;
   transition: transform 200ms ease, box-shadow 200ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -140%;
+  width: 70%;
+  height: 100%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, #ffffff00 0%, #ffffff55 50%, #ffffff00 100%);
+  transition: left 420ms ease;
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 16px 28px #e8488340;
+}
+
+.btn-primary:hover::after {
+  left: 160%;
 }
 
 .btn-secondary {
@@ -667,6 +704,17 @@ textarea:focus {
   padding: 0.65rem 0.75rem;
   margin-top: 0.2rem;
   box-shadow: 0 12px 22px #e8488335;
+  position: relative;
+  overflow: hidden;
+}
+
+.total::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, #ffffff00 0%, #ffffff2a 42%, #ffffff00 72%);
+  transform: translateX(-120%);
+  animation: totalSweep 3.6s ease-in-out infinite;
 }
 
 .total strong {
@@ -847,6 +895,26 @@ textarea:focus {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes orbFloatA {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-20px, 16px, 0); }
+}
+
+@keyframes orbFloatB {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(18px, -14px, 0); }
+}
+
+@keyframes totalSweep {
+  0%, 72% { transform: translateX(-120%); }
+  100% { transform: translateX(140%); }
+}
+
+@keyframes stepPulse {
+  0%, 100% { box-shadow: 0 8px 16px #e848832b; }
+  50% { box-shadow: 0 11px 20px #e8488352; }
 }
 
 @media (max-width: 980px) {
