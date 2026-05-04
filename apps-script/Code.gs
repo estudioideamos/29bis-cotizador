@@ -12,6 +12,44 @@ const SHEET_ID = "12rXU8RzKk3FvV7mxF7fGCjLlpecQmXr8zazRj3cEbPQ";
 const ORDERS_SHEET = "orders";
 const DRIVE_FOLDER_ID = "1FSVN4ads-CID2H19JN2u3H2EfnNetCWk";
 const PRICES_SHEET = "prices";
+const ORDERS_HEADER = [
+  "fecha_creacion",
+  "numero_pedido",
+  "nombre_cliente",
+  "telefono_cliente",
+  "dni_cliente",
+  "email_cliente",
+  "tipo_impresion",
+  "tipo_papel",
+  "tamano",
+  "ancho_personalizado_m",
+  "alto_personalizado_m",
+  "area_personalizada_m2",
+  "faz",
+  "distribucion_cobertura",
+  "cantidad_hojas_total",
+  "subtotal",
+  "tasa_descuento",
+  "monto_descuento",
+  "total",
+  "metodo_pago",
+  "estado_pago",
+  "estado_pedido",
+  "fecha_hora_retiro",
+  "urgente",
+  "nombres_archivos",
+  "links_archivos",
+  "ids_archivos",
+  "cantidad_archivos",
+  "observaciones",
+  "payload_crudo",
+  "prioridad_interna",
+  "asignado_a",
+  "fecha_cambio_estado",
+  "cliente_notificado",
+  "mail_enviado",
+  "detalle_error_mail"
+];
 
 function doGet(e) {
   try {
@@ -103,6 +141,10 @@ function doPost(e) {
       uploaded.length,
       body.notes || "",
       JSON.stringify(body),
+      "",
+      "",
+      "",
+      "",
       mailResult.ok ? "SI" : "NO",
       mailResult.error || ""
     ]);
@@ -579,68 +621,20 @@ function ensureOrdersHeader_(sheet) {
   if (sheet.getLastRow() > 0) {
     return;
   }
-  sheet.appendRow([
-    "fecha y hora de creacion",
-    "numero de pedido",
-    "nombre del cliente",
-    "telefono",
-    "dni",
-    "email",
-    "tipo de impresion",
-    "tipo de papel",
-    "tamano",
-    "ancho personalizado (m)",
-    "alto personalizado (m)",
-    "area personalizada (m2)",
-    "faz",
-    "distribucion de cobertura",
-    "cantidad total de hojas",
-    "subtotal",
-    "porcentaje de descuento",
-    "monto de descuento",
-    "total",
-    "forma de pago",
-    "estado de pago",
-    "estado de produccion",
-    "fecha y hora de retiro",
-    "es urgente",
-    "nombre de archivos",
-    "links de archivos",
-    "ids de archivos",
-    "cantidad de archivos",
-    "observaciones",
-    "datos tecnicos",
-    "prioridad interna",
-    "asignado a",
-    "fecha cambio de estado",
-    "cliente notificado",
-    "mail enviado",
-    "detalle error mail"
-  ]);
+  sheet.appendRow(ORDERS_HEADER);
 }
 
 function ensureOrdersSchema_(sheet) {
+  if (sheet.getMaxColumns() < ORDERS_HEADER.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), ORDERS_HEADER.length - sheet.getMaxColumns());
+  }
+
   if (sheet.getLastRow() < 1) {
+    sheet.getRange(1, 1, 1, ORDERS_HEADER.length).setValues([ORDERS_HEADER]);
     return;
   }
 
-  const lastCol = sheet.getLastColumn();
-  if (lastCol < 1) {
-    return;
-  }
-
-  const headerRange = sheet.getRange(1, 1, 1, lastCol);
-  const headers = headerRange.getValues()[0].map((h) => normalizeHeader_(h));
-
-  const idxPhone = headers.indexOf("telefono");
-  const idxDni = headers.indexOf("dni");
-
-  // Migra esquemas viejos: inserta columna DNI inmediatamente después de Teléfono.
-  if (idxPhone >= 0 && idxDni === -1) {
-    const insertAt = idxPhone + 2; // 1-based + una columna después de teléfono
-    sheet.insertColumnBefore(insertAt);
-    sheet.getRange(1, insertAt).setValue("dni");
-  }
+  sheet.getRange(1, 1, 1, ORDERS_HEADER.length).setValues([ORDERS_HEADER]);
 }
 
 function setupOrdersSchema29() {

@@ -40,9 +40,9 @@ const MANUAL_URL_29BIS = "https://estudioideamos.github.io/29bis-cotizador/MANUA
 
 // columnas en "orders" (1-based)
 const OR_COL_ORDER_NUMBER = 2; // B
-const OR_COL_STATUS_PAGO = 20; // T
-const OR_COL_STATUS_PEDIDO = 21; // U
-const OR_COL_FECHA_CAMBIO_ESTADO = 32; // AF
+const OR_COL_STATUS_PAGO = 21; // U
+const OR_COL_STATUS_PEDIDO = 22; // V
+const OR_COL_FECHA_CAMBIO_ESTADO = 33; // AG
 
 function onOpen() {
   SpreadsheetApp.getUi()
