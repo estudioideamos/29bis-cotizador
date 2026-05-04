@@ -73,6 +73,7 @@ function setupOperacionEditable() {
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
   op.getRange(1, 14, 1, 3).setBackground("#fab948");
 
+  op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
 
   const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 260, 130, 150, 110, 180, 90, 80];
