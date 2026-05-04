@@ -36,6 +36,7 @@ const OP_COL_STATUS_PAGO = 14; // N
 const OP_COL_STATUS_PEDIDO = 15; // O
 const OP_COL_HELPER_ROW = 19; // S
 const OP_ARCHIVE_SHEET = "orders_archivo";
+const MANUAL_URL_29BIS = "https://estudioideamos.github.io/29bis-cotizador/MANUAL_29BIS_SHEETS.html";
 
 // columnas en "orders" (1-based)
 const OR_COL_ORDER_NUMBER = 2; // B
@@ -46,10 +47,40 @@ const OR_COL_FECHA_CAMBIO_ESTADO = 32; // AF
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("29 BIS Gestion")
+    .addItem("Abrir manual de uso", "openManual29Bis")
+    .addSeparator()
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
     .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
     .addItem("Eliminar por rango de filas...", "deleteOrdersByRowRange29")
     .addToUi();
+}
+
+function openManual29Bis() {
+  const html = HtmlService.createHtmlOutput(`
+    <div style="font-family:Segoe UI,Tahoma,Arial,sans-serif;padding:20px 18px;color:#1c1c1a;">
+      <h2 style="margin:0 0 10px;font-size:22px;">Manual de uso</h2>
+      <p style="margin:0 0 16px;line-height:1.5;">
+        Abrí el manual actualizado de la planilla desde este botón.
+      </p>
+      <a
+        href="${MANUAL_URL_29BIS}"
+        target="_blank"
+        style="display:inline-block;background:#d93d79;color:#ffffff;text-decoration:none;padding:12px 16px;border-radius:10px;font-weight:700;"
+      >
+        Abrir manual
+      </a>
+      <p style="margin:14px 0 0;font-size:12px;color:#666;">
+        Si no abre en una pestaña nueva, copiá este link:
+      </p>
+      <p style="margin:6px 0 0;font-size:12px;word-break:break-all;color:#444;">
+        ${MANUAL_URL_29BIS}
+      </p>
+    </div>
+  `)
+    .setWidth(460)
+    .setHeight(250);
+
+  SpreadsheetApp.getUi().showModalDialog(html, "Manual 29 BIS");
 }
 
 function setupOperacionEditable() {
