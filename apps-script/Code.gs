@@ -107,6 +107,8 @@ function doPost(e) {
       mailResult.error || ""
     ]);
 
+    refreshOperacionAfterOrder_();
+
     return jsonResponse({
       ok: true,
       message: "Pedido registrado correctamente.",
@@ -122,6 +124,16 @@ function doPost(e) {
       message: "Error al guardar pedido.",
       detail: String(err)
     });
+  }
+}
+
+function refreshOperacionAfterOrder_() {
+  try {
+    if (typeof refreshOperacionEditable === "function") {
+      refreshOperacionEditable();
+    }
+  } catch (err) {
+    console.log(`No se pudo refrescar la hoja operacion automaticamente: ${err}`);
   }
 }
 

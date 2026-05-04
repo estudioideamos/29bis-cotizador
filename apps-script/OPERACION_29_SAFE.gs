@@ -146,9 +146,10 @@ function refreshOperacionEditable() {
     out.sort((a, b) => parseMixedDate_(b[1]) - parseMixedDate_(a[1]));
 
     clearOperacionBody_(op);
-    if (out.length) {
+  if (out.length) {
       op.getRange(2, 1, out.length, OP_HEADER.length).setValues(out);
       applyAdjuntosRichLinks_(op, adjuntosLinks);
+      applyAlternatingRowStyles_(op, out.length);
       applyStatusValidations_(op, 2, Math.max(1200, out.length + 20));
     }
   } finally {
@@ -445,6 +446,21 @@ function applyStatusValidations_(sheet, startRow, endRow) {
 
   sheet.getRange(startRow, OP_COL_STATUS_PAGO, endRow - startRow + 1, 1).setDataValidation(pagoRule);
   sheet.getRange(startRow, OP_COL_STATUS_PEDIDO, endRow - startRow + 1, 1).setDataValidation(pedidoRule);
+}
+
+function applyAlternatingRowStyles_(sheet, rowCount) {
+  if (!rowCount) {
+    return;
+  }
+
+  const visibleCols = OP_COL_HELPER_ROW - 1;
+  const values = [];
+  for (let i = 0; i < rowCount; i++) {
+    const color = i % 2 === 0 ? "#ffffff" : "#f7f6f3";
+    values.push(new Array(visibleCols).fill(color));
+  }
+
+  sheet.getRange(2, 1, rowCount, visibleCols).setBackgrounds(values);
 }
 
 function getSelectedOrderTargets_(opSheet) {
