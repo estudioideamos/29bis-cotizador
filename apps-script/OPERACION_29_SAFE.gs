@@ -274,33 +274,37 @@ function archiveSelectedOrders29() {
     return;
   }
 
-  const range = op.getActiveRange();
-  if (!range) {
+  const rangeList = op.getActiveRangeList();
+  const ranges = rangeList ? rangeList.getRanges() : (op.getActiveRange() ? [op.getActiveRange()] : []);
+  if (!ranges.length) {
     ui.alert("Selecciona las filas que queres archivar en la hoja operacion.");
     return;
   }
-
-  const startRow = range.getRow();
-  const numRows = range.getNumRows();
-  if (startRow < 2) {
-    ui.alert("Selecciona filas de datos, no el encabezado.");
-    return;
-  }
-
-  const selected = op.getRange(startRow, 1, numRows, OP_HEADER.length).getValues();
   const targets = [];
 
-  for (let i = 0; i < selected.length; i++) {
-    const row = selected[i];
-    const displayNumber = String(row[OP_COL_ORDER_NUMBER - 1] || "").trim();
-    const helperRow = Number(row[OP_COL_HELPER_ROW - 1] || 0);
-    if (!displayNumber) {
+  for (let r = 0; r < ranges.length; r++) {
+    const range = ranges[r];
+    const startRow = Math.max(2, range.getRow());
+    const endRow = range.getLastRow();
+    if (endRow < 2) {
       continue;
     }
-    targets.push({
-      displayNumber: displayNumber,
-      helperRow: helperRow
-    });
+
+    const numRows = endRow - startRow + 1;
+    const selected = op.getRange(startRow, 1, numRows, OP_HEADER.length).getValues();
+
+    for (let i = 0; i < selected.length; i++) {
+      const row = selected[i];
+      const displayNumber = String(row[OP_COL_ORDER_NUMBER - 1] || "").trim();
+      const helperRow = Number(row[OP_COL_HELPER_ROW - 1] || 0);
+      if (!displayNumber) {
+        continue;
+      }
+      targets.push({
+        displayNumber: displayNumber,
+        helperRow: helperRow
+      });
+    }
   }
 
   if (!targets.length) {
