@@ -1072,15 +1072,10 @@
     };
   }
 
-  function openOrderConfirmationPage(confirmationData, popupRef) {
+  function openOrderConfirmationPage(confirmationData) {
     const storageKey = `order-confirmation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     localStorage.setItem(storageKey, JSON.stringify(confirmationData));
     const confirmationUrl = `./confirmacion.html?id=${encodeURIComponent(storageKey)}`;
-
-    if (popupRef && !popupRef.closed) {
-      popupRef.location.href = confirmationUrl;
-      return;
-    }
 
     const opened = window.open(confirmationUrl, "_blank", "noopener");
     if (!opened) {
@@ -1213,13 +1208,6 @@
       const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
       submitBtn.disabled = true;
       submitBtn.textContent = "Enviando...";
-      let confirmationPopup = null;
-
-      try {
-        confirmationPopup = window.open("about:blank", "_blank", "noopener");
-      } catch (err) {
-        confirmationPopup = null;
-      }
 
       try {
         const result = await submitOrder(payload);
@@ -1234,7 +1222,7 @@
             : ` Pedido registrado, pero no pudimos enviar el email automático.${result.mailError ? ` (${result.mailError})` : ""}`;
           setStatus(`${orderNumberText}${mailText}`, "ok");
         }
-        openOrderConfirmationPage(confirmationData, confirmationPopup);
+        openOrderConfirmationPage(confirmationData);
         els.form.reset();
         state.savedItems = [];
         state.showItemsPanel = false;
@@ -1249,9 +1237,6 @@
         updateFileMeta();
         syncUI();
       } catch (err) {
-        if (confirmationPopup && !confirmationPopup.closed) {
-          confirmationPopup.close();
-        }
         const msg = String(err && err.message ? err.message : "");
         if (/Failed to fetch/i.test(msg)) {
           setStatus("No se pudo conectar con Google Apps Script. Revisá el deploy (Aplicación web), acceso en 'Cualquiera' y volvé a implementar.", "error");
