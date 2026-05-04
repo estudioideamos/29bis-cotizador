@@ -49,6 +49,7 @@ function onOpen() {
     .addItem("Configurar operacion editable (una vez)", "setupOperacionEditable")
     .addItem("Configurar dropdown stock en prices", "configurarDropdownStockPrices29")
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
+    .addItem("Sincronizar schema de orders_archivo", "setupArchiveSchema29")
     .addSeparator()
     .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
     .addItem("Eliminar filas seleccionadas (sin archivar)", "deleteSelectedOrdersWithoutArchive29")
@@ -431,6 +432,16 @@ function deleteOrdersByRowRange29() {
   } finally {
     lock.releaseLock();
   }
+}
+
+function setupArchiveSchema29() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const orders = ss.getSheetByName(ORDERS_SHEET);
+  if (!orders) {
+    throw new Error(`No existe la hoja "${ORDERS_SHEET}".`);
+  }
+
+  getOrCreateArchiveFromOrders_(ss, orders);
 }
 
 function applyStatusValidations_(sheet, startRow, endRow) {
