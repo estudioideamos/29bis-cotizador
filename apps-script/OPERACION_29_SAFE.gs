@@ -466,7 +466,11 @@ function applyAlternatingRowStyles_(sheet, rowCount) {
 
 function getSelectedOrderTargets_(opSheet) {
   const rangeList = opSheet.getActiveRangeList();
-  const ranges = rangeList ? rangeList.getRanges() : (opSheet.getActiveRange() ? [opSheet.getActiveRange()] : []);
+  const activeRange = opSheet.getActiveRange();
+  const currentCell = opSheet.getCurrentCell();
+  const ranges = rangeList
+    ? rangeList.getRanges()
+    : (activeRange ? [activeRange] : (currentCell ? [currentCell] : []));
   if (!ranges.length) {
     return [];
   }
@@ -487,6 +491,9 @@ function getSelectedOrderTargets_(opSheet) {
   }
 
   const uniqueRows = Array.from(new Set(rowNumbers)).sort((a, b) => a - b);
+  if (!uniqueRows.length && currentCell && currentCell.getRow() >= 2) {
+    uniqueRows.push(currentCell.getRow());
+  }
   const targets = [];
 
   for (let i = 0; i < uniqueRows.length; i++) {
