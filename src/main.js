@@ -35,7 +35,8 @@
     notes: document.getElementById("notes"),
     fileInput: document.getElementById("file-input"),
     uploadPanel: document.querySelector(".upload-panel"),
-    fileMeta: document.getElementById("file-meta")
+    fileMeta: document.getElementById("file-meta"),
+    progressSteps: Array.from(document.querySelectorAll(".premium-step"))
   };
 
   let pricing = null;
@@ -64,7 +65,7 @@
   const COVERAGE_MEDIA = {
     lineas: {
       image: "./assets/cobertura-lineas.jpg",
-      alt: "Cobertura Líneas"
+      alt: "Cobertura LÃ­neas"
     },
     mixto: {
       image: "./assets/cobertura-medio.jpg",
@@ -103,12 +104,48 @@
     const files = Array.from(els.fileInput.files || []);
     if (!files.length) {
       els.fileMeta.textContent = "Aún no seleccionaste archivos.";
+      updateProgressSteps();
       return;
     }
     const totalBytes = files.reduce((acc, file) => acc + (file.size || 0), 0);
     const names = files.slice(0, 2).map((file) => file.name).join(" · ");
     const suffix = files.length > 2 ? ` +${files.length - 2} más` : "";
     els.fileMeta.textContent = `${files.length} archivo(s) · ${formatBytes(totalBytes)} · ${names}${suffix}`;
+    updateProgressSteps();
+  }
+
+  function updateProgressSteps() {
+    if (!els.progressSteps || !els.progressSteps.length) {
+      return;
+    }
+
+    const hasConfiguredWork = Boolean(getCurrentWorkSnapshot() || state.savedItems.length > 0);
+    const hasFiles = Boolean((els.fileInput.files || []).length > 0);
+    const hasCustomerData = Boolean(
+      String(els.customerName.value || "").trim()
+      && String(els.customerPhone.value || "").trim()
+      && String(els.customerDni.value || "").trim()
+      && String(els.customerEmail.value || "").trim()
+    );
+    const hasPayment = Boolean(getSelectedPaymentMethod());
+
+    const step1Done = hasConfiguredWork;
+    const step2Done = hasFiles;
+    const step3Done = hasCustomerData && hasPayment;
+
+    let activeStep = 1;
+    if (step1Done && !step2Done) {
+      activeStep = 2;
+    } else if (step1Done && step2Done) {
+      activeStep = 3;
+    }
+
+    els.progressSteps.forEach((stepEl) => {
+      const stepNum = Number(stepEl.dataset.step || "0");
+      const done = (stepNum === 1 && step1Done) || (stepNum === 2 && step2Done) || (stepNum === 3 && step3Done);
+      stepEl.classList.toggle("is-complete", done);
+      stepEl.classList.toggle("is-active", stepNum === activeStep);
+    });
   }
 
   function createOption(value, label) {
@@ -136,7 +173,7 @@
       return value !== 0;
     }
     const text = String(value || "").trim().toLowerCase();
-    if (["true", "1", "si", "sí", "yes"].includes(text)) {
+    if (["true", "1", "si", "sÃ­", "yes"].includes(text)) {
       return true;
     }
     if (["false", "0", "no"].includes(text)) {
@@ -238,7 +275,7 @@
         return base;
       }
 
-      // Compatibilidad si algún día el endpoint devuelve estructura completa.
+      // Compatibilidad si algÃºn dÃ­a el endpoint devuelve estructura completa.
       if (remote && remote.machines && remote.papers && remote.laser && remote.plotter) {
         if (remote.paperAvailabilityOverrides && typeof remote.paperAvailabilityOverrides === "object") {
           runtimePaperAvailability = {
@@ -251,7 +288,7 @@
 
       return base;
     } catch (err) {
-      setStatus(`${err.message} Se usará la tabla local.`, "error");
+      setStatus(`${err.message} Se usarÃ¡ la tabla local.`, "error");
       return base;
     }
   }
@@ -282,7 +319,7 @@
     if (isPlotter(machineKey)) {
       return true;
     }
-    // Regla comercial: láser + obra 80gr + doble faz se cotiza con precio único (sin coberturas).
+    // Regla comercial: lÃ¡ser + obra 80gr + doble faz se cotiza con precio Ãºnico (sin coberturas).
     if (isLaser(machineKey) && paperKey === "obra_80" && sideKey === "df") {
       return false;
     }
@@ -313,7 +350,7 @@
     if (!show) {
       return;
     }
-    els.customAreaPreview.textContent = `Área: ${areaM2.toFixed(2)} m² (${widthM.toFixed(2)} m × ${heightM.toFixed(2)} m)`;
+    els.customAreaPreview.textContent = `Ãrea: ${areaM2.toFixed(2)} mÂ² (${widthM.toFixed(2)} m Ã— ${heightM.toFixed(2)} m)`;
   }
 
   function updateCustomWhatsappLink() {
@@ -329,11 +366,11 @@
     const machineLabel = getMachineLabel(els.machine.value);
     const paperLabel = getPaperLabel(els.paper.value);
     const msg = [
-      config.whatsappMessage || "Hola! Quiero cotizar un pedido en tamaño personalizado.",
-      `Máquina: ${machineLabel}`,
+      config.whatsappMessage || "Hola! Quiero cotizar un pedido en tamaÃ±o personalizado.",
+      `MÃ¡quina: ${machineLabel}`,
       `Papel: ${paperLabel}`,
       `Medidas: ${widthM.toFixed(2)} m x ${heightM.toFixed(2)} m`,
-      `Superficie: ${areaM2.toFixed(2)} m²`
+      `Superficie: ${areaM2.toFixed(2)} mÂ²`
     ].join("\n");
 
     els.customWhatsappLink.href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
@@ -559,7 +596,7 @@
         const lineTotal = unit * areaMultiplier * qty;
         subtotal += lineTotal;
         detailLines.push({
-          name: `${getCoverageLabel(coverageKey)} (${qty} hojas${customSize ? ` · ${customSize.areaM2.toFixed(2)} m²` : ""})`,
+          name: `${getCoverageLabel(coverageKey)} (${qty} hojas${customSize ? ` Â· ${customSize.areaM2.toFixed(2)} mÂ²` : ""})`,
           amount: lineTotal
         });
       });
@@ -576,7 +613,7 @@
         const lineTotal = unit * areaMultiplier * qty;
         subtotal += lineTotal;
         detailLines.push({
-          name: `${qty} hojas x ${currency.format(unit)}${customSize ? ` x ${customSize.areaM2.toFixed(2)} m²` : ""}`,
+          name: `${qty} hojas x ${currency.format(unit)}${customSize ? ` x ${customSize.areaM2.toFixed(2)} mÂ²` : ""}`,
           amount: lineTotal
         });
       }
@@ -691,13 +728,13 @@
       const row = document.createElement("div");
       row.className = "item-row";
       const customSizeText = item.customSize
-        ? ` · ${item.customSize.widthM.toFixed(2)}m x ${item.customSize.heightM.toFixed(2)}m`
+        ? ` Â· ${item.customSize.widthM.toFixed(2)}m x ${item.customSize.heightM.toFixed(2)}m`
         : "";
       row.innerHTML = `
         <div>
           <strong>Trabajo ${index + 1}</strong>
-          <p>${item.machine.label} · ${item.paper.label} · ${item.size.label}${customSizeText}${item.sides ? ` · ${item.sides.label}` : ""}</p>
-          <small>${item.pricing.totalSheets} hojas · ${currency.format(item.pricing.total)}</small>
+          <p>${item.machine.label} Â· ${item.paper.label} Â· ${item.size.label}${customSizeText}${item.sides ? ` Â· ${item.sides.label}` : ""}</p>
+          <small>${item.pricing.totalSheets} hojas Â· ${currency.format(item.pricing.total)}</small>
         </div>
         <button type="button" class="item-remove" data-item-id="${item.id}">Quitar</button>
       `;
@@ -736,15 +773,15 @@
 
     const frag = document.createDocumentFragment();
     const rows = [
-      ["Máquina", getMachineLabel(els.machine.value)],
+      ["MÃ¡quina", getMachineLabel(els.machine.value)],
       ["Papel", getPaperLabel(els.paper.value)],
-      ["Tamaño", getSizeLabel(els.size.value)],
+      ["TamaÃ±o", getSizeLabel(els.size.value)],
       ["Faz", sideText],
       ["Hojas totales (pedido)", String(aggregated.totalSheets)]
     ];
     if (isCustomPlotterSize()) {
       const custom = getCustomDimensions();
-      rows.splice(3, 0, ["Medida personalizada", `${custom.widthM.toFixed(2)} m × ${custom.heightM.toFixed(2)} m`]);
+      rows.splice(3, 0, ["Medida personalizada", `${custom.widthM.toFixed(2)} m Ã— ${custom.heightM.toFixed(2)} m`]);
     }
 
     rows.forEach(([label, value]) => {
@@ -769,7 +806,7 @@
     if (aggregated.discountRate > 0) {
       const discountRow = document.createElement("div");
       discountRow.className = "row discount";
-      discountRow.innerHTML = `<span>Descuento láser por cantidad (${Math.round(aggregated.discountRate * 100)}%)</span><strong>- ${currency.format(aggregated.discountAmount)}</strong>`;
+      discountRow.innerHTML = `<span>Descuento lÃ¡ser por cantidad (${Math.round(aggregated.discountRate * 100)}%)</span><strong>- ${currency.format(aggregated.discountAmount)}</strong>`;
       frag.appendChild(discountRow);
     }
 
@@ -790,19 +827,20 @@
       badgeRow.className = "discount-badge-row";
       badgeRow.innerHTML = `
         <span class="discount-badge">
-          ✅ Descuento aplicado por ${aggregated.laserSheets} hojas láser acumuladas en este pedido
+          âœ… Descuento aplicado por ${aggregated.laserSheets} hojas lÃ¡ser acumuladas en este pedido
         </span>
       `;
       frag.appendChild(badgeRow);
 
       const ruleRow = document.createElement("div");
       ruleRow.className = "row";
-      ruleRow.innerHTML = `<span>Base descuento láser</span><strong>${aggregated.laserSheets} hojas</strong>`;
+      ruleRow.innerHTML = `<span>Base descuento lÃ¡ser</span><strong>${aggregated.laserSheets} hojas</strong>`;
       frag.appendChild(ruleRow);
     }
 
     els.summary.innerHTML = "";
     els.summary.appendChild(frag);
+    updateProgressSteps();
   }
 
   function getCoverageDistribution() {
@@ -858,6 +896,7 @@
     const isLocal = method?.key === "local";
     els.paymentTransferInfo.classList.toggle("hidden", !isTransfer);
     els.paymentLocalInfo.classList.toggle("hidden", !isLocal);
+    updateProgressSteps();
   }
 
   function pad2(value) {
@@ -869,7 +908,7 @@
     const month = pad2(dateObj.getMonth() + 1);
     const year = dateObj.getFullYear();
     const weekdayLabel = dateObj.toLocaleDateString("es-AR", { weekday: "long" });
-    return `${weekdayLabel} ${day}/${month}/${year} · ${hourMinute}`;
+    return `${weekdayLabel} ${day}/${month}/${year} Â· ${hourMinute}`;
   }
 
   function getPickupOptionValue(dateObj, hourMinute) {
@@ -915,7 +954,7 @@
           0
         );
 
-        // Evita ofrecer horarios ya pasados el mismo día
+        // Evita ofrecer horarios ya pasados el mismo dÃ­a
         if (optionDate.getTime() <= now.getTime()) {
           return;
         }
@@ -938,27 +977,27 @@
 
     const paymentMethod = getSelectedPaymentMethod();
     if (!paymentMethod) {
-      setStatus("Seleccioná una forma de pago: transferencia bancaria o pagar en el local.", "error");
+      setStatus("SeleccionÃ¡ una forma de pago: transferencia bancaria o pagar en el local.", "error");
       return false;
     }
 
     const machine = els.machine.value;
     if (machine === "laser" && !isSideAvailable(els.paper.value, els.size.value, els.sides.value)) {
-      setStatus("Ese papel no permite doble faz en este tamaño.", "error");
+      setStatus("Ese papel no permite doble faz en este tamaÃ±o.", "error");
       return false;
     }
 
     if (isCustomPlotterSize()) {
       const { widthM, heightM, areaM2 } = getCustomDimensions();
       if (widthM <= 0 || heightM <= 0 || areaM2 <= 0) {
-        setStatus("Ingresá ancho y alto válidos en metros para el tamaño personalizado.", "error");
+        setStatus("IngresÃ¡ ancho y alto vÃ¡lidos en metros para el tamaÃ±o personalizado.", "error");
         return false;
       }
     }
 
     const currentWork = getCurrentWorkSnapshot();
     if (!currentWork && state.savedItems.length === 0) {
-      setStatus("Agregá al menos un trabajo con cantidad de hojas mayor a 0.", "error");
+      setStatus("AgregÃ¡ al menos un trabajo con cantidad de hojas mayor a 0.", "error");
       return false;
     }
 
@@ -1139,6 +1178,9 @@
     els.paymentMethodRadios.forEach((radio) => {
       radio.addEventListener("change", updatePaymentUI);
     });
+    [els.customerName, els.customerPhone, els.customerDni, els.customerEmail].forEach((input) => {
+      input.addEventListener("input", updateProgressSteps);
+    });
 
     const clearDragState = () => {
       if (els.uploadPanel) {
@@ -1173,7 +1215,7 @@
       updateSummary();
       const currentWork = getCurrentWorkSnapshot();
       if (!currentWork) {
-        setStatus("Primero cargá una cantidad válida para este trabajo antes de agregarlo.", "error");
+        setStatus("Primero cargÃ¡ una cantidad vÃ¡lida para este trabajo antes de agregarlo.", "error");
         return;
       }
 
@@ -1182,7 +1224,7 @@
       renderItemsPanel();
       updateSummary();
       clearWorkInputsForNextItem();
-      setStatus("Trabajo agregado al pedido. Podés cargar otro diferente.", "ok");
+      setStatus("Trabajo agregado al pedido. PodÃ©s cargar otro diferente.", "ok");
     });
 
     els.toggleItemsBtn.addEventListener("click", () => {
@@ -1236,10 +1278,10 @@
           setStatus("Pedido generado en modo local de prueba.", "ok");
         } else {
           const displayOrderNumber = normalizeOrderNumber(result.orderNumber);
-          const orderNumberText = displayOrderNumber ? `Tu número de pedido es ${displayOrderNumber}.` : "Tu pedido fue enviado correctamente.";
+          const orderNumberText = displayOrderNumber ? `Tu nÃºmero de pedido es ${displayOrderNumber}.` : "Tu pedido fue enviado correctamente.";
           const mailText = result.mailSent
             ? " Te enviamos un email con el resumen del pedido."
-            : ` Pedido registrado, pero no pudimos enviar el email automático.${result.mailError ? ` (${result.mailError})` : ""}`;
+            : ` Pedido registrado, pero no pudimos enviar el email automÃ¡tico.${result.mailError ? ` (${result.mailError})` : ""}`;
           setStatus(`${orderNumberText}${mailText}`, "ok");
         }
         openOrderConfirmationPage(confirmationData);
@@ -1259,7 +1301,7 @@
       } catch (err) {
         const msg = String(err && err.message ? err.message : "");
         if (/Failed to fetch/i.test(msg)) {
-          setStatus("No se pudo conectar con Google Apps Script. Revisá el deploy (Aplicación web), acceso en 'Cualquiera' y volvé a implementar.", "error");
+          setStatus("No se pudo conectar con Google Apps Script. RevisÃ¡ el deploy (AplicaciÃ³n web), acceso en 'Cualquiera' y volvÃ© a implementar.", "error");
         } else {
           setStatus(err.message || "Error al enviar el pedido.", "error");
         }
@@ -1286,6 +1328,7 @@
 
   init();
 })();
+
 
 
 

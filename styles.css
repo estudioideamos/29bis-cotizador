@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #f6f6f3;
   --ink: #1c1c1a;
   --muted: #52524b;
@@ -173,6 +173,12 @@ h3 {
   border-color: #d63b74;
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   box-shadow: 0 8px 16px #e848832b;
+}
+
+.premium-step.is-complete {
+  color: #1b6e54;
+  border-color: #bfe7d7;
+  background: #ecfbf4;
 }
 
 .grid {
