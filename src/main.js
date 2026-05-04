@@ -773,7 +773,7 @@
 
     const frag = document.createDocumentFragment();
     const rows = [
-      ["MÃ¡quina", getMachineLabel(els.machine.value)],
+      ["Tipo de impresi�n", getMachineLabel(els.machine.value)],
       ["Papel", getPaperLabel(els.paper.value)],
       ["TamaÃ±o", getSizeLabel(els.size.value)],
       ["Faz", sideText],
@@ -1328,6 +1328,7 @@
 
   init();
 })();
+
 
 
 
