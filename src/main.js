@@ -1021,6 +1021,71 @@
     localStorage.setItem("orders-29bis", JSON.stringify(list.slice(0, 30)));
   }
 
+  function formatDateTimeAr(value) {
+    if (!value) {
+      return "Sin fecha/hora (trabajo urgente)";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "Sin fecha/hora (trabajo urgente)";
+    }
+    return date.toLocaleString("es-AR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+  }
+
+  function summarizeFileNamesForConfirmation(fileNames) {
+    const clean = (Array.isArray(fileNames) ? fileNames : []).map((name) => String(name || "").trim()).filter(Boolean);
+    if (!clean.length) {
+      return "Sin detalle";
+    }
+    if (clean.length <= 2) {
+      return clean.join(", ");
+    }
+    return `${clean[0]}, ${clean[1]} (+${clean.length - 2})`;
+  }
+
+  function buildConfirmationData(payload, result) {
+    const total = payload && payload.pricing && payload.pricing.total ? payload.pricing.total : 0;
+    const totalSheets = payload && payload.pricing && payload.pricing.totalSheets ? payload.pricing.totalSheets : 0;
+    const paymentLabel = payload && payload.payment && payload.payment.label ? payload.payment.label : "-";
+    const pickupLabel = formatDateTimeAr(payload ? payload.pickupDateTime : null);
+    const fileNames = payload && Array.isArray(payload.fileNames) ? payload.fileNames : [];
+
+    return {
+      orderNumber: result && result.orderNumber ? result.orderNumber : (payload ? payload.orderId : "-"),
+      customerName: payload && payload.customer && payload.customer.name ? payload.customer.name : "Cliente",
+      totalSheets,
+      totalFormatted: currency.format(total),
+      paymentLabel,
+      pickupLabel,
+      filesSummary: summarizeFileNamesForConfirmation(fileNames),
+      mailSent: Boolean(result && result.mailSent),
+      mailError: result && result.mailError ? result.mailError : ""
+    };
+  }
+
+  function openOrderConfirmationPage(confirmationData, popupRef) {
+    const storageKey = `order-confirmation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    localStorage.setItem(storageKey, JSON.stringify(confirmationData));
+    const confirmationUrl = `./confirmacion.html?id=${encodeURIComponent(storageKey)}`;
+
+    if (popupRef && !popupRef.closed) {
+      popupRef.location.href = confirmationUrl;
+      return;
+    }
+
+    const opened = window.open(confirmationUrl, "_blank", "noopener");
+    if (!opened) {
+      window.location.href = confirmationUrl;
+    }
+  }
+
   function syncUI() {
     buildPaperOptions();
     buildSizeOptions();
@@ -1146,9 +1211,17 @@
       const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
       submitBtn.disabled = true;
       submitBtn.textContent = "Enviando...";
+      let confirmationPopup = null;
+
+      try {
+        confirmationPopup = window.open("about:blank", "_blank", "noopener");
+      } catch (err) {
+        confirmationPopup = null;
+      }
 
       try {
         const result = await submitOrder(payload);
+        const confirmationData = buildConfirmationData(payload, result);
         if (result.mode === "local-preview") {
           saveLocalPreview(payload);
           setStatus("Pedido generado en modo local de prueba.", "ok");
@@ -1159,6 +1232,7 @@
             : ` Pedido registrado, pero no pudimos enviar el email automático.${result.mailError ? ` (${result.mailError})` : ""}`;
           setStatus(`${orderNumberText}${mailText}`, "ok");
         }
+        openOrderConfirmationPage(confirmationData, confirmationPopup);
         els.form.reset();
         state.savedItems = [];
         state.showItemsPanel = false;
@@ -1173,6 +1247,9 @@
         updateFileMeta();
         syncUI();
       } catch (err) {
+        if (confirmationPopup && !confirmationPopup.closed) {
+          confirmationPopup.close();
+        }
         const msg = String(err && err.message ? err.message : "");
         if (/Failed to fetch/i.test(msg)) {
           setStatus("No se pudo conectar con Google Apps Script. Revisá el deploy (Aplicación web), acceso en 'Cualquiera' y volvé a implementar.", "error");
