@@ -51,6 +51,7 @@ function onOpen() {
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
     .addSeparator()
     .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
+    .addItem("Eliminar filas seleccionadas (sin archivar)", "deleteSelectedOrdersWithoutArchive29")
     .addItem("Eliminar pedido seleccionado (seguro)", "deleteSelectedOrderSafely")
     .addToUi();
 }
@@ -274,38 +275,7 @@ function archiveSelectedOrders29() {
     return;
   }
 
-  const rangeList = op.getActiveRangeList();
-  const ranges = rangeList ? rangeList.getRanges() : (op.getActiveRange() ? [op.getActiveRange()] : []);
-  if (!ranges.length) {
-    ui.alert("Selecciona las filas que queres archivar en la hoja operacion.");
-    return;
-  }
-  const targets = [];
-
-  for (let r = 0; r < ranges.length; r++) {
-    const range = ranges[r];
-    const startRow = Math.max(2, range.getRow());
-    const endRow = range.getLastRow();
-    if (endRow < 2) {
-      continue;
-    }
-
-    const numRows = endRow - startRow + 1;
-    const selected = op.getRange(startRow, 1, numRows, OP_HEADER.length).getValues();
-
-    for (let i = 0; i < selected.length; i++) {
-      const row = selected[i];
-      const displayNumber = String(row[OP_COL_ORDER_NUMBER - 1] || "").trim();
-      const helperRow = Number(row[OP_COL_HELPER_ROW - 1] || 0);
-      if (!displayNumber) {
-        continue;
-      }
-      targets.push({
-        displayNumber: displayNumber,
-        helperRow: helperRow
-      });
-    }
-  }
+  const targets = getSelectedOrderTargets_(op);
 
   if (!targets.length) {
     ui.alert("No se detectaron pedidos validos en la seleccion.");
@@ -325,23 +295,12 @@ function archiveSelectedOrders29() {
   lock.waitLock(30000);
   try {
     const archive = getOrCreateArchiveFromOrders_(ss, orders);
-    const rowsToDelete = [];
+    const rowsToDelete = resolveOrderRows_(orders, targets);
 
-    for (let i = 0; i < targets.length; i++) {
-      const target = targets[i];
-      let orderRow = target.helperRow;
-
-      if (!orderRow || orderRow < 2) {
-        const finder = findOrderRowByNumber_(orders, target.displayNumber);
-        if (!finder) {
-          continue;
-        }
-        orderRow = finder.getRow();
-      }
-
+    for (let i = 0; i < rowsToDelete.length; i++) {
+      const orderRow = rowsToDelete[i];
       const rowValues = orders.getRange(orderRow, 1, 1, orders.getLastColumn()).getValues()[0];
       archive.getRange(archive.getLastRow() + 1, 1, 1, rowValues.length).setValues([rowValues]);
-      rowsToDelete.push(orderRow);
     }
 
     rowsToDelete
@@ -350,6 +309,47 @@ function archiveSelectedOrders29() {
 
     refreshOperacionEditable();
     ui.alert(`Listo. Se archivaron ${rowsToDelete.length} pedido(s).`);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteSelectedOrdersWithoutArchive29() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const op = ss.getSheetByName(OP_SHEET_NAME);
+  const orders = ss.getSheetByName(ORDERS_SHEET);
+
+  if (!op || !orders) {
+    ui.alert("No se encontraron las hojas necesarias (operacion/orders).");
+    return;
+  }
+
+  const targets = getSelectedOrderTargets_(op);
+  if (!targets.length) {
+    ui.alert("No se detectaron pedidos validos en la seleccion.");
+    return;
+  }
+
+  const response = ui.alert(
+    "Eliminar pedidos seleccionados",
+    `Se eliminaran definitivamente ${targets.length} pedido(s) de "orders". Esta accion no los archiva. ¿Queres continuar?`,
+    ui.ButtonSet.YES_NO
+  );
+  if (response !== ui.Button.YES) {
+    return;
+  }
+
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  try {
+    const rowsToDelete = resolveOrderRows_(orders, targets);
+    rowsToDelete
+      .sort((a, b) => b - a)
+      .forEach((rowNumber) => orders.deleteRow(rowNumber));
+
+    refreshOperacionEditable();
+    ui.alert(`Listo. Se eliminaron ${rowsToDelete.length} pedido(s).`);
   } finally {
     lock.releaseLock();
   }
@@ -368,6 +368,64 @@ function applyStatusValidations_(sheet, startRow, endRow) {
 
   sheet.getRange(startRow, OP_COL_STATUS_PAGO, endRow - startRow + 1, 1).setDataValidation(pagoRule);
   sheet.getRange(startRow, OP_COL_STATUS_PEDIDO, endRow - startRow + 1, 1).setDataValidation(pedidoRule);
+}
+
+function getSelectedOrderTargets_(opSheet) {
+  const rangeList = opSheet.getActiveRangeList();
+  const ranges = rangeList ? rangeList.getRanges() : (opSheet.getActiveRange() ? [opSheet.getActiveRange()] : []);
+  if (!ranges.length) {
+    return [];
+  }
+
+  const targets = [];
+
+  for (let r = 0; r < ranges.length; r++) {
+    const range = ranges[r];
+    const startRow = Math.max(2, range.getRow());
+    const endRow = range.getLastRow();
+    if (endRow < 2) {
+      continue;
+    }
+
+    const numRows = endRow - startRow + 1;
+    const selected = opSheet.getRange(startRow, 1, numRows, OP_HEADER.length).getValues();
+
+    for (let i = 0; i < selected.length; i++) {
+      const row = selected[i];
+      const displayNumber = String(row[OP_COL_ORDER_NUMBER - 1] || "").trim();
+      const helperRow = Number(row[OP_COL_HELPER_ROW - 1] || 0);
+      if (!displayNumber) {
+        continue;
+      }
+      targets.push({
+        displayNumber: displayNumber,
+        helperRow: helperRow
+      });
+    }
+  }
+
+  return targets;
+}
+
+function resolveOrderRows_(ordersSheet, targets) {
+  const rowsToDelete = [];
+
+  for (let i = 0; i < targets.length; i++) {
+    const target = targets[i];
+    let orderRow = target.helperRow;
+
+    if (!orderRow || orderRow < 2) {
+      const finder = findOrderRowByNumber_(ordersSheet, target.displayNumber);
+      if (!finder) {
+        continue;
+      }
+      orderRow = finder.getRow();
+    }
+
+    rowsToDelete.push(orderRow);
+  }
+
+  return Array.from(new Set(rowsToDelete));
 }
 
 function clearOperacionBody_(sheet) {
@@ -477,17 +535,26 @@ function findOrderRowByNumber_(ordersSheet, orderNumberDisplay) {
 
 function getOrCreateArchiveFromOrders_(ss, ordersSheet) {
   let archive = ss.getSheetByName(OP_ARCHIVE_SHEET);
-  if (archive) {
-    return archive;
-  }
-
-  archive = ss.insertSheet(OP_ARCHIVE_SHEET);
   const lastCol = ordersSheet.getLastColumn();
   const header = ordersSheet.getRange(1, 1, 1, lastCol).getValues();
-  archive.getRange(1, 1, 1, lastCol).setValues(header);
-  archive.setFrozenRows(1);
-  ordersSheet.getRange(1, 1, 1, lastCol).copyTo(archive.getRange(1, 1, 1, lastCol), { formatOnly: true });
+
+  if (!archive) {
+    archive = ss.insertSheet(OP_ARCHIVE_SHEET);
+  }
+
+  syncArchiveSchemaFromOrders_(archive, ordersSheet, header, lastCol);
   return archive;
+}
+
+function syncArchiveSchemaFromOrders_(archiveSheet, ordersSheet, headerValues, lastCol) {
+  const archiveCols = archiveSheet.getMaxColumns();
+  if (archiveCols < lastCol) {
+    archiveSheet.insertColumnsAfter(archiveCols, lastCol - archiveCols);
+  }
+
+  archiveSheet.getRange(1, 1, 1, lastCol).setValues(headerValues);
+  archiveSheet.setFrozenRows(1);
+  ordersSheet.getRange(1, 1, 1, lastCol).copyTo(archiveSheet.getRange(1, 1, 1, lastCol), { formatOnly: true });
 }
 
 function configurarDropdownStockPrices29() {
