@@ -71,6 +71,7 @@ function setupOperacionEditable() {
   headerRange.setFontWeight("bold");
   op.getRange(1, 1, 1, 2).setBackground("#82bfb7");
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
+  op.getRange(1, 14, 1, 3).setBackground("#fab948");
 
   op.hideColumns(OP_COL_HELPER_ROW);
 
