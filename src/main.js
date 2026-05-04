@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   const config = window.APP_CONFIG || {};
   const fallbackData = window.PRICING_DATA;
 
@@ -1060,6 +1060,10 @@
     return `${clean[0]}, ${clean[1]} (+${clean.length - 2})`;
   }
 
+  function normalizeOrderNumber(orderNumber) {
+    return String(orderNumber || "").replace(/^29BIS-/i, "");
+  }
+
   function buildConfirmationData(payload, result) {
     const total = payload && payload.pricing && payload.pricing.total ? payload.pricing.total : 0;
     const totalSheets = payload && payload.pricing && payload.pricing.totalSheets ? payload.pricing.totalSheets : 0;
@@ -1069,7 +1073,7 @@
     const fileNames = payload && Array.isArray(payload.fileNames) ? payload.fileNames : [];
 
     return {
-      orderNumber: result && result.orderNumber ? result.orderNumber : (payload ? payload.orderId : "-"),
+      orderNumber: normalizeOrderNumber(result && result.orderNumber ? result.orderNumber : (payload ? payload.orderId : "-")),
       customerName: payload && payload.customer && payload.customer.name ? payload.customer.name : "Cliente",
       totalSheets,
       totalFormatted: currency.format(total),
@@ -1226,7 +1230,8 @@
           saveLocalPreview(payload);
           setStatus("Pedido generado en modo local de prueba.", "ok");
         } else {
-          const orderNumberText = result.orderNumber ? `Tu número de pedido es ${result.orderNumber}.` : "Tu pedido fue enviado correctamente.";
+          const displayOrderNumber = normalizeOrderNumber(result.orderNumber);
+          const orderNumberText = displayOrderNumber ? `Tu número de pedido es ${displayOrderNumber}.` : "Tu pedido fue enviado correctamente.";
           const mailText = result.mailSent
             ? " Te enviamos un email con el resumen del pedido."
             : ` Pedido registrado, pero no pudimos enviar el email automático.${result.mailError ? ` (${result.mailError})` : ""}`;

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const TRACKING_URL = "https://docs.google.com/spreadsheets/d/1DuwnM8yVw1_DM3xEHJ7NSWXpS-a9G4wSeP7bMGjJeIY/edit?usp=drivesdk";
 
   function getQueryParam(name) {
@@ -9,6 +9,10 @@
   function safeText(value, fallback) {
     const text = String(value || "").trim();
     return text || fallback;
+  }
+
+  function normalizeOrderNumber(orderNumber) {
+    return String(orderNumber || "").replace(/^29BIS-/i, "");
   }
 
   function loadConfirmationData() {
@@ -66,7 +70,7 @@
 
     const customerName = safeText(data.customerName, "Cliente");
     greeting.textContent = `Hola ${customerName}, recibimos tu pedido correctamente y ya está en producción.`;
-    orderNumber.textContent = safeText(data.orderNumber, "-");
+    orderNumber.textContent = safeText(normalizeOrderNumber(data.orderNumber), "-");
 
     summary.innerHTML = [
       row("Hojas totales", safeText(data.totalSheets, "0")),
@@ -108,4 +112,3 @@
 
   renderConfirmation(data);
 })();
-
