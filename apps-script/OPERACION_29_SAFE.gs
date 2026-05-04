@@ -46,10 +46,7 @@ const OR_COL_FECHA_CAMBIO_ESTADO = 32; // AF
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("29 BIS Gestion")
-    .addItem("Configurar operacion editable (una vez)", "setupOperacionEditable")
-    .addItem("Configurar dropdown stock en prices", "configurarDropdownStockPrices29")
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
-    .addItem("Sincronizar schema de orders_archivo", "setupArchiveSchema29")
     .addSeparator()
     .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
     .addItem("Eliminar filas seleccionadas (sin archivar)", "deleteSelectedOrdersWithoutArchive29")
