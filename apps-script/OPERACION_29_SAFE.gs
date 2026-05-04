@@ -1,16 +1,10 @@
-/**
+﻿/**
  * 29 BIS - OPERACION editable + sync con orders
  *
  * Objetivo:
  * - Hoja "operacion" editable por operador (sin QUERY que se rompa).
  * - El operador cambia "Estado pago" y "Estado pedido" en "operacion".
- * - Se sincroniza automáticamente en "orders".
- *
- * Instalación:
- * 1) Copiar este archivo al proyecto Apps Script.
- * 2) Guardar.
- * 3) Ejecutar una vez: setupOperacionEditable()
- * 4) Luego usar menu "29 BIS Gestion" -> "Actualizar hoja operacion"
+ * - Se sincroniza automaticamente en "orders".
  */
 
 const OP_SHEET_NAME = "operacion";
@@ -64,7 +58,6 @@ function setupOperacionEditable() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   const op = getOrCreateSheet_(ss, OP_SHEET_NAME);
 
-  // Limpiar y reconstruir
   op.clear();
   const maxRows = op.getMaxRows();
   const maxCols = op.getMaxColumns();
@@ -74,23 +67,18 @@ function setupOperacionEditable() {
   op.getRange(1, 1, 1, OP_HEADER.length).setValues([OP_HEADER]);
   op.setFrozenRows(1);
 
-  // Estilo header premium
   const headerRange = op.getRange(1, 1, 1, OP_HEADER.length);
   headerRange.setBackground("#1c1c1a");
   headerRange.setFontColor("#ffffff");
   headerRange.setFontWeight("bold");
 
-  // Ocultar helper
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  // anchos sugeridos
   const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 130, 150, 110, 140, 90, 260, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
-  // Validaciones dropdown estados
   applyStatusValidations_(op, 2, 1200);
 
-  // Formato columnas clave
   op.getRange("O:O").setNumberFormat("$ #,##0");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
@@ -120,11 +108,14 @@ function refreshOperacionEditable() {
 
     const data = orders.getRange(2, 1, last - 1, Math.max(orders.getLastColumn(), 34)).getValues();
     const out = [];
+    const adjuntosLinks = [];
 
     for (let i = 0; i < data.length; i++) {
       const r = data[i];
       const orderNumber = safe_(r[1]); // B
       if (!orderNumber) continue;
+
+      const adjuntosUrl = buildAdjuntosUrl_(r[25]);
 
       out.push([
         displayOrderNumber_(orderNumber), // A N° pedido
@@ -138,7 +129,7 @@ function refreshOperacionEditable() {
         safe_(r[8]),          // I Tamano
         safe_(r[12]),         // J Faz
         safe_(r[24]),         // K Nombre archivos (Y)
-        buildAdjuntosFormula_(r[25]), // L Adjuntos (Z)
+        adjuntosUrl ? "Ver adjuntos" : "", // L Adjuntos (Z)
         safe_(r[20]),         // M Estado pago (U)
         safe_(r[21]),         // N Estado pedido (V)
         num_(r[18]),          // O Total (S)
@@ -147,14 +138,16 @@ function refreshOperacionEditable() {
         safe_(r[28]),         // R Observaciones (AC)
         i + 2                 // S helper -> row real en orders
       ]);
+
+      adjuntosLinks.push(adjuntosUrl);
     }
 
-    // Orden por fecha desc usando fecha en texto dd/MM/yyyy HH:mm o Date
     out.sort((a, b) => parseMixedDate_(b[1]) - parseMixedDate_(a[1]));
 
     clearOperacionBody_(op);
     if (out.length) {
       op.getRange(2, 1, out.length, OP_HEADER.length).setValues(out);
+      applyAdjuntosRichLinks_(op, adjuntosLinks);
       applyStatusValidations_(op, 2, Math.max(1200, out.length + 20));
     }
   } finally {
@@ -184,7 +177,6 @@ function onEdit(e) {
 
   let targetOrderRow = helperOrderRow;
 
-  // fallback por numero de pedido por si no existe helper
   if (!targetOrderRow || targetOrderRow < 2) {
     const finder = findOrderRowByNumber_(orders, orderNumber);
     if (!finder) return;
@@ -213,25 +205,25 @@ function deleteSelectedOrderSafely() {
 
   const active = op.getActiveRange();
   if (!active) {
-    ui.alert("Seleccioná una celda de la fila del pedido que querés eliminar.");
+    ui.alert("Selecciona una celda de la fila del pedido que queres eliminar.");
     return;
   }
 
   const row = active.getRow();
   if (row < 2) {
-    ui.alert("Seleccioná una fila de datos (no el encabezado).");
+    ui.alert("Selecciona una fila de datos (no el encabezado).");
     return;
   }
 
   const orderNumber = String(op.getRange(row, OP_COL_ORDER_NUMBER).getValue() || "").trim();
   if (!orderNumber) {
-    ui.alert("La fila seleccionada no tiene número de pedido.");
+    ui.alert("La fila seleccionada no tiene numero de pedido.");
     return;
   }
 
   const response = ui.alert(
     "Eliminar pedido (seguro)",
-    `Se archivará y eliminará de "orders" el pedido:\n${orderNumber}\n\n¿Querés continuar?`,
+    `Se archivara y eliminara de \"orders\" el pedido:\n${orderNumber}\n\n¿Queres continuar?`,
     ui.ButtonSet.YES_NO
   );
   if (response !== ui.Button.YES) {
@@ -246,7 +238,7 @@ function deleteSelectedOrderSafely() {
     if (!targetOrderRow || targetOrderRow < 2) {
       const finder = findOrderRowByNumber_(orders, orderNumber);
       if (!finder) {
-        ui.alert(`No se encontró el pedido ${orderNumber} en orders.`);
+        ui.alert(`No se encontro el pedido ${orderNumber} en orders.`);
         return;
       }
       targetOrderRow = finder.getRow();
@@ -272,7 +264,7 @@ function applyStatusValidations_(sheet, startRow, endRow) {
     .build();
 
   const pedidoRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["En revisión", "En preparación", "Listo para retirar"], true)
+    .requireValueInList(["En revision", "En preparacion", "Listo para retirar"], true)
     .setAllowInvalid(false)
     .build();
 
@@ -314,19 +306,17 @@ function safe_(v) {
   return truncateCellText_(String(v), 45000);
 }
 
-function buildAdjuntosFormula_(rawLinkValue) {
+function buildAdjuntosUrl_(rawLinkValue) {
   const text = String(rawLinkValue == null ? "" : rawLinkValue).trim();
   if (!text) {
     return "";
   }
 
-  // Si hay varios links viejos separados por "|", toma el primero.
   const first = text.split("|")[0].trim();
   if (!first) {
     return "";
   }
 
-  // Dejar la URL directa evita errores de fórmula por localización/región.
   return truncateCellText_(first, 40000);
 }
 
@@ -335,13 +325,35 @@ function num_(v) {
   return isNaN(n) ? 0 : n;
 }
 
+function applyAdjuntosRichLinks_(sheet, links) {
+  if (!links || !links.length) {
+    return;
+  }
+
+  const richValues = links.map((url) => {
+    const cleanUrl = String(url || "").trim();
+    if (!cleanUrl) {
+      return [SpreadsheetApp.newRichTextValue().setText("").build()];
+    }
+
+    return [
+      SpreadsheetApp.newRichTextValue()
+        .setText("Ver adjuntos")
+        .setLinkUrl(cleanUrl)
+        .build()
+    ];
+  });
+
+  sheet.getRange(2, 12, richValues.length, 1).setRichTextValues(richValues);
+}
+
 function truncateCellText_(value, maxLen) {
   const text = String(value || "");
   const limit = Number(maxLen) || 45000;
   if (text.length <= limit) {
     return text;
   }
-  return `${text.slice(0, Math.max(0, limit - 1))}…`;
+  return `${text.slice(0, Math.max(0, limit - 1))}...`;
 }
 
 function displayOrderNumber_(value) {
@@ -385,7 +397,7 @@ function configurarDropdownStockPrices29() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   const prices = ss.getSheetByName("prices");
   if (!prices) {
-    ui.alert('No se encontró la hoja "prices".');
+    ui.alert('No se encontro la hoja "prices".');
     return;
   }
 
@@ -398,7 +410,6 @@ function configurarDropdownStockPrices29() {
   const headers = prices.getRange(1, 1, 1, lastCol).getValues()[0].map((h) => String(h || "").trim().toLowerCase());
   let colDisponible = headers.indexOf("disponible") + 1;
 
-  // Fallback por si el encabezado no está normalizado.
   if (!colDisponible) {
     for (let c = 0; c < headers.length; c++) {
       if (headers[c].indexOf("disponible") !== -1 || headers[c] === "active") {
@@ -409,13 +420,13 @@ function configurarDropdownStockPrices29() {
   }
 
   if (!colDisponible) {
-    ui.alert('No se encontró la columna "disponible" en prices.');
+    ui.alert('No se encontro la columna "disponible" en prices.');
     return;
   }
 
   const maxRows = prices.getMaxRows();
   if (maxRows < 2) {
-    ui.alert('No hay filas para aplicar validación en prices.');
+    ui.alert('No hay filas para aplicar validacion en prices.');
     return;
   }
 
