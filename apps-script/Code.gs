@@ -631,6 +631,13 @@ function ensureOrdersSchema_(sheet) {
   }
 }
 
+function setupOrdersSchema29() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = getOrCreateSheet_(ss, ORDERS_SHEET);
+  ensureOrdersHeader_(sh);
+  ensureOrdersSchema_(sh);
+}
+
 function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
