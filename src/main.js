@@ -325,7 +325,7 @@
     }
 
     const { widthM, heightM, areaM2 } = getCustomDimensions();
-    const machineLabel = pricing.machines[els.machine.value]?.label || "Plotter";
+    const machineLabel = getMachineLabel(els.machine.value);
     const paperLabel = getPaperLabel(els.paper.value);
     const msg = [
       config.whatsappMessage || "Hola! Quiero cotizar un pedido en tamaño personalizado.",
@@ -365,10 +365,20 @@
     return pricing.labels.coverage[key] || key;
   }
 
+  function getMachineLabel(machineKey) {
+    if (machineKey === "laser") {
+      return "Laser";
+    }
+    if (machineKey === "plotter") {
+      return "Plotter";
+    }
+    return pricing.machines[machineKey]?.label || machineKey;
+  }
+
   function buildMachineOptions() {
     clearSelect(els.machine);
     Object.entries(pricing.machines).forEach(([machineKey, machine]) => {
-      els.machine.appendChild(createOption(machineKey, machine.label));
+      els.machine.appendChild(createOption(machineKey, getMachineLabel(machineKey)));
     });
   }
 
@@ -606,7 +616,7 @@
       id: `work-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
       machine: {
         key: machineKey,
-        label: pricing.machines[machineKey].label
+        label: getMachineLabel(machineKey)
       },
       paper: {
         key: paperKey,
@@ -725,7 +735,7 @@
 
     const frag = document.createDocumentFragment();
     const rows = [
-      ["Máquina", pricing.machines[els.machine.value]?.label || "-"],
+      ["Máquina", getMachineLabel(els.machine.value)],
       ["Papel", getPaperLabel(els.paper.value)],
       ["Tamaño", getSizeLabel(els.size.value)],
       ["Faz", sideText],
