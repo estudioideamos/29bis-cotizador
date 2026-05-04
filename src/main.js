@@ -1054,6 +1054,7 @@
     const total = payload && payload.pricing && payload.pricing.total ? payload.pricing.total : 0;
     const totalSheets = payload && payload.pricing && payload.pricing.totalSheets ? payload.pricing.totalSheets : 0;
     const paymentLabel = payload && payload.payment && payload.payment.label ? payload.payment.label : "-";
+    const paymentKey = payload && payload.payment && payload.payment.key ? payload.payment.key : "";
     const pickupLabel = formatDateTimeAr(payload ? payload.pickupDateTime : null);
     const fileNames = payload && Array.isArray(payload.fileNames) ? payload.fileNames : [];
 
@@ -1063,6 +1064,7 @@
       totalSheets,
       totalFormatted: currency.format(total),
       paymentLabel,
+      paymentKey,
       pickupLabel,
       filesSummary: summarizeFileNamesForConfirmation(fileNames),
       mailSent: Boolean(result && result.mailSent),

@@ -276,6 +276,8 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   const total = body && body.pricing && body.pricing.total ? body.pricing.total : 0;
   const totalSheets = body && body.pricing && body.pricing.totalSheets ? body.pricing.totalSheets : 0;
   const paymentLabel = body && body.payment && body.payment.label ? body.payment.label : "-";
+  const paymentKey = body && body.payment && body.payment.key ? String(body.payment.key) : "";
+  const isTransferPayment = paymentKey === "transferencia";
   const pickup = body && body.pickupDateTime
     ? (formatDateTimeAr_(body.pickupDateTime) || "Sin fecha/hora (trabajo urgente)")
     : "Sin fecha/hora (trabajo urgente)";
@@ -297,7 +299,12 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
     `- Retiro: ${pickup}`,
     `- Archivos: ${filesText}`,
     "",
-    "Si abonaste por transferencia, envia el comprobante a pedidos@29bis.com.ar indicando el numero de pedido.",
+    ...(isTransferPayment
+      ? [
+        "ALIAS: 29bis.ploteos",
+        "Para impactar el pago, enviar el comprobante de transferencia a pedidos@29bis.com.ar con el numero de pedido."
+      ]
+      : []),
     "",
     "Gracias por elegir 29 BIS."
   ].join("\n");
@@ -340,9 +347,14 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
     "</tr>",
     "<tr>",
     '<td style="padding:12px 24px 22px 24px;">',
-    '<div style="border:1px solid #f5d38a;background:#fff8e9;padding:12px 14px;">',
-    '<p style="margin:0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Si abonaste por transferencia, enviá el comprobante a <strong>pedidos@29bis.com.ar</strong> indicando tu número de pedido.</p>',
-    "</div>",
+    ...(isTransferPayment
+      ? [
+        '<div style="border:1px solid #f5d38a;background:#fff8e9;padding:12px 14px;">',
+        '<p style="margin:0 0 6px 0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:13px;letter-spacing:0.4px;text-transform:uppercase;"><strong>ALIAS: 29bis.ploteos</strong></p>',
+        '<p style="margin:0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>',
+        "</div>"
+      ]
+      : []),
     '<p style="margin:14px 0 0 0;color:#3b3b38;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;">Gracias por elegir 29 BIS.</p>',
     "</td>",
     "</tr>",

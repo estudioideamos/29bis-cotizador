@@ -803,12 +803,29 @@ textarea:focus {
 
 .confirmation-note {
   margin-top: 1rem;
-  border: 1px solid #f5d38a;
-  background: #fff8e9;
+  border: 2px solid #e9b343;
+  background: linear-gradient(180deg, #fff8e9 0%, #fff3d7 100%);
   border-radius: 12px;
-  padding: 0.72rem 0.8rem;
+  padding: 0.78rem 0.84rem;
   color: #6e4b0f;
   line-height: 1.5;
+  box-shadow: 0 8px 18px #e9b34326;
+}
+
+.confirmation-note p {
+  margin: 0;
+}
+
+.confirmation-note p + p {
+  margin-top: 0.35rem;
+}
+
+.confirmation-note-alias {
+  color: #6b2b0f;
+  font-family: var(--display-font);
+  font-size: 1.02rem;
+  letter-spacing: 0.02em;
+  font-weight: 800;
 }
 
 .hidden {

@@ -55,6 +55,7 @@
     const orderNumber = document.getElementById("order-number");
     const summary = document.getElementById("confirmation-summary");
     const mailStatus = document.getElementById("mail-status");
+    const transferNote = document.getElementById("transfer-note");
 
     if (!greeting || !orderNumber || !summary || !mailStatus) {
       return;
@@ -71,6 +72,20 @@
       row("Retiro", safeText(data.pickupLabel, "Sin fecha/hora (trabajo urgente)")),
       row("Archivos", safeText(data.filesSummary, "Sin detalle"))
     ].join("");
+
+    const isTransferPayment = safeText(data.paymentKey, "") === "transferencia";
+    if (transferNote) {
+      if (isTransferPayment) {
+        transferNote.classList.remove("hidden");
+        transferNote.innerHTML = `
+          <p class="confirmation-note-alias">ALIAS: 29bis.ploteos</p>
+          <p>Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>
+        `;
+      } else {
+        transferNote.classList.add("hidden");
+        transferNote.innerHTML = "";
+      }
+    }
 
     if (data.mailSent) {
       mailStatus.className = "status ok";
