@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   const config = window.APP_CONFIG || {};
   const fallbackData = window.PRICING_DATA;
 
@@ -350,7 +350,7 @@
     if (!show) {
       return;
     }
-    els.customAreaPreview.textContent = `Área: ${areaM2.toFixed(2)} m² (${widthM.toFixed(2)} m × ${heightM.toFixed(2)} m)`;
+    els.customAreaPreview.textContent = `Área: ${areaM2.toFixed(2)} m² (${widthM.toFixed(2)} m x ${heightM.toFixed(2)} m)`;
   }
 
   function updateCustomWhatsappLink() {
@@ -773,15 +773,15 @@
 
     const frag = document.createDocumentFragment();
     const rows = [
-      ["Tipo de impresión", getMachineLabel(els.machine.value)],
+      ["Tipo de impresion", getMachineLabel(els.machine.value)],
       ["Papel", getPaperLabel(els.paper.value)],
-      ["Tamaño", getSizeLabel(els.size.value)],
+      ["Tamano", getSizeLabel(els.size.value)],
       ["Faz", sideText],
       ["Hojas totales (pedido)", String(aggregated.totalSheets)]
     ];
     if (isCustomPlotterSize()) {
       const custom = getCustomDimensions();
-      rows.splice(3, 0, ["Medida personalizada", `${custom.widthM.toFixed(2)} m × ${custom.heightM.toFixed(2)} m`]);
+      rows.splice(3, 0, ["Medida personalizada", `${custom.widthM.toFixed(2)} m x ${custom.heightM.toFixed(2)} m`]);
     }
 
     rows.forEach(([label, value]) => {
