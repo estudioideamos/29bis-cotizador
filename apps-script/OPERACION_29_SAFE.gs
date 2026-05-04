@@ -25,7 +25,7 @@ const OP_HEADER = [
   "Estado pago",       // N (editable)
   "Estado pedido",     // O (editable)
   "Total",             // P
-  "Retiro",            // Q
+  "Fecha y hora de retiro", // Q
   "Urgente",           // R
   "_row_orders"        // S (helper oculta)
 ];
@@ -75,7 +75,7 @@ function setupOperacionEditable() {
 
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 260, 130, 150, 110, 140, 90, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 260, 130, 150, 110, 180, 90, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
