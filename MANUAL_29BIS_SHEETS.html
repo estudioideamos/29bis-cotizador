@@ -3,269 +3,431 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>29 BIS - Manual de gestion de pedidos</title>
+  <title>29 BIS - Manual de uso de planilla</title>
   <style>
     :root {
-      --pink: #e84883;
+      --pink: #d93d79;
       --mint: #82bfb7;
       --gold: #fab948;
       --dark: #1c1c1a;
       --paper: #f7f6f3;
       --line: #ece7dd;
+      --text: #262623;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      color: var(--dark);
+      color: var(--text);
       background:
-        radial-gradient(circle at 10% 0%, rgba(232, 72, 131, 0.10), transparent 40%),
-        radial-gradient(circle at 90% 15%, rgba(130, 191, 183, 0.12), transparent 38%),
+        radial-gradient(circle at 8% 0%, rgba(217, 61, 121, 0.09), transparent 35%),
+        radial-gradient(circle at 92% 12%, rgba(130, 191, 183, 0.12), transparent 34%),
         var(--paper);
-      line-height: 1.55;
+      line-height: 1.6;
     }
     .wrap {
-      max-width: 980px;
+      max-width: 1040px;
       margin: 0 auto;
-      padding: 32px 20px 56px;
+      padding: 28px 18px 60px;
     }
     .hero {
       background: #fff;
       border: 1px solid var(--line);
-      border-radius: 18px;
+      border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 10px 26px rgba(28, 28, 26, 0.05);
+      box-shadow: 0 14px 34px rgba(28, 28, 26, 0.06);
     }
     .hero-top {
-      background: linear-gradient(120deg, var(--dark), #30302d);
+      padding: 24px 24px 20px;
       color: #fff;
-      padding: 22px 24px;
+      background:
+        linear-gradient(135deg, #181816 0%, #2c2c29 100%);
     }
     .hero-top h1 {
       margin: 0;
-      font-size: 28px;
-      line-height: 1.1;
+      font-size: 31px;
+      line-height: 1.08;
       letter-spacing: .2px;
     }
     .hero-top p {
       margin: 10px 0 0;
-      opacity: .92;
-      font-size: 14px;
+      font-size: 15px;
+      opacity: .94;
+      max-width: 760px;
     }
     .hero-meta {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      padding: 16px 24px;
-      border-top: 1px solid var(--line);
+      padding: 14px 24px 18px;
       background: #fff;
+      border-top: 1px solid var(--line);
     }
     .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       border-radius: 999px;
       padding: 8px 12px;
       font-size: 12px;
       font-weight: 700;
       border: 1px solid transparent;
     }
-    .chip.pink { background: #fff3f8; border-color: #f6bfd3; color: #8c325a; }
-    .chip.mint { background: #eff8f6; border-color: #bfe0da; color: #215b54; }
-    .chip.gold { background: #fff8ea; border-color: #f6dd9e; color: #7b560d; }
+    .chip.pink { background: #fff1f6; border-color: #f5bfd3; color: #8a2f59; }
+    .chip.mint { background: #eef8f6; border-color: #b9ddd7; color: #245e56; }
+    .chip.gold { background: #fff8e9; border-color: #f4dc9e; color: #7b560d; }
     .section {
       margin-top: 16px;
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 16px;
-      padding: 20px;
+      padding: 22px 20px;
     }
     h2 {
       margin: 0 0 10px;
       font-size: 22px;
       color: var(--dark);
     }
+    h3 {
+      margin: 16px 0 8px;
+      font-size: 16px;
+      color: var(--dark);
+    }
     p, li { font-size: 15px; }
     ul, ol { margin: 8px 0 0 20px; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .card {
       border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 14px;
       background: #fff;
     }
-    .card h4 { margin: 0 0 6px; font-size: 15px; }
-    .ok {
-      margin-top: 12px;
-      border: 1px solid #bfe0da;
-      background: #eff8f6;
+    .card h4 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+    .box {
+      margin-top: 14px;
       border-radius: 12px;
-      padding: 12px;
+      padding: 12px 14px;
+      border: 1px solid transparent;
     }
-    .warn {
-      margin-top: 12px;
-      border: 1px solid #f6dd9e;
-      background: #fff8ea;
-      border-radius: 12px;
-      padding: 12px;
-    }
-    .danger {
-      margin-top: 12px;
-      border: 1px solid #f3bfd3;
-      background: #fff3f8;
-      border-radius: 12px;
-      padding: 12px;
-    }
-    .footer {
-      margin-top: 22px;
-      text-align: center;
-      font-size: 13px;
-      color: #676762;
-    }
-    .footer a { color: var(--pink); text-decoration: none; font-weight: 700; }
+    .box.ok { background: #eff8f6; border-color: #bfe0da; }
+    .box.warn { background: #fff8ea; border-color: #f5dd9f; }
+    .box.danger { background: #fff2f7; border-color: #f2bed2; }
     code {
-      background: #f2f2ef;
-      border: 1px solid #e8e8e4;
+      background: #f2f1ed;
+      border: 1px solid #e7e5df;
       border-radius: 6px;
       padding: 1px 6px;
       font-size: 13px;
     }
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    .table-like {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .table-like th,
+    .table-like td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 14px;
+    }
+    .table-like th {
+      background: #f7f6f3;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .table-like tr:last-child td { border-bottom: 0; }
+    .footer {
+      margin-top: 22px;
+      text-align: center;
+      font-size: 13px;
+      color: #696864;
+    }
+    .footer a {
+      color: var(--pink);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header class="hero">
       <div class="hero-top">
-        <h1>Manual de gestion - 29 BIS</h1>
-        <p>Guia simple para operar pedidos y precios. Sin pasos tecnicos.</p>
+        <h1>Manual de uso - Planilla 29 BIS</h1>
+        <p>Guia simple para usar la planilla de pedidos, sin conocimientos tecnicos. Este manual explica que mirar, que tocar, que no tocar y como resolver las tareas mas comunes del dia a dia.</p>
       </div>
       <div class="hero-meta">
-        <span class="chip pink">Sistema: Cotizador 29 BIS</span>
-        <span class="chip mint">Uso diario de mostrador</span>
-        <span class="chip gold">Actualizado: 20/04/2026</span>
+        <span class="chip pink">Cotizador + pedidos online</span>
+        <span class="chip mint">Uso diario de gestion</span>
+        <span class="chip gold">Actualizado: 04/05/2026</span>
       </div>
     </header>
 
     <section class="section">
-      <h2>Datos del local</h2>
+      <h2>Para que sirve esta planilla</h2>
+      <p>La planilla recibe los pedidos que entran desde la web de 29 BIS. A partir de ahi, sirve para:</p>
       <ul>
-        <li><strong>Direccion:</strong> Riobamba 162 bis, Rosario, Santa Fe, Argentina.</li>
-        <li><strong>Horario:</strong> lunes a viernes de 7:30 a 19:30.</li>
+        <li>Ver rapidamente cada pedido.</li>
+        <li>Revisar datos del cliente, archivos y observaciones.</li>
+        <li>Cambiar el estado del pago.</li>
+        <li>Cambiar el estado del pedido.</li>
+        <li>Archivar pedidos.</li>
+        <li>Eliminar pedidos viejos o de prueba.</li>
       </ul>
     </section>
 
     <section class="section">
-      <h2>Que pestanas usar</h2>
+      <h2>Que pestañas usar</h2>
       <div class="grid">
         <article class="card">
-          <h4>dashboard</h4>
-          <p>Resumen general (pedidos, pagos, facturacion). Solo lectura.</p>
-        </article>
-        <article class="card">
           <h4>operacion</h4>
-          <p>Pestana principal para trabajar: cambiar estados y revisar pedidos.</p>
-        </article>
-        <article class="card">
-          <h4>prices</h4>
-          <p>Editar precios y stock de papeles.</p>
+          <p>Es la pestaña principal. Aca se trabaja el dia a dia.</p>
         </article>
         <article class="card">
           <h4>orders_archivo</h4>
-          <p>Historial de pedidos archivados.</p>
+          <p>Es el archivo/historial de pedidos que fueron archivados.</p>
+        </article>
+        <article class="card">
+          <h4>prices</h4>
+          <p>Sirve para cambiar precios y disponibilidad de papeles.</p>
+        </article>
+        <article class="card">
+          <h4>dashboard</h4>
+          <p>Es un resumen general. No hace falta tocarlo para operar pedidos.</p>
         </article>
       </div>
-      <div class="danger">
-        <strong>No tocar:</strong> pestanas <code>orders</code> y <code>meta</code>.
-        Si necesitan cambios de logica, nuevos campos o configuraciones, escribir a <strong>hola@ideamos.com.ar</strong> para cotizarlo.
+      <div class="box danger">
+        <strong>No tocar:</strong> <code>orders</code> y <code>meta</code>.
+        Son hojas internas del sistema. Si se editan manualmente, se puede desordenar el funcionamiento.
       </div>
     </section>
 
     <section class="section">
-      <h2>Gestion diaria de pedidos</h2>
+      <h2>Pestaña principal: operacion</h2>
+      <p>La pestaña <strong>operacion</strong> ya viene preparada para lectura clara:</p>
+      <ul>
+        <li>Los pedidos nuevos se agregan automaticamente.</li>
+        <li>Las filas tienen color alternado suave para facilitar la lectura.</li>
+        <li>Los encabezados tienen colores para agrupar informacion.</li>
+      </ul>
+
+      <table class="table-like">
+        <thead>
+          <tr>
+            <th>Grupo</th>
+            <th>Columnas</th>
+            <th>Para que sirven</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Datos del pedido</td>
+            <td><code>N° pedido</code>, <code>Fecha</code></td>
+            <td>Identifican el pedido y el momento en que entro.</td>
+          </tr>
+          <tr>
+            <td>Datos del cliente</td>
+            <td><code>Cliente</code>, <code>Telefono</code>, <code>DNI</code>, <code>Email</code></td>
+            <td>Sirven para contacto y control del pedido.</td>
+          </tr>
+          <tr>
+            <td>Trabajo</td>
+            <td><code>Tipo impresion</code>, <code>Tipo papel</code>, <code>Tamano</code>, <code>Faz</code></td>
+            <td>Describen como se debe producir el trabajo.</td>
+          </tr>
+          <tr>
+            <td>Archivos</td>
+            <td><code>Nombre archivos</code>, <code>Adjuntos</code>, <code>Observaciones</code></td>
+            <td>Permiten abrir lo que subio el cliente y leer aclaraciones importantes.</td>
+          </tr>
+          <tr>
+            <td>Seguimiento</td>
+            <td><code>Estado pago</code>, <code>Estado pedido</code>, <code>Total</code>, <code>Fecha y hora de retiro</code>, <code>Urgente</code></td>
+            <td>Sirven para gestionar la produccion y la entrega.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Que se actualiza solo</h2>
+      <ul>
+        <li>Cuando entra un pedido nuevo desde la web, la hoja <strong>operacion</strong> se actualiza sola.</li>
+        <li>Los colores y el orden de columnas se vuelven a aplicar automaticamente cuando la hoja se regenera.</li>
+      </ul>
+      <div class="box ok">
+        <strong>En la practica:</strong> normalmente no hace falta tocar el boton <strong>Actualizar hoja operacion</strong>. Ese boton queda como respaldo por si alguna vez hace falta refrescar manualmente.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Que se hace todos los dias</h2>
       <ol>
-        <li>Entrar a <strong>operacion</strong>.</li>
+        <li>Entrar a la pestaña <strong>operacion</strong>.</li>
         <li>Buscar el pedido por numero o cliente.</li>
-        <li>Abrir <strong>Adjuntos</strong> (link <strong>Abrir adjuntos</strong>) para descargar/ver lo que hay que imprimir.</li>
-        <li>Actualizar:
+        <li>Hacer clic en <strong>Ver adjuntos</strong> para abrir la carpeta del pedido.</li>
+        <li>Leer la columna <strong>Observaciones</strong> por si el cliente dejo instrucciones.</li>
+        <li>Revisar y editar:
           <ul>
-            <li><strong>Estado pago:</strong> Pendiente / Pagado.</li>
-            <li><strong>Estado pedido:</strong> En revision / En preparacion / Listo para retirar.</li>
+            <li><strong>Estado pago:</strong> <code>Pendiente</code> o <code>Pagado</code>.</li>
+            <li><strong>Estado pedido:</strong> <code>En revisión</code>, <code>En preparación</code> o <code>Listo para retirar</code>.</li>
           </ul>
         </li>
       </ol>
-      <div class="ok">
-        El dashboard se actualiza automaticamente con lo que vayan cambiando.
+    </section>
+
+    <section class="section">
+      <h2>Menu 29 BIS Gestion</h2>
+      <p>El menu fue simplificado para que queden solo 3 opciones utiles:</p>
+      <table class="table-like">
+        <thead>
+          <tr>
+            <th>Opcion</th>
+            <th>Para que sirve</th>
+            <th>Cuando usarla</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Actualizar hoja operacion</strong></td>
+            <td>Refresca la vista operativa.</td>
+            <td>Si sienten que algo no se ve actualizado o quieren forzar una recarga.</td>
+          </tr>
+          <tr>
+            <td><strong>Archivar filas seleccionadas</strong></td>
+            <td>Mueve pedidos desde <code>operacion</code> a <code>orders_archivo</code>.</td>
+            <td>Cuando el pedido ya no debe quedar en el operativo pero quieren conservarlo en historial.</td>
+          </tr>
+          <tr>
+            <td><strong>Eliminar por rango de filas...</strong></td>
+            <td>Borra pedidos definitivamente de <code>operacion/orders</code>.</td>
+            <td>Para limpiar pedidos viejos, de prueba o desfasados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Como archivar pedidos</h2>
+      <ol>
+        <li>Entrar a <strong>operacion</strong>.</li>
+        <li>Seleccionar las filas que quieren archivar.</li>
+        <li>Ir al menu <strong>29 BIS Gestion</strong>.</li>
+        <li>Elegir <strong>Archivar filas seleccionadas</strong>.</li>
+        <li>Confirmar.</li>
+      </ol>
+      <div class="box ok">
+        El pedido desaparece de <strong>operacion</strong>, pero sigue existiendo en <strong>orders_archivo</strong>.
       </div>
     </section>
 
     <section class="section">
-      <h2>Donde se guardan los archivos adjuntos</h2>
-      <p>Todos los archivos que sube el cliente en el formulario se guardan en Google Drive de 29 BIS, dentro de la carpeta principal de pedidos (por ejemplo: <code>29BIS - Archivos de pedidos</code>).</p>
-      <h3>Como se ordenan</h3>
+      <h2>Como eliminar pedidos</h2>
+      <p>La forma mas estable es por rango de filas.</p>
       <ol>
-        <li>Primero se crea una carpeta por <strong>mes</strong>, con formato <code>AAAA-MM</code> (ejemplo: <code>2026-04</code>).</li>
-        <li>Dentro de esa carpeta mensual, se crea una carpeta por <strong>numero de pedido</strong> (ejemplo: <code>29BIS-20260420-0012</code>).</li>
-        <li>Dentro de esa carpeta del pedido quedan los archivos adjuntos de ese cliente.</li>
+        <li>Entrar a <strong>operacion</strong>.</li>
+        <li>Mirar los numeros de fila de la izquierda.</li>
+        <li>Ir al menu <strong>29 BIS Gestion</strong>.</li>
+        <li>Elegir <strong>Eliminar por rango de filas...</strong>.</li>
+        <li>Escribir el rango. Ejemplo: <code>4-23</code>.</li>
+        <li>Confirmar.</li>
       </ol>
-      <div class="ok">
-        Para encontrar rapido un archivo, usar el mismo numero de pedido que figura en la planilla y abrir el link desde <strong>operacion</strong>, columna <strong>Adjuntos</strong> (texto <strong>Abrir adjuntos</strong>).
+      <div class="box warn">
+        <strong>Importante:</strong> esta opcion elimina definitivamente los pedidos de <code>orders</code>. No los manda a archivo.
+      </div>
+      <div class="box ok">
+        Conviene usar esta opcion para borrar pedidos viejos, pruebas o filas desfasadas que no interesa conservar.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Como eliminar lo que ya esta archivado</h2>
+      <p>Lo archivado no se elimina desde el menu. Se hace manualmente en la pestaña <strong>orders_archivo</strong>.</p>
+      <ol>
+        <li>Ir a <strong>orders_archivo</strong>.</li>
+        <li>Seleccionar los numeros de fila de la izquierda.</li>
+        <li>Click derecho.</li>
+        <li>Elegir <strong>Eliminar filas</strong>.</li>
+      </ol>
+      <div class="box warn">
+        No borrar la fila 1. Esa fila es el encabezado.
       </div>
     </section>
 
     <section class="section">
       <h2>Como cambiar precios</h2>
       <ol>
-        <li>Ir a la pestana <strong>prices</strong>.</li>
-        <li>Buscar la fila del papel/tamano/faz que quieren actualizar.</li>
-        <li>Modificar la celda de <strong>precio unitario</strong>.</li>
+        <li>Ir a la pestaña <strong>prices</strong>.</li>
+        <li>Buscar la fila correspondiente al papel, tamaño, tipo de impresion y faz.</li>
+        <li>Cambiar el valor de <strong>precio unitario</strong>.</li>
       </ol>
-      <div class="ok">
-        <strong>Importante:</strong> esta sincronizado con la web.
-        Si cambian un precio en <strong>prices</strong>, ese precio se usa en el cotizador online.
-      </div>
-      <div class="warn">
-        Si no se refleja al instante en el navegador, recargar con <strong>Ctrl + F5</strong>.
+      <div class="box ok">
+        Ese cambio impacta en el cotizador online.
       </div>
     </section>
 
     <section class="section">
-      <h2>Que hacer si un papel se queda sin stock</h2>
+      <h2>Como ocultar un papel sin stock</h2>
       <ol>
         <li>Ir a <strong>prices</strong>.</li>
-        <li>En la columna <strong>disponible</strong>, elegir <code>FALSE</code> para ese papel.</li>
+        <li>Buscar el papel correspondiente.</li>
+        <li>En la columna <strong>disponible</strong>, poner <code>FALSE</code>.</li>
       </ol>
-      <p>Cuando vuelva el stock, volver a <code>TRUE</code>.</p>
-      <div class="ok">
-        Con <code>FALSE</code>, ese papel deja de aparecer en la web para el cliente.
-      </div>
+      <p>Cuando vuelva a estar disponible, volver a <code>TRUE</code>.</p>
     </section>
 
     <section class="section">
-      <h2>Eliminar pedidos de forma segura</h2>
-      <ol>
-        <li>Ir a <strong>operacion</strong>.</li>
-        <li>Seleccionar una celda de la fila del pedido.</li>
-        <li>Menu <strong>29 BIS Gestion</strong> -> <strong>Eliminar pedido seleccionado</strong>.</li>
-      </ol>
-      <div class="warn">
-        No borrar filas manualmente en otras pestanas.
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>Si algo no funciona</h2>
+      <h2>Que hacer si algo no se ve bien</h2>
       <ul>
-        <li>No editar formulas ni estructura de hojas.</li>
-        <li>No renombrar pestanas.</li>
-        <li>Volver a cargar la pagina con <strong>Ctrl + F5</strong>.</li>
-        <li>Si necesitan cambios de logica, nuevos campos o configuraciones, escribir a <strong>hola@ideamos.com.ar</strong> para cotizarlo.</li>
+        <li>Si un pedido no aparece enseguida: esperar unos segundos y, si hace falta, usar <strong>Actualizar hoja operacion</strong>.</li>
+        <li>Si falta una columna: revisar si esta oculta y, si hace falta, volver a regenerar la hoja.</li>
+        <li>Si un estado aparece como invalido: revisar que el valor coincida con el dropdown exacto.</li>
+        <li>Si una accion del menu no hace lo esperado: no probar muchas veces seguidas. Cortar y revisar antes de seguir.</li>
       </ul>
     </section>
 
-    <p class="footer">&copy;2026 29 BIS - Creado con corazon por <a href="https://ideamos.com.ar">Estudio Ideamos</a></p>
+    <section class="section">
+      <h2>Cosas que no conviene hacer</h2>
+      <ul>
+        <li>No editar manualmente la pestaña <code>orders</code>.</li>
+        <li>No borrar encabezados.</li>
+        <li>No mover columnas de <strong>operacion</strong> si no es necesario.</li>
+        <li>No borrar filas al azar en hojas internas sin saber de donde vienen.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Resumen rapido</h2>
+      <ul>
+        <li><strong>Para trabajar pedidos:</strong> usar <strong>operacion</strong>.</li>
+        <li><strong>Para guardar pedidos viejos:</strong> usar <strong>Archivar filas seleccionadas</strong>.</li>
+        <li><strong>Para borrar pedidos de prueba o desfasados:</strong> usar <strong>Eliminar por rango de filas...</strong>.</li>
+        <li><strong>Para borrar archivo viejo:</strong> ir directo a <strong>orders_archivo</strong> y eliminar filas manualmente.</li>
+        <li><strong>Para cambiar precios:</strong> usar <strong>prices</strong>.</li>
+      </ul>
+    </section>
+
+    <p class="footer">
+      Manual operativo de 29 BIS.
+      Si mas adelante necesitan sumar nuevas acciones o automatizaciones, se puede ampliar sobre esta base.
+    </p>
   </div>
 </body>
 </html>
