@@ -55,6 +55,7 @@ function doPost(e) {
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sh = getOrCreateSheet_(ss, ORDERS_SHEET);
     ensureOrdersHeader_(sh);
+    ensureOrdersSchema_(sh);
 
     const orderNumber = buildOrderNumber_(sh);
     const uploadedResult = uploadFilesToDrive_(body.uploadedFiles || [], orderNumber);
@@ -76,6 +77,7 @@ function doPost(e) {
       orderNumber,
       body.customer && body.customer.name ? body.customer.name : "",
       body.customer && body.customer.phone ? body.customer.phone : "",
+      body.customer && body.customer.dni ? body.customer.dni : "",
       customerEmail,
       body.machine && body.machine.label ? body.machine.label : summarizeItems_(body.orderItems, "machine"),
       body.paper && body.paper.label ? body.paper.label : summarizeItems_(body.orderItems, "paper"),
@@ -570,6 +572,7 @@ function ensureOrdersHeader_(sheet) {
     "numero de pedido",
     "nombre del cliente",
     "telefono",
+    "dni",
     "email",
     "tipo de impresion",
     "tipo de papel",
@@ -602,6 +605,30 @@ function ensureOrdersHeader_(sheet) {
     "mail enviado",
     "detalle error mail"
   ]);
+}
+
+function ensureOrdersSchema_(sheet) {
+  if (sheet.getLastRow() < 1) {
+    return;
+  }
+
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+
+  const headerRange = sheet.getRange(1, 1, 1, lastCol);
+  const headers = headerRange.getValues()[0].map((h) => normalizeHeader_(h));
+
+  const idxPhone = headers.indexOf("telefono");
+  const idxDni = headers.indexOf("dni");
+
+  // Migra esquemas viejos: inserta columna DNI inmediatamente después de Teléfono.
+  if (idxPhone >= 0 && idxDni === -1) {
+    const insertAt = idxPhone + 2; // 1-based + una columna después de teléfono
+    sheet.insertColumnBefore(insertAt);
+    sheet.getRange(1, insertAt).setValue("dni");
+  }
 }
 
 function jsonResponse(data) {
