@@ -52,6 +52,7 @@ function onOpen() {
     .addSeparator()
     .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
     .addItem("Eliminar filas seleccionadas (sin archivar)", "deleteSelectedOrdersWithoutArchive29")
+    .addItem("Eliminar por rango de filas...", "deleteOrdersByRowRange29")
     .addItem("Eliminar pedido seleccionado (seguro)", "deleteSelectedOrderSafely")
     .addToUi();
 }
@@ -337,6 +338,83 @@ function deleteSelectedOrdersWithoutArchive29() {
     ui.ButtonSet.YES_NO
   );
   if (response !== ui.Button.YES) {
+    return;
+  }
+
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  try {
+    const rowsToDelete = resolveOrderRows_(orders, targets);
+    rowsToDelete
+      .sort((a, b) => b - a)
+      .forEach((rowNumber) => orders.deleteRow(rowNumber));
+
+    refreshOperacionEditable();
+    ui.alert(`Listo. Se eliminaron ${rowsToDelete.length} pedido(s).`);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteOrdersByRowRange29() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const op = ss.getSheetByName(OP_SHEET_NAME);
+  const orders = ss.getSheetByName(ORDERS_SHEET);
+
+  if (!op || !orders) {
+    ui.alert("No se encontraron las hojas necesarias (operacion/orders).");
+    return;
+  }
+
+  const response = ui.prompt(
+    "Eliminar por rango de filas",
+    'Escribi el rango de filas de "operacion" que queres eliminar. Ejemplo: 12-28',
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (response.getSelectedButton() !== ui.Button.OK) {
+    return;
+  }
+
+  const raw = String(response.getResponseText() || "").trim();
+  const match = raw.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (!match) {
+    ui.alert('Formato invalido. Usa por ejemplo: 12-28');
+    return;
+  }
+
+  const startRow = Math.max(2, Number(match[1]));
+  const endRow = Math.max(2, Number(match[2]));
+  if (!startRow || !endRow || endRow < startRow) {
+    ui.alert("El rango ingresado no es valido.");
+    return;
+  }
+
+  const targets = [];
+  for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+    const displayNumber = String(op.getRange(rowNumber, OP_COL_ORDER_NUMBER).getDisplayValue() || "").trim();
+    const helperRow = Number(op.getRange(rowNumber, OP_COL_HELPER_ROW).getValue() || 0);
+    if (!displayNumber) {
+      continue;
+    }
+    targets.push({
+      displayNumber: displayNumber,
+      helperRow: helperRow
+    });
+  }
+
+  if (!targets.length) {
+    ui.alert("No se detectaron pedidos validos en ese rango.");
+    return;
+  }
+
+  const confirm = ui.alert(
+    "Eliminar pedidos por rango",
+    `Se eliminaran definitivamente ${targets.length} pedido(s) de las filas ${startRow}-${endRow}. Esta accion no los archiva. ¿Queres continuar?`,
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) {
     return;
   }
 
