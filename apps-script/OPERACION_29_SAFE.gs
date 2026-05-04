@@ -50,6 +50,7 @@ function onOpen() {
     .addItem("Configurar dropdown stock en prices", "configurarDropdownStockPrices29")
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
     .addSeparator()
+    .addItem("Archivar filas seleccionadas", "archiveSelectedOrders29")
     .addItem("Eliminar pedido seleccionado (seguro)", "deleteSelectedOrderSafely")
     .addToUi();
 }
@@ -252,6 +253,99 @@ function deleteSelectedOrderSafely() {
     refreshOperacionEditable();
 
     ui.alert(`Pedido ${orderNumber} archivado y eliminado correctamente.`);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Compatibilidad con menus viejos que todavia apuntan a este nombre.
+function eliminarPedidoSeleccionado29() {
+  deleteSelectedOrderSafely();
+}
+
+function archiveSelectedOrders29() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const op = ss.getSheetByName(OP_SHEET_NAME);
+  const orders = ss.getSheetByName(ORDERS_SHEET);
+
+  if (!op || !orders) {
+    ui.alert("No se encontraron las hojas necesarias (operacion/orders).");
+    return;
+  }
+
+  const range = op.getActiveRange();
+  if (!range) {
+    ui.alert("Selecciona las filas que queres archivar en la hoja operacion.");
+    return;
+  }
+
+  const startRow = range.getRow();
+  const numRows = range.getNumRows();
+  if (startRow < 2) {
+    ui.alert("Selecciona filas de datos, no el encabezado.");
+    return;
+  }
+
+  const selected = op.getRange(startRow, 1, numRows, OP_HEADER.length).getValues();
+  const targets = [];
+
+  for (let i = 0; i < selected.length; i++) {
+    const row = selected[i];
+    const displayNumber = String(row[OP_COL_ORDER_NUMBER - 1] || "").trim();
+    const helperRow = Number(row[OP_COL_HELPER_ROW - 1] || 0);
+    if (!displayNumber) {
+      continue;
+    }
+    targets.push({
+      displayNumber: displayNumber,
+      helperRow: helperRow
+    });
+  }
+
+  if (!targets.length) {
+    ui.alert("No se detectaron pedidos validos en la seleccion.");
+    return;
+  }
+
+  const response = ui.alert(
+    "Archivar pedidos seleccionados",
+    `Se archivaran y eliminaran de "orders" ${targets.length} pedido(s). ¿Queres continuar?`,
+    ui.ButtonSet.YES_NO
+  );
+  if (response !== ui.Button.YES) {
+    return;
+  }
+
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  try {
+    const archive = getOrCreateArchiveFromOrders_(ss, orders);
+    const rowsToDelete = [];
+
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i];
+      let orderRow = target.helperRow;
+
+      if (!orderRow || orderRow < 2) {
+        const finder = findOrderRowByNumber_(orders, target.displayNumber);
+        if (!finder) {
+          continue;
+        }
+        orderRow = finder.getRow();
+      }
+
+      const rowValues = orders.getRange(orderRow, 1, 1, orders.getLastColumn()).getValues()[0];
+      archive.getRange(archive.getLastRow() + 1, 1, 1, rowValues.length).setValues([rowValues]);
+      rowsToDelete.push(orderRow);
+    }
+
+    rowsToDelete
+      .sort((a, b) => b - a)
+      .forEach((rowNumber) => orders.deleteRow(rowNumber));
+
+    refreshOperacionEditable();
+    ui.alert(`Listo. Se archivaron ${rowsToDelete.length} pedido(s).`);
   } finally {
     lock.releaseLock();
   }
