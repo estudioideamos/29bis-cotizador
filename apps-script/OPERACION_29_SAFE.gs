@@ -186,7 +186,7 @@ function applyOperacionLayout_(op) {
   op.setRowHeight(1, 46);
 
   const headerRange = op.getRange(1, 1, 1, OP_HEADER.length);
-  headerRange.setBackground("#1c1c1a");
+  headerRange.setBackground("#2d2b29");
   headerRange.setFontColor("#ffffff");
   headerRange.setFontWeight("bold");
   headerRange.setWrap(true);
@@ -200,7 +200,7 @@ function applyOperacionLayout_(op) {
   op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 220, 140, 260, 170, 130, 150, 110, 180, 90, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 280, 220, 140, 320, 170, 130, 150, 110, 180, 90, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
