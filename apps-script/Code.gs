@@ -427,7 +427,7 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
     "</tr>",
     "<tr>",
     '<td style="padding:14px 24px;background:#f7f6f3;border-top:1px solid #ece7dd;">',
-    '<p style="margin:0;color:#6a6966;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;">©2026 29 BIS · Creado con ?? por <a href="https://ideamos.com.ar" style="color:#e84883;text-decoration:none;font-weight:700;word-break:break-word;overflow-wrap:anywhere;">Estudio Ideamos</a></p>',
+    '<p style="margin:0;color:#6a6966;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;">©2026 29 BIS · Creado por <a href="https://ideamos.com.ar" style="color:#e84883;text-decoration:none;font-weight:700;word-break:break-word;overflow-wrap:anywhere;">Estudio Ideamos</a></p>',
     "</td>",
     "</tr>",
     "</table>",
