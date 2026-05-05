@@ -183,11 +183,15 @@ function applyOperacionLayout_(op) {
 
   op.getRange(1, 1, 1, OP_HEADER.length).setValues([OP_HEADER]);
   op.setFrozenRows(1);
+  op.setRowHeight(1, 46);
 
   const headerRange = op.getRange(1, 1, 1, OP_HEADER.length);
   headerRange.setBackground("#1c1c1a");
   headerRange.setFontColor("#ffffff");
   headerRange.setFontWeight("bold");
+  headerRange.setWrap(true);
+  headerRange.setVerticalAlignment("middle");
+  headerRange.setHorizontalAlignment("center");
   op.getRange(1, 1, 1, 2).setBackground("#82bfb7");
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
   op.getRange(1, 15, 1, 4).setBackground("#fab948");
