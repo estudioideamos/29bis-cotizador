@@ -424,8 +424,9 @@ function deleteSelectedOrdersWithoutArchive29() {
 
 function deleteOrdersByRowRange29() {
   const ui = SpreadsheetApp.getUi();
+  const uiSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const ss = SpreadsheetApp.openById(SHEET_ID);
-  const activeSheet = ss.getActiveSheet();
+  const activeSheet = uiSpreadsheet ? uiSpreadsheet.getActiveSheet() : null;
   const activeSheetName = activeSheet ? activeSheet.getName() : "";
   const op = ss.getSheetByName(OP_SHEET_NAME);
   const orders = ss.getSheetByName(ORDERS_SHEET);
