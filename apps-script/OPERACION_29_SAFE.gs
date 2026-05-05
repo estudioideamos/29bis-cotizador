@@ -141,7 +141,6 @@ function refreshOperacionEditable() {
 
     const data = orders.getRange(2, 1, last - 1, Math.max(orders.getLastColumn(), 34)).getValues();
     const out = [];
-    const adjuntosLinks = [];
 
     for (let i = 0; i < data.length; i++) {
       const r = data[i];
@@ -150,39 +149,44 @@ function refreshOperacionEditable() {
 
       const adjuntosUrl = buildAdjuntosUrl_(r[25]);
 
-      out.push([
-        displayOrderNumber_(orderNumber), // A N° pedido
-        safe_(r[0]),          // B Fecha
-        safe_(r[2]),          // C Cliente
-        safe_(r[3]),          // D Telefono
-        safe_(r[4]),          // E DNI
-        safe_(r[5]),          // F Email
-        safe_(r[6]),          // G Tipo impresion
-        safe_(r[7]),          // H Tipo papel
-        safe_(r[8]),          // I Tamano
-        safe_(r[12]),         // J Faz
-        safe_(r[24]),         // K Nombre archivos (Y)
-        adjuntosUrl ? "Ver adjuntos" : "", // L Adjuntos (Z)
-        safe_(r[28]),         // M Observaciones (AC)
-        safe_(r[20]),         // N Estado pago (U)
-        safe_(r[21]),         // O Estado pedido (V)
-        num_(r[18]),          // P Total (S)
-        safe_(r[22]),         // Q Retiro (W)
-        safe_(r[23]),         // R Urgente (X)
-        i + 2                 // S helper -> row real en orders
-      ]);
-
-      adjuntosLinks.push(adjuntosUrl);
+      out.push({
+        fecha: safe_(r[0]),
+        adjuntosUrl: adjuntosUrl,
+        values: [
+          displayOrderNumber_(orderNumber), // A N° pedido
+          safe_(r[0]),          // B Fecha
+          safe_(r[2]),          // C Cliente
+          safe_(r[3]),          // D Telefono
+          safe_(r[4]),          // E DNI
+          safe_(r[5]),          // F Email
+          safe_(r[6]),          // G Tipo impresion
+          safe_(r[7]),          // H Tipo papel
+          safe_(r[8]),          // I Tamano
+          safe_(r[12]),         // J Faz
+          safe_(r[24]),         // K Nombre archivos (Y)
+          adjuntosUrl ? "Ver adjuntos" : "", // L Adjuntos (Z)
+          safe_(r[28]),         // M Observaciones (AC)
+          safe_(r[20]),         // N Estado pago (U)
+          safe_(r[21]),         // O Estado pedido (V)
+          num_(r[18]),          // P Total (S)
+          safe_(r[22]),         // Q Retiro (W)
+          safe_(r[23]),         // R Urgente (X)
+          i + 2                 // S helper -> row real en orders
+        ]
+      });
     }
 
-    out.sort((a, b) => parseMixedDate_(b[1]) - parseMixedDate_(a[1]));
+    out.sort((a, b) => parseMixedDate_(b.fecha) - parseMixedDate_(a.fecha));
 
     clearOperacionBody_(op);
-  if (out.length) {
-      op.getRange(2, 1, out.length, OP_HEADER.length).setValues(out);
+    if (out.length) {
+      const values = out.map((item) => item.values);
+      const adjuntosLinks = out.map((item) => item.adjuntosUrl);
+
+      op.getRange(2, 1, values.length, OP_HEADER.length).setValues(values);
       applyAdjuntosRichLinks_(op, adjuntosLinks);
-      applyAlternatingRowStyles_(op, out.length);
-      applyStatusValidations_(op, 2, Math.max(1200, out.length + 20));
+      applyAlternatingRowStyles_(op, values.length);
+      applyStatusValidations_(op, 2, Math.max(1200, values.length + 20));
     }
   } finally {
     lock.releaseLock();
