@@ -689,7 +689,7 @@ function styleOrdersHeader_(sheet) {
 
   const fullHeader = sheet.getRange(1, 1, 1, ORDERS_HEADER.length);
   fullHeader
-    .setBackground("#1c1c1a")
+    .setBackground("#2d2b29")
     .setFontColor("#ffffff")
     .setFontWeight("bold")
     .setWrap(true)
@@ -704,6 +704,7 @@ function styleOrdersHeader_(sheet) {
 
   // Bloque de cierre/estado.
   sheet.getRange(1, 19, 1, 4).setBackground("#fab948");
+  sheet.getRange(1, 23, 1, 2).setBackground("#6f8fc7");
 
   applyOrdersSheetLayout_(sheet);
 }
@@ -715,14 +716,14 @@ function applyOrdersSheetLayout_(sheet) {
 
   const sheetName = String(sheet.getName() || "").trim().toLowerCase();
   sheet.setFrozenRows(1);
-  sheet.setRowHeight(1, 46);
-  sheet.autoResizeColumns(1, ORDERS_HEADER.length);
+  sheet.setRowHeight(1, 52);
+  sheet.autoResizeColumns(1, Math.min(29, ORDERS_HEADER.length));
 
   const widths = [
-    150, 160, 220, 140, 110, 230, 180, 170, 120,
-    150, 150, 160, 120, 180, 130, 120, 130, 140,
-    120, 170, 130, 160, 190, 95, 230, 230, 170,
-    130, 260, 280, 160, 150, 170, 150, 120, 200
+    170, 170, 220, 140, 120, 240, 190, 180, 120,
+    180, 180, 180, 120, 200, 150, 130, 150, 150,
+    130, 180, 140, 170, 210, 100, 260, 260, 170,
+    140, 320, 110, 150, 150, 170, 150, 120, 220
   ];
 
   widths.forEach((width, index) => {

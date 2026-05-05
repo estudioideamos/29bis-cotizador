@@ -56,6 +56,12 @@ function onOpen() {
     .addItem("Archivar por rango de filas...", "archiveSelectedOrders29")
     .addItem("Eliminar por rango de filas...", "deleteOrdersByRowRange29")
     .addToUi();
+
+  try {
+    applyPricesLayout29();
+  } catch (err) {
+    console.log(`No se pudo aplicar el layout de prices al abrir: ${err}`);
+  }
 }
 
 function openManual29Bis() {
@@ -196,11 +202,12 @@ function applyOperacionLayout_(op) {
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
   op.getRange(1, 15, 1, 4).setBackground("#fab948");
   op.getRange(1, 19, 1, 2).setBackground("#6f8fc7");
+  protectHeaderRow_(op);
 
   op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 280, 220, 140, 320, 170, 130, 150, 110, 180, 90, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 300, 220, 150, 340, 170, 130, 150, 120, 210, 100, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
@@ -782,7 +789,7 @@ function applyAdjuntosRichLinks_(sheet, links) {
     ];
   });
 
-  sheet.getRange(2, 12, richValues.length, 1).setRichTextValues(richValues);
+  sheet.getRange(2, 13, richValues.length, 1).setRichTextValues(richValues);
 }
 
 function truncateCellText_(value, maxLen) {
@@ -891,6 +898,10 @@ function syncArchiveSchemaFromOrders_(archiveSheet, ordersSheet, headerValues, l
   archiveSheet.getRange(1, 1, 1, lastCol).setValues(headerValues);
   archiveSheet.setFrozenRows(1);
   ordersSheet.getRange(1, 1, 1, lastCol).copyTo(archiveSheet.getRange(1, 1, 1, lastCol), { formatOnly: true });
+  if (typeof styleOrdersHeader_ === "function") {
+    styleOrdersHeader_(archiveSheet);
+  }
+  protectHeaderRow_(archiveSheet);
 }
 
 function configurarDropdownStockPrices29() {
@@ -939,6 +950,115 @@ function configurarDropdownStockPrices29() {
   const range = prices.getRange(2, colDisponible, maxRows - 1, 1);
   range.setDataValidation(rule);
   range.setHorizontalAlignment("center");
+  applyPricesLayout29();
 
   ui.alert('Listo. La columna "disponible" en prices ahora tiene dropdown TRUE/FALSE.');
+}
+
+function applyPricesLayout29() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const prices = ss.getSheetByName("prices");
+  if (!prices) {
+    return;
+  }
+
+  const lastCol = prices.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+
+  prices.setFrozenRows(1);
+  prices.setRowHeight(1, 52);
+
+  const headerRange = prices.getRange(1, 1, 1, lastCol);
+  headerRange
+    .setBackground("#2d2b29")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold")
+    .setWrap(true)
+    .setVerticalAlignment("middle")
+    .setHorizontalAlignment("center");
+  protectHeaderRow_(prices);
+
+  const headers = prices.getRange(1, 1, 1, lastCol).getValues()[0].map((h) => String(h || "").trim().toLowerCase());
+  const colPrecio = findPricesHeaderIndex_(headers, ["precio unitario", "price"]) + 1;
+  const colDisponible = findPricesHeaderIndex_(headers, ["disponible", "active"]) + 1;
+
+  if (colPrecio > 0) {
+    prices.getRange(1, colPrecio).setBackground("#fab948");
+    prices.setColumnWidth(colPrecio, 170);
+  }
+  if (colDisponible > 0) {
+    prices.getRange(1, colDisponible).setBackground("#fab948");
+    prices.setColumnWidth(colDisponible, 120);
+    if (prices.getMaxRows() > 1) {
+      prices.getRange(2, colDisponible, prices.getMaxRows() - 1, 1).setHorizontalAlignment("center");
+    }
+  }
+
+  const widths = [190, 180, 190, 170, 190, 140, 170, 140];
+  widths.forEach((width, index) => {
+    if (index + 1 <= lastCol) {
+      prices.setColumnWidth(index + 1, width);
+    }
+  });
+}
+
+function findPricesHeaderIndex_(headers, aliases) {
+  const normalizedAliases = (aliases || []).map((value) => String(value || "").trim().toLowerCase());
+  for (let i = 0; i < headers.length; i++) {
+    const header = String(headers[i] || "").trim().toLowerCase();
+    if (normalizedAliases.includes(header)) {
+      return i;
+    }
+    for (let j = 0; j < normalizedAliases.length; j++) {
+      if (header.indexOf(normalizedAliases[j]) !== -1) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+function protectHeaderRow_(sheet) {
+  if (!sheet) {
+    return;
+  }
+
+  const maxCols = Math.max(sheet.getLastColumn(), sheet.getMaxColumns(), 1);
+  const targetRange = sheet.getRange(1, 1, 1, maxCols);
+  const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+
+  protections.forEach((protection) => {
+    try {
+      const range = protection.getRange();
+      if (
+        range &&
+        range.getSheet().getSheetId() === sheet.getSheetId() &&
+        range.getRow() === 1 &&
+        range.getNumRows() === 1
+      ) {
+        protection.remove();
+      }
+    } catch (err) {
+      console.log(`No se pudo limpiar una proteccion previa del encabezado en ${sheet.getName()}: ${err}`);
+    }
+  });
+
+  const protection = targetRange.protect().setDescription(`Encabezado protegido - ${sheet.getName()}`);
+  const me = Session.getEffectiveUser();
+  const myEmail = me ? String(me.getEmail() || "").trim() : "";
+
+  if (myEmail) {
+    const keepEditors = protection.getEditors().filter((editor) => String(editor.getEmail() || "").trim() === myEmail);
+    protection.removeEditors(protection.getEditors().filter((editor) => String(editor.getEmail() || "").trim() !== myEmail));
+    if (!keepEditors.length) {
+      protection.addEditor(myEmail);
+    }
+  }
+
+  if (protection.canDomainEdit()) {
+    protection.setDomainEdit(false);
+  }
+  protection.setWarningOnly(false);
 }

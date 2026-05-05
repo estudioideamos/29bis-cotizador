@@ -43,7 +43,7 @@
       padding: 24px 24px 20px;
       color: #fff;
       background:
-        linear-gradient(135deg, #181816 0%, #2c2c29 100%);
+        linear-gradient(135deg, #c82f6d 0%, #d93d79 55%, #ea6a9a 100%);
     }
     .hero-top h1 {
       margin: 0;
@@ -261,7 +261,7 @@
         </article>
         <article class="card">
           <h4>prices</h4>
-          <p>Sirve para cambiar precios y disponibilidad de papeles.</p>
+          <p>Sirve para cambiar precios y disponibilidad de papeles. Las columnas editables estan destacadas para que sea facil reconocerlas, y el encabezado queda protegido para evitar cambios accidentales.</p>
         </article>
       </div>
       <div class="box danger">
@@ -277,6 +277,7 @@
         <li>Los pedidos nuevos se agregan automaticamente.</li>
         <li>Las filas tienen color alternado suave para facilitar la lectura.</li>
         <li>Los encabezados tienen colores para agrupar informacion.</li>
+        <li>Los encabezados estan congelados y protegidos para evitar que se editen, muevan o borren por error.</li>
       </ul>
       <div class="box ok">
         <strong>Importante:</strong> las hojas <code>operacion</code>, <code>orders</code> y <code>orders_archivo</code> comparten la misma logica visual de encabezados para que sea facil reconocer cada bloque de informacion.
@@ -457,6 +458,13 @@
       <div class="box ok">
         Ese cambio impacta en el cotizador online.
       </div>
+      <div class="box warn">
+        <strong>Importante:</strong> en <strong>prices</strong> las dos columnas que el cliente puede modificar son
+        <code>precio unitario</code> y <code>disponible</code>. Por eso sus encabezados aparecen resaltados con color.
+      </div>
+      <div class="box ok">
+        El resto de los encabezados de <strong>prices</strong>, igual que en <strong>operacion</strong> y <strong>orders_archivo</strong>, quedan protegidos para cuidar la estructura de la planilla.
+      </div>
     </section>
 
     <section class="section">
@@ -484,6 +492,7 @@
       <ul>
         <li>No editar manualmente la pestaña <code>orders</code>.</li>
         <li>No borrar encabezados.</li>
+        <li>No intentar destrabar o mover encabezados protegidos.</li>
         <li>No mover columnas de <strong>operacion</strong> si no es necesario.</li>
         <li>No borrar filas al azar en hojas internas sin saber de donde vienen.</li>
       </ul>
