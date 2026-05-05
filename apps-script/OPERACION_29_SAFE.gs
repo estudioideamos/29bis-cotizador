@@ -40,6 +40,17 @@ const OP_COL_STATUS_PEDIDO = 17; // Q
 const OP_COL_HELPER_ROW = 21; // U
 const OP_ARCHIVE_SHEET = "orders_archivo";
 const MANUAL_URL_29BIS = "https://estudioideamos.github.io/29bis-cotizador/MANUAL_29BIS_SHEETS.html";
+const PRICES_SHEET_29 = "prices";
+const PRICES_HEADER_29 = [
+  "tipo de impresion",
+  "papel (codigo)",
+  "papel (nombre)",
+  "tamano (codigo)",
+  "cobertura (codigo)",
+  "faz (codigo)",
+  "precio unitario",
+  "disponible"
+];
 
 // columnas en "orders" (1-based)
 const OR_COL_ORDER_NUMBER = 2; // B
@@ -224,7 +235,12 @@ function applyOperacionLayout_(op) {
 function onEdit(e) {
   if (!e || !e.range) return;
   const sh = e.range.getSheet();
-  if (!sh || sh.getName() !== OP_SHEET_NAME) return;
+  if (!sh) return;
+  if (isProtectedHeaderSheet_(sh) && e.range.getRow() === 1) {
+    restoreProtectedHeaderRow_(sh);
+    return;
+  }
+  if (sh.getName() !== OP_SHEET_NAME) return;
   if (e.range.getRow() < 2) return;
 
   const col = e.range.getColumn();
@@ -256,6 +272,41 @@ function onEdit(e) {
   }
 
   orders.getRange(targetOrderRow, OR_COL_FECHA_CAMBIO_ESTADO).setValue(formatDateTimeAr_(new Date()));
+}
+
+function isProtectedHeaderSheet_(sheet) {
+  if (!sheet) {
+    return false;
+  }
+  const name = String(sheet.getName() || "").trim();
+  return [OP_SHEET_NAME, OP_ARCHIVE_SHEET, PRICES_SHEET_29].includes(name);
+}
+
+function restoreProtectedHeaderRow_(sheet) {
+  const name = String(sheet.getName() || "").trim();
+  if (name === OP_SHEET_NAME) {
+    applyOperacionLayout_(sheet);
+    return;
+  }
+
+  if (name === PRICES_SHEET_29) {
+    if (sheet.getMaxColumns() < PRICES_HEADER_29.length) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), PRICES_HEADER_29.length - sheet.getMaxColumns());
+    }
+    sheet.getRange(1, 1, 1, PRICES_HEADER_29.length).setValues([PRICES_HEADER_29]);
+    applyPricesLayout29();
+    return;
+  }
+
+  if (name === OP_ARCHIVE_SHEET && typeof ORDERS_HEADER !== "undefined") {
+    if (sheet.getMaxColumns() < ORDERS_HEADER.length) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), ORDERS_HEADER.length - sheet.getMaxColumns());
+    }
+    sheet.getRange(1, 1, 1, ORDERS_HEADER.length).setValues([ORDERS_HEADER]);
+    if (typeof styleOrdersHeader_ === "function") {
+      styleOrdersHeader_(sheet);
+    }
+  }
 }
 
 function deleteSelectedOrderSafely() {
