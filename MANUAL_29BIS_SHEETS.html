@@ -122,6 +122,53 @@
     .box.ok { background: #eff8f6; border-color: #bfe0da; }
     .box.warn { background: #fff8ea; border-color: #f5dd9f; }
     .box.danger { background: #fff2f7; border-color: #f2bed2; }
+    .support-card {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-top: 14px;
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid #f1dcc7;
+      background:
+        linear-gradient(135deg, rgba(255, 118, 22, 0.08), rgba(255, 255, 255, 0.92)),
+        #fff;
+      box-shadow: 0 10px 24px rgba(28, 28, 26, 0.04);
+    }
+    .support-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 120px;
+      height: 84px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid #f1e4d8;
+      overflow: hidden;
+    }
+    .support-logo img {
+      width: 200px;
+      height: 84px;
+      object-fit: cover;
+      object-position: left center;
+      display: block;
+    }
+    .support-copy h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+    .support-copy p {
+      margin: 0;
+    }
+    .support-copy a {
+      color: var(--pink);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .support-copy a:hover {
+      text-decoration: underline;
+    }
     code {
       background: #f2f1ed;
       border: 1px solid #e7e5df;
@@ -165,6 +212,12 @@
     }
     @media (max-width: 760px) {
       .grid { grid-template-columns: 1fr; }
+      .support-card {
+        grid-template-columns: 1fr;
+      }
+      .support-logo {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -434,10 +487,15 @@
         <li>No mover columnas de <strong>operacion</strong> si no es necesario.</li>
         <li>No borrar filas al azar en hojas internas sin saber de donde vienen.</li>
       </ul>
-      <div class="box warn">
-        <strong>Ante cualquier duda:</strong> si no estan seguros de como hacer algo, lo mejor es no tocar configuraciones ni hojas internas por intuicion.
-        Antes de hacer cambios que no conocen, contacten a <a href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer"><strong>Estudio Ideamos</strong></a> para que los guiemos correctamente.
-        Mail de contacto: <a href="mailto:hola@ideamos.com.ar">hola@ideamos.com.ar</a>.
+      <div class="support-card">
+        <a class="support-logo" href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer" aria-label="Ir a Estudio Ideamos">
+          <img src="./assets/ideamos-logo.png" alt="Logo Estudio Ideamos">
+        </a>
+        <div class="support-copy">
+          <h3>Soporte y acompanamiento</h3>
+          <p>Ante cualquier duda, o antes de tocar configuraciones que no conocen, lo mejor es consultar primero. Si necesitan ayuda, pueden contactar a <a href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer">Estudio Ideamos</a> para que los guiemos correctamente y cuidemos que la planilla siga funcionando bien.</p>
+          <p>Mail de contacto: <a href="mailto:hola@ideamos.com.ar">hola@ideamos.com.ar</a>.</p>
+        </div>
       </div>
     </section>
 

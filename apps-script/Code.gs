@@ -691,7 +691,10 @@ function styleOrdersHeader_(sheet) {
   fullHeader
     .setBackground("#1c1c1a")
     .setFontColor("#ffffff")
-    .setFontWeight("bold");
+    .setFontWeight("bold")
+    .setWrap(true)
+    .setVerticalAlignment("middle")
+    .setHorizontalAlignment("center");
 
   // Bloque de identificacion del pedido.
   sheet.getRange(1, 1, 1, 2).setBackground("#82bfb7");
@@ -701,6 +704,35 @@ function styleOrdersHeader_(sheet) {
 
   // Bloque de cierre/estado.
   sheet.getRange(1, 19, 1, 4).setBackground("#fab948");
+
+  applyOrdersSheetLayout_(sheet);
+}
+
+function applyOrdersSheetLayout_(sheet) {
+  if (!sheet || sheet.getMaxColumns() < ORDERS_HEADER.length) {
+    return;
+  }
+
+  sheet.setFrozenRows(1);
+  sheet.setRowHeight(1, 46);
+  sheet.autoResizeColumns(1, ORDERS_HEADER.length);
+
+  const widths = [
+    150, 160, 220, 140, 110, 230, 180, 170, 120,
+    150, 150, 160, 120, 180, 130, 120, 130, 140,
+    120, 170, 130, 160, 190, 95, 230, 230, 170,
+    130, 260, 280, 160, 150, 170, 150, 120, 200
+  ];
+
+  widths.forEach((width, index) => {
+    sheet.setColumnWidth(index + 1, width);
+  });
+
+  if (sheet.getLastRow() > 1) {
+    const numRows = Math.max(sheet.getLastRow() - 1, 1);
+    sheet.getRange(2, 25, numRows, 5).setWrap(true);
+    sheet.getRange(2, 30, numRows, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  }
 }
 
 function jsonResponse(data) {
