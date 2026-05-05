@@ -713,6 +713,7 @@ function applyOrdersSheetLayout_(sheet) {
     return;
   }
 
+  const sheetName = String(sheet.getName() || "").trim().toLowerCase();
   sheet.setFrozenRows(1);
   sheet.setRowHeight(1, 46);
   sheet.autoResizeColumns(1, ORDERS_HEADER.length);
@@ -732,6 +733,11 @@ function applyOrdersSheetLayout_(sheet) {
     const numRows = Math.max(sheet.getLastRow() - 1, 1);
     sheet.getRange(2, 25, numRows, 5).setWrap(true);
     sheet.getRange(2, 30, numRows, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  }
+
+  // En el archivo conviene mostrar solo lo operativo y dejar lo tecnico oculto.
+  if (sheetName === "orders_archivo") {
+    sheet.hideColumns(30, 7);
   }
 }
 
