@@ -199,6 +199,7 @@ function applyOperacionLayout_(op) {
   applyStatusValidations_(op, 2, 1200);
 
   op.getRange("Q:Q").setNumberFormat("$ #,##0");
+  op.getRange("R:R").setNumberFormat("d/m/yyyy hh:mm");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
   op.getRange("L:L").setWrap(true);
