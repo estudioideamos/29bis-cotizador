@@ -57,6 +57,30 @@
       opacity: .94;
       max-width: 760px;
     }
+    .hero-brand {
+      margin-top: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(8px);
+    }
+    .hero-brand img {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.12);
+      object-fit: cover;
+      display: block;
+    }
+    .hero-brand span {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
     .hero-meta {
       display: flex;
       flex-wrap: wrap;
@@ -143,15 +167,16 @@
       width: 120px;
       height: 84px;
       border-radius: 18px;
-      background: #fff;
+      background: #171716;
       border: 1px solid #f1e4d8;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
       overflow: hidden;
     }
     .support-logo img {
-      width: 200px;
+      width: 120px;
       height: 84px;
       object-fit: cover;
-      object-position: left center;
+      object-position: center center;
       display: block;
     }
     .support-copy h3 {
@@ -226,20 +251,24 @@
     <header class="hero">
       <div class="hero-top">
         <h1>Manual de uso - Planilla 29 BIS</h1>
-        <p>Guia simple para usar la planilla de pedidos, sin conocimientos tecnicos. Este manual explica que mirar, que tocar, que no tocar y como resolver las tareas mas comunes del dia a dia.</p>
+        <p>Guía simple para usar la planilla de pedidos, sin conocimientos técnicos. Este manual explica qué mirar, qué tocar, qué no tocar y cómo resolver las tareas más comunes del día a día.</p>
+        <div class="hero-brand">
+          <img src="https://estudioideamos.github.io/29bis-cotizador/assets/avatar-29.png" alt="Mascota de 29 BIS">
+          <span>Manual operativo 29 BIS</span>
+        </div>
       </div>
       <div class="hero-meta">
         <span class="chip pink">Cotizador + pedidos online</span>
-        <span class="chip mint">Uso diario de gestion</span>
+        <span class="chip mint">Uso diario de gestión</span>
         <span class="chip gold">Actualizado: 04/05/2026</span>
       </div>
     </header>
 
     <section class="section">
-      <h2>Para que sirve esta planilla</h2>
-      <p>La planilla recibe los pedidos que entran desde la web de 29 BIS. A partir de ahi, sirve para:</p>
+      <h2>Para qué sirve esta planilla</h2>
+      <p>La planilla recibe los pedidos que entran desde la web de 29 BIS. A partir de ahí, sirve para:</p>
       <ul>
-        <li>Ver rapidamente cada pedido.</li>
+        <li>Ver rápidamente cada pedido.</li>
         <li>Revisar datos del cliente, archivos y observaciones.</li>
         <li>Cambiar el estado del pago.</li>
         <li>Cambiar el estado del pedido.</li>
@@ -249,19 +278,19 @@
     </section>
 
     <section class="section">
-      <h2>Que pestañas usar</h2>
+      <h2>Qué pestañas usar</h2>
       <div class="grid">
         <article class="card">
           <h4>operacion</h4>
-          <p>Es la pestaña principal. Aca se trabaja el dia a dia.</p>
+          <p>Es la pestaña principal. Acá se trabaja el día a día.</p>
         </article>
         <article class="card">
           <h4>orders_archivo</h4>
-          <p>Es el archivo/historial de pedidos que fueron archivados. Mantiene la misma logica visual de colores que la hoja operativa para que la lectura sea mas natural.</p>
+          <p>Es el archivo/historial de pedidos que fueron archivados. Mantiene la misma lógica visual de colores que la hoja operativa para que la lectura sea más natural.</p>
         </article>
         <article class="card">
           <h4>prices</h4>
-          <p>Sirve para cambiar precios y disponibilidad de papeles. Las columnas editables estan destacadas para que sea facil reconocerlas, y el encabezado queda protegido para evitar cambios accidentales.</p>
+          <p>Sirve para cambiar precios y disponibilidad de papeles. Las columnas editables están destacadas para que sea fácil reconocerlas, y el encabezado queda protegido para evitar cambios accidentales.</p>
         </article>
       </div>
       <div class="box danger">
@@ -272,15 +301,15 @@
 
     <section class="section">
       <h2>Pestaña principal: operacion</h2>
-      <p>La pestaña <strong>operacion</strong> ya viene preparada para lectura clara:</p>
+      <p>La pestaña <strong>operacion</strong> ya viene preparada para una lectura clara:</p>
       <ul>
-        <li>Los pedidos nuevos se agregan automaticamente.</li>
+        <li>Los pedidos nuevos se agregan automáticamente.</li>
         <li>Las filas tienen color alternado suave para facilitar la lectura.</li>
-        <li>Los encabezados tienen colores para agrupar informacion.</li>
-        <li>Los encabezados estan congelados y protegidos para evitar que se editen, muevan o borren por error.</li>
+        <li>Los encabezados tienen colores para agrupar información.</li>
+        <li>Los encabezados están congelados y protegidos para evitar que se editen, muevan o borren por error.</li>
       </ul>
       <div class="box ok">
-        <strong>Importante:</strong> las hojas <code>operacion</code>, <code>orders</code> y <code>orders_archivo</code> comparten la misma logica visual de encabezados para que sea facil reconocer cada bloque de informacion.
+        <strong>Importante:</strong> las hojas <code>operacion</code>, <code>orders</code> y <code>orders_archivo</code> comparten la misma lógica visual de encabezados para que sea fácil reconocer cada bloque de información.
       </div>
 
       <table class="table-like">
@@ -288,14 +317,14 @@
           <tr>
             <th>Grupo</th>
             <th>Columnas</th>
-            <th>Para que sirven</th>
+            <th>Para qué sirven</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Datos del pedido</td>
             <td><code>N° pedido</code>, <code>Fecha</code></td>
-            <td>Identifican el pedido y el momento en que entro.</td>
+            <td>Identifican el pedido y el momento en que entró.</td>
           </tr>
           <tr>
             <td>Datos del cliente</td>
@@ -304,52 +333,52 @@
           </tr>
           <tr>
             <td>Trabajo</td>
-            <td><code>Tipo impresion</code>, <code>Tipo papel</code>, <code>Tamano</code>, <code>Faz</code></td>
-            <td>Describen como se debe producir el trabajo.</td>
+            <td><code>Tipo impresion</code>, <code>Tipo papel</code>, <code>Tamaño</code>, <code>Faz</code></td>
+            <td>Describen cómo se debe producir el trabajo.</td>
           </tr>
           <tr>
             <td>Archivos</td>
             <td><code>Nombre archivos</code>, <code>Adjuntos</code>, <code>Observaciones</code></td>
-            <td>Permiten abrir lo que subio el cliente y leer aclaraciones importantes.</td>
+            <td>Permiten abrir lo que subió el cliente y leer aclaraciones importantes.</td>
           </tr>
           <tr>
             <td>Seguimiento</td>
             <td><code>Forma de pago</code>, <code>Estado pago</code>, <code>Estado pedido</code>, <code>Total</code>, <code>Fecha y hora de retiro</code>, <code>Urgente</code></td>
-            <td>Sirven para gestionar la produccion y la entrega.</td>
+            <td>Sirven para gestionar la producción y la entrega.</td>
           </tr>
         </tbody>
       </table>
-      <h3>Como leer los colores de encabezado</h3>
+      <h3>Cómo leer los colores de encabezado</h3>
       <ul>
         <li><strong>Verde agua:</strong> identifica el pedido y la fecha.</li>
         <li><strong>Rosa:</strong> agrupa los datos del cliente.</li>
         <li><strong>Naranja:</strong> agrupa total, forma de pago y estados.</li>
         <li><strong>Azul:</strong> marca la parte de retiro y urgencia.</li>
-        <li><strong>Negro:</strong> queda para los datos tecnicos del trabajo, archivos y detalles internos.</li>
+        <li><strong>Negro:</strong> queda para los datos técnicos del trabajo, archivos y detalles internos.</li>
       </ul>
     </section>
 
     <section class="section">
-      <h2>Que se actualiza solo</h2>
+      <h2>Qué se actualiza solo</h2>
       <ul>
         <li>Cuando entra un pedido nuevo desde la web, la hoja <strong>operacion</strong> se actualiza sola.</li>
-        <li>Los colores y el orden de columnas se vuelven a aplicar automaticamente cuando la hoja se regenera.</li>
+        <li>Los colores y el orden de columnas se vuelven a aplicar automáticamente cuando la hoja se regenera.</li>
       </ul>
       <div class="box ok">
-        <strong>En la practica:</strong> normalmente no hace falta tocar el boton <strong>Actualizar hoja operacion</strong>. Ese boton queda como respaldo por si alguna vez hace falta refrescar manualmente.
+        <strong>En la práctica:</strong> normalmente no hace falta tocar el botón <strong>Actualizar hoja operacion</strong>. Ese botón queda como respaldo por si alguna vez hace falta refrescar manualmente.
       </div>
     </section>
 
     <section class="section">
-      <h2>Que se hace todos los dias</h2>
+      <h2>Qué se hace todos los días</h2>
       <ol>
         <li>Entrar a la pestaña <strong>operacion</strong>.</li>
-        <li>Buscar el pedido por numero o cliente.</li>
+        <li>Buscar el pedido por número o cliente.</li>
         <li>Hacer clic en <strong>Ver adjuntos</strong> para abrir la carpeta del pedido.</li>
-        <li>Leer la columna <strong>Observaciones</strong> por si el cliente dejo instrucciones.</li>
+        <li>Leer la columna <strong>Observaciones</strong> por si el cliente dejó instrucciones.</li>
         <li>Revisar y editar:
           <ul>
-            <li><strong>Forma de pago:</strong> muestra si el cliente eligio transferencia o pago en el local.</li>
+            <li><strong>Forma de pago:</strong> muestra si el cliente eligió transferencia o pago en el local.</li>
             <li><strong>Estado pago:</strong> <code>Pendiente</code> o <code>Pagado</code>.</li>
             <li><strong>Estado pedido:</strong> <code>En revisión</code>, <code>En preparación</code> o <code>Listo para retirar</code>.</li>
           </ul>
@@ -358,21 +387,21 @@
     </section>
 
     <section class="section">
-      <h2>Menu 29 BIS Gestion</h2>
-      <p>El menu fue simplificado para que queden solo opciones utiles y faciles de entender:</p>
+      <h2>Menú 29 BIS Gestion</h2>
+      <p>El menú fue simplificado para que queden solo opciones útiles y fáciles de entender:</p>
       <table class="table-like">
         <thead>
           <tr>
-            <th>Opcion</th>
-            <th>Para que sirve</th>
-            <th>Cuando usarla</th>
+            <th>Opción</th>
+            <th>Para qué sirve</th>
+            <th>Cuándo usarla</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><strong>Abrir manual de uso</strong></td>
-            <td>Abre este manual desde el mismo menu.</td>
-            <td>Cuando necesitan ayuda o recordar como se hace una tarea.</td>
+            <td>Abre este manual desde el mismo menú.</td>
+            <td>Cuando necesitan ayuda o recordar cómo se hace una tarea.</td>
           </tr>
           <tr>
             <td><strong>Actualizar hoja operacion</strong></td>
@@ -394,10 +423,10 @@
     </section>
 
     <section class="section">
-      <h2>Como archivar pedidos</h2>
+      <h2>Cómo archivar pedidos</h2>
       <ol>
         <li>Entrar a <strong>operacion</strong>.</li>
-        <li>Ir al menu <strong>29 BIS Gestion</strong>.</li>
+        <li>Ir al menú <strong>29 BIS Gestion</strong>.</li>
         <li>Elegir <strong>Archivar por rango de filas...</strong>.</li>
         <li>Escribir el rango. Ejemplo: <code>4-4</code> o <code>4-10</code>.</li>
         <li>Confirmar.</li>
@@ -408,34 +437,34 @@
     </section>
 
     <section class="section">
-      <h2>Como eliminar pedidos</h2>
-      <p>La forma mas estable es por rango de filas.</p>
+      <h2>Cómo eliminar pedidos</h2>
+      <p>La forma más estable es por rango de filas.</p>
       <ol>
         <li>Entrar a <strong>operacion</strong>.</li>
-        <li>Mirar los numeros de fila de la izquierda.</li>
-        <li>Ir al menu <strong>29 BIS Gestion</strong>.</li>
+        <li>Mirar los números de fila de la izquierda.</li>
+        <li>Ir al menú <strong>29 BIS Gestion</strong>.</li>
         <li>Elegir <strong>Eliminar por rango de filas...</strong>.</li>
         <li>Escribir el rango. Ejemplo: <code>4-23</code>.</li>
         <li>Confirmar.</li>
       </ol>
       <div class="box warn">
-        <strong>Importante:</strong> esta opcion elimina definitivamente los pedidos de <code>orders</code>. No los manda a archivo.
+        <strong>Importante:</strong> esta opción elimina definitivamente los pedidos de <code>orders</code>. No los manda a archivo.
       </div>
       <div class="box ok">
-        Conviene usar esta opcion para borrar pedidos viejos, pruebas o filas desfasadas que no interesa conservar.
+        Conviene usar esta opción para borrar pedidos viejos, pruebas o filas desfasadas que no interesa conservar.
       </div>
       <div class="box ok">
-        Al eliminar desde <strong>operacion</strong>, tambien se mandan a la papelera de Google Drive los adjuntos de ese pedido.
+        Al eliminar desde <strong>operacion</strong>, también se mandan a la papelera de Google Drive los adjuntos de ese pedido.
       </div>
     </section>
 
     <section class="section">
-      <h2>Como eliminar lo que ya esta archivado</h2>
-      <p>Lo archivado tambien se puede eliminar desde el menu, sin tener que borrar filas manualmente.</p>
+      <h2>Cómo eliminar lo que ya está archivado</h2>
+      <p>Lo archivado también se puede eliminar desde el menú, sin tener que borrar filas manualmente.</p>
       <ol>
         <li>Ir a <strong>orders_archivo</strong>.</li>
-        <li>Mirar los numeros de fila de la izquierda.</li>
-        <li>Ir al menu <strong>29 BIS Gestion</strong>.</li>
+        <li>Mirar los números de fila de la izquierda.</li>
+        <li>Ir al menú <strong>29 BIS Gestion</strong>.</li>
         <li>Elegir <strong>Eliminar por rango de filas...</strong>.</li>
         <li>Escribir el rango. Ejemplo: <code>2-5</code>.</li>
         <li>Confirmar.</li>
@@ -444,15 +473,15 @@
         No borrar la fila 1. Esa fila es el encabezado.
       </div>
       <div class="box ok">
-        Cuando eliminas desde <strong>orders_archivo</strong>, tambien se mandan a la papelera de Drive los adjuntos asociados a ese pedido.
+        Cuando eliminás desde <strong>orders_archivo</strong>, también se mandan a la papelera de Drive los adjuntos asociados a ese pedido.
       </div>
     </section>
 
     <section class="section">
-      <h2>Como cambiar precios</h2>
+      <h2>Cómo cambiar precios</h2>
       <ol>
         <li>Ir a la pestaña <strong>prices</strong>.</li>
-        <li>Buscar la fila correspondiente al papel, tamaño, tipo de impresion y faz.</li>
+        <li>Buscar la fila correspondiente al papel, tamaño, tipo de impresión y faz.</li>
         <li>Cambiar el valor de <strong>precio unitario</strong>.</li>
       </ol>
       <div class="box ok">
@@ -468,7 +497,7 @@
     </section>
 
     <section class="section">
-      <h2>Como ocultar un papel sin stock</h2>
+      <h2>Cómo ocultar un papel sin stock</h2>
       <ol>
         <li>Ir a <strong>prices</strong>.</li>
         <li>Buscar el papel correspondiente.</li>
@@ -478,12 +507,12 @@
     </section>
 
     <section class="section">
-      <h2>Que hacer si algo no se ve bien</h2>
+      <h2>Qué hacer si algo no se ve bien</h2>
       <ul>
         <li>Si un pedido no aparece enseguida: esperar unos segundos y, si hace falta, usar <strong>Actualizar hoja operacion</strong>.</li>
-        <li>Si falta una columna: revisar si esta oculta y, si hace falta, volver a regenerar la hoja.</li>
-        <li>Si un estado aparece como invalido: revisar que el valor coincida con el dropdown exacto.</li>
-        <li>Si una accion del menu no hace lo esperado: no probar muchas veces seguidas. Cortar y revisar antes de seguir.</li>
+        <li>Si falta una columna: revisar si está oculta y, si hace falta, volver a regenerar la hoja.</li>
+        <li>Si un estado aparece como inválido: revisar que el valor coincida con el dropdown exacto.</li>
+        <li>Si una acción del menú no hace lo esperado: no probar muchas veces seguidas. Cortar y revisar antes de seguir.</li>
       </ul>
     </section>
 
@@ -494,14 +523,14 @@
         <li>No borrar encabezados.</li>
         <li>No intentar destrabar o mover encabezados protegidos.</li>
         <li>No mover columnas de <strong>operacion</strong> si no es necesario.</li>
-        <li>No borrar filas al azar en hojas internas sin saber de donde vienen.</li>
+        <li>No borrar filas al azar en hojas internas sin saber de dónde vienen.</li>
       </ul>
       <div class="support-card">
         <a class="support-logo" href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer" aria-label="Ir a Estudio Ideamos">
-          <img src="./assets/ideamos-logo.png" alt="Logo Estudio Ideamos">
+          <img src="./assets/fondo-videotutorial.jpg" alt="Imagen de Estudio Ideamos">
         </a>
         <div class="support-copy">
-          <h3>Soporte y acompanamiento</h3>
+          <h3>Soporte y acompañamiento</h3>
           <p>Ante cualquier duda, o antes de tocar configuraciones que no conocen, lo mejor es consultar primero. Si necesitan ayuda, pueden contactar a <a href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer">Estudio Ideamos</a> para que los guiemos correctamente y cuidemos que la planilla siga funcionando bien.</p>
           <p>Mail de contacto: <a href="mailto:hola@ideamos.com.ar">hola@ideamos.com.ar</a>.</p>
         </div>
@@ -509,7 +538,7 @@
     </section>
 
     <section class="section">
-      <h2>Resumen rapido</h2>
+      <h2>Resumen rápido</h2>
       <ul>
         <li><strong>Para trabajar pedidos:</strong> usar <strong>operacion</strong>.</li>
         <li><strong>Para guardar pedidos viejos:</strong> usar <strong>Archivar por rango de filas...</strong>.</li>
@@ -521,7 +550,7 @@
 
     <p class="footer">
       Manual operativo de 29 BIS.
-      Si mas adelante necesitan sumar nuevas acciones o automatizaciones, se puede ampliar sobre esta base.
+      Si más adelante necesitan sumar nuevas acciones o automatizaciones, se puede ampliar sobre esta base.
     </p>
   </div>
 </body>
