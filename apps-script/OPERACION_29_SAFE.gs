@@ -191,6 +191,7 @@ function applyOperacionLayout_(op) {
   op.getRange(1, 1, 1, 2).setBackground("#82bfb7");
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
   op.getRange(1, 15, 1, 4).setBackground("#fab948");
+  op.getRange(1, 19, 1, 2).setBackground("#6f8fc7");
 
   op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
