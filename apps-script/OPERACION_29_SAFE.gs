@@ -22,19 +22,21 @@ const OP_HEADER = [
   "Nombre archivos",   // K
   "Adjuntos",          // L
   "Observaciones",     // M
-  "Estado pago",       // N (editable)
-  "Estado pedido",     // O (editable)
-  "Total",             // P
-  "Fecha y hora de retiro", // Q
-  "Urgente",           // R
-  "_row_orders"        // S (helper oculta)
+  "Forma de pago",     // N
+  "Estado pago",       // O (editable)
+  "Estado pedido",     // P (editable)
+  "Total",             // Q
+  "Fecha y hora de retiro", // R
+  "Urgente",           // S
+  "_row_orders"        // T (helper oculta)
 ];
 
 // columnas en "operacion" (1-based)
 const OP_COL_ORDER_NUMBER = 1; // A
-const OP_COL_STATUS_PAGO = 14; // N
-const OP_COL_STATUS_PEDIDO = 15; // O
-const OP_COL_HELPER_ROW = 19; // S
+const OP_COL_PAYMENT_METHOD = 14; // N
+const OP_COL_STATUS_PAGO = 15; // O
+const OP_COL_STATUS_PEDIDO = 16; // P
+const OP_COL_HELPER_ROW = 20; // T
 const OP_ARCHIVE_SHEET = "orders_archivo";
 const MANUAL_URL_29BIS = "https://estudioideamos.github.io/29bis-cotizador/MANUAL_29BIS_SHEETS.html";
 
@@ -102,17 +104,17 @@ function setupOperacionEditable() {
   headerRange.setFontWeight("bold");
   op.getRange(1, 1, 1, 2).setBackground("#82bfb7");
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
-  op.getRange(1, 14, 1, 3).setBackground("#fab948");
+  op.getRange(1, 14, 1, 4).setBackground("#fab948");
 
   op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 260, 130, 150, 110, 180, 90, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 260, 170, 130, 150, 110, 180, 90, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
 
-  op.getRange("P:P").setNumberFormat("$ #,##0");
+  op.getRange("Q:Q").setNumberFormat("$ #,##0");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
   op.getRange("L:L").setWrap(true);
@@ -166,12 +168,13 @@ function refreshOperacionEditable() {
           safe_(r[24]),         // K Nombre archivos (Y)
           adjuntosUrl ? "Ver adjuntos" : "", // L Adjuntos (Z)
           safe_(r[28]),         // M Observaciones (AC)
-          safe_(r[20]),         // N Estado pago (U)
-          safe_(r[21]),         // O Estado pedido (V)
-          num_(r[18]),          // P Total (S)
-          safe_(r[22]),         // Q Retiro (W)
-          safe_(r[23]),         // R Urgente (X)
-          i + 2                 // S helper -> row real en orders
+          safe_(r[19]),         // N Forma de pago (T)
+          safe_(r[20]),         // O Estado pago (U)
+          safe_(r[21]),         // P Estado pedido (V)
+          num_(r[18]),          // Q Total (S)
+          safe_(r[22]),         // R Retiro (W)
+          safe_(r[23]),         // S Urgente (X)
+          i + 2                 // T helper -> row real en orders
         ]
       });
     }
@@ -422,17 +425,35 @@ function deleteSelectedOrdersWithoutArchive29() {
 function deleteOrdersByRowRange29() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.openById(SHEET_ID);
+  const activeSheet = ss.getActiveSheet();
+  const activeSheetName = activeSheet ? activeSheet.getName() : "";
   const op = ss.getSheetByName(OP_SHEET_NAME);
   const orders = ss.getSheetByName(ORDERS_SHEET);
+  const archive = ss.getSheetByName(OP_ARCHIVE_SHEET);
 
-  if (!op || !orders) {
-    ui.alert("No se encontraron las hojas necesarias (operacion/orders).");
+  if (!activeSheet || !orders) {
+    ui.alert("No se encontraron las hojas necesarias.");
+    return;
+  }
+
+  const isOperacion = activeSheetName === OP_SHEET_NAME;
+  const isArchive = activeSheetName === OP_ARCHIVE_SHEET;
+  if (!isOperacion && !isArchive) {
+    ui.alert('Esta opcion solo funciona desde las hojas "operacion" o "orders_archivo".');
+    return;
+  }
+  if (isOperacion && !op) {
+    ui.alert('No se encontró la hoja "operacion".');
+    return;
+  }
+  if (isArchive && !archive) {
+    ui.alert('No se encontró la hoja "orders_archivo".');
     return;
   }
 
   const response = ui.prompt(
     "Eliminar por rango de filas",
-    'Escribi el rango de filas de "operacion" que queres eliminar. Ejemplo: 12-28',
+    `Escribi el rango de filas de "${activeSheetName}" que queres eliminar. Ejemplo: 12-28`,
     ui.ButtonSet.OK_CANCEL
   );
 
@@ -455,26 +476,43 @@ function deleteOrdersByRowRange29() {
   }
 
   const targets = [];
-  for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
-    const displayNumber = String(op.getRange(rowNumber, OP_COL_ORDER_NUMBER).getDisplayValue() || "").trim();
-    const helperRow = Number(op.getRange(rowNumber, OP_COL_HELPER_ROW).getValue() || 0);
-    if (!displayNumber) {
-      continue;
-    }
-    targets.push({
-      displayNumber: displayNumber,
-      helperRow: helperRow
-    });
-  }
+  const archiveRowsToDelete = [];
 
-  if (!targets.length) {
-    ui.alert("No se detectaron pedidos validos en ese rango.");
-    return;
+  if (isOperacion) {
+    for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+      const displayNumber = String(op.getRange(rowNumber, OP_COL_ORDER_NUMBER).getDisplayValue() || "").trim();
+      const helperRow = Number(op.getRange(rowNumber, OP_COL_HELPER_ROW).getValue() || 0);
+      if (!displayNumber) {
+        continue;
+      }
+      targets.push({
+        displayNumber: displayNumber,
+        helperRow: helperRow
+      });
+    }
+
+    if (!targets.length) {
+      ui.alert("No se detectaron pedidos validos en ese rango.");
+      return;
+    }
+  } else {
+    for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+      const displayNumber = String(archive.getRange(rowNumber, 2).getDisplayValue() || "").trim();
+      if (!displayNumber) {
+        continue;
+      }
+      archiveRowsToDelete.push(rowNumber);
+    }
+
+    if (!archiveRowsToDelete.length) {
+      ui.alert("No se detectaron pedidos validos en ese rango.");
+      return;
+    }
   }
 
   const confirm = ui.alert(
     "Eliminar pedidos por rango",
-    `Se eliminaran definitivamente ${targets.length} pedido(s) de las filas ${startRow}-${endRow}. Esta accion no los archiva. ¿Queres continuar?`,
+    `Se eliminaran definitivamente ${isOperacion ? targets.length : archiveRowsToDelete.length} pedido(s) de las filas ${startRow}-${endRow} en "${activeSheetName}". Esta accion no los archiva. ¿Queres continuar?`,
     ui.ButtonSet.YES_NO
   );
   if (confirm !== ui.Button.YES) {
@@ -484,13 +522,30 @@ function deleteOrdersByRowRange29() {
   const lock = LockService.getDocumentLock();
   lock.waitLock(30000);
   try {
-    const rowsToDelete = resolveOrderRows_(orders, targets);
-    rowsToDelete
-      .sort((a, b) => b - a)
-      .forEach((rowNumber) => orders.deleteRow(rowNumber));
+    if (isOperacion) {
+      const rowsToDelete = resolveOrderRows_(orders, targets);
+      rowsToDelete
+        .sort((a, b) => b - a)
+        .forEach((rowNumber) => {
+          const rowValues = orders.getRange(rowNumber, 1, 1, orders.getLastColumn()).getValues()[0];
+          trashDriveAssetsForOrderRow_(rowValues);
+          orders.deleteRow(rowNumber);
+        });
 
-    refreshOperacionEditable();
-    ui.alert(`Listo. Se eliminaron ${rowsToDelete.length} pedido(s).`);
+      refreshOperacionEditable();
+      ui.alert(`Listo. Se eliminaron ${rowsToDelete.length} pedido(s) y sus adjuntos fueron enviados a la papelera de Drive.`);
+      return;
+    }
+
+    archiveRowsToDelete
+      .sort((a, b) => b - a)
+      .forEach((rowNumber) => {
+        const rowValues = archive.getRange(rowNumber, 1, 1, archive.getLastColumn()).getValues()[0];
+        trashDriveAssetsForOrderRow_(rowValues);
+        archive.deleteRow(rowNumber);
+      });
+
+    ui.alert(`Listo. Se eliminaron ${archiveRowsToDelete.length} pedido(s) de archivo y sus adjuntos fueron enviados a la papelera de Drive.`);
   } finally {
     lock.releaseLock();
   }
@@ -703,6 +758,45 @@ function sanitizeRowForSheet_(rowValues) {
     }
     return truncateCellText_(String(value), 45000);
   });
+}
+
+function trashDriveAssetsForOrderRow_(rowValues) {
+  const row = Array.isArray(rowValues) ? rowValues : [];
+  const linksRaw = String(row[25] == null ? "" : row[25]).trim();
+  const fileIdsRaw = String(row[26] == null ? "" : row[26]).trim();
+  const fileIds = fileIdsRaw
+    .split("|")
+    .map((part) => String(part || "").trim())
+    .filter(Boolean);
+
+  for (let i = 0; i < fileIds.length; i++) {
+    try {
+      DriveApp.getFileById(fileIds[i]).setTrashed(true);
+    } catch (err) {
+      console.log(`No se pudo mandar a papelera el archivo ${fileIds[i]}: ${err}`);
+    }
+  }
+
+  const folderId = extractDriveFolderId_(linksRaw);
+  if (!folderId) {
+    return;
+  }
+
+  try {
+    DriveApp.getFolderById(folderId).setTrashed(true);
+  } catch (err) {
+    console.log(`No se pudo mandar a papelera la carpeta ${folderId}: ${err}`);
+  }
+}
+
+function extractDriveFolderId_(value) {
+  const text = String(value || "").trim();
+  if (!text || text.indexOf("/folders/") === -1) {
+    return "";
+  }
+
+  const match = text.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  return match ? String(match[1] || "").trim() : "";
 }
 
 function displayOrderNumber_(value) {
