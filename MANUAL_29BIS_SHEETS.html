@@ -45,41 +45,31 @@
       background:
         linear-gradient(135deg, #c82f6d 0%, #d93d79 55%, #ea6a9a 100%);
     }
+    .hero-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
     .hero-top h1 {
       margin: 0;
       font-size: 31px;
       line-height: 1.08;
       letter-spacing: .2px;
     }
+    .hero-mascot {
+      width: 56px;
+      height: 56px;
+      flex: 0 0 auto;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 8px 14px rgba(28, 28, 26, 0.18));
+    }
     .hero-top p {
       margin: 10px 0 0;
       font-size: 15px;
       opacity: .94;
       max-width: 760px;
-    }
-    .hero-brand {
-      margin-top: 18px;
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(8px);
-    }
-    .hero-brand img {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.12);
-      object-fit: cover;
-      display: block;
-    }
-    .hero-brand span {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: .2px;
     }
     .hero-meta {
       display: flex;
@@ -237,6 +227,13 @@
     }
     @media (max-width: 760px) {
       .grid { grid-template-columns: 1fr; }
+      .hero-title {
+        align-items: flex-start;
+      }
+      .hero-mascot {
+        width: 44px;
+        height: 44px;
+      }
       .support-card {
         grid-template-columns: 1fr;
       }
@@ -250,12 +247,11 @@
   <div class="wrap">
     <header class="hero">
       <div class="hero-top">
-        <h1>Manual de uso - Planilla 29 BIS</h1>
-        <p>Guía simple para usar la planilla de pedidos, sin conocimientos técnicos. Este manual explica qué mirar, qué tocar, qué no tocar y cómo resolver las tareas más comunes del día a día.</p>
-        <div class="hero-brand">
-          <img src="https://estudioideamos.github.io/29bis-cotizador/assets/avatar-29.png" alt="Mascota de 29 BIS">
-          <span>Manual operativo 29 BIS</span>
+        <div class="hero-title">
+          <h1>Manual de uso - Planilla 29 BIS</h1>
+          <img class="hero-mascot" src="https://estudioideamos.github.io/29bis-cotizador/assets/avatar-29.png" alt="Mascota de 29 BIS">
         </div>
+        <p>Guía simple para usar la planilla de pedidos, sin conocimientos técnicos. Este manual explica qué mirar, qué tocar, qué no tocar y cómo resolver las tareas más comunes del día a día.</p>
       </div>
       <div class="hero-meta">
         <span class="chip pink">Cotizador + pedidos online</span>
