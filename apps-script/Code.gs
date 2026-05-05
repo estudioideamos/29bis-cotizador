@@ -74,7 +74,9 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  const lock = LockService.getDocumentLock();
   try {
+    lock.waitLock(30000);
     const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
     const customerEmail = String(body && body.customer && body.customer.email ? body.customer.email : "").trim();
     if (!customerEmail) {
@@ -166,6 +168,8 @@ function doPost(e) {
       message: "Error al guardar pedido.",
       detail: String(err)
     });
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -590,8 +594,32 @@ function getCoverageDistribution_(body) {
 }
 
 function buildOrderNumber_(sheet) {
-  const next = Math.max(2, sheet.getLastRow() + 1) - 1;
-  return `${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd")}-${pad_(next, 4)}`;
+  const todayKey = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd");
+  const lastRow = sheet.getLastRow();
+  let maxSequence = 0;
+
+  if (lastRow >= 2) {
+    const values = sheet.getRange(2, 2, lastRow - 1, 1).getDisplayValues();
+    for (let i = 0; i < values.length; i++) {
+      const raw = String(values[i][0] || "").trim();
+      if (!raw) {
+        continue;
+      }
+
+      const normalized = raw.replace(/^29BIS-/i, "");
+      const match = normalized.match(/^(\d{8})-(\d{4})$/);
+      if (!match || match[1] !== todayKey) {
+        continue;
+      }
+
+      const sequence = Number(match[2] || 0);
+      if (sequence > maxSequence) {
+        maxSequence = sequence;
+      }
+    }
+  }
+
+  return `${todayKey}-${pad_(maxSequence + 1, 4)}`;
 }
 
 function normalizeOrderNumberForDisplay_(orderNumber) {
