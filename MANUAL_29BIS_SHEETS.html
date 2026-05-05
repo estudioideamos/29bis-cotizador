@@ -264,7 +264,7 @@
           </tr>
           <tr>
             <td>Seguimiento</td>
-            <td><code>Estado pago</code>, <code>Estado pedido</code>, <code>Total</code>, <code>Fecha y hora de retiro</code>, <code>Urgente</code></td>
+            <td><code>Forma de pago</code>, <code>Estado pago</code>, <code>Estado pedido</code>, <code>Total</code>, <code>Fecha y hora de retiro</code>, <code>Urgente</code></td>
             <td>Sirven para gestionar la produccion y la entrega.</td>
           </tr>
         </tbody>
@@ -298,6 +298,7 @@
         <li>Leer la columna <strong>Observaciones</strong> por si el cliente dejo instrucciones.</li>
         <li>Revisar y editar:
           <ul>
+            <li><strong>Forma de pago:</strong> muestra si el cliente eligio transferencia o pago en el local.</li>
             <li><strong>Estado pago:</strong> <code>Pendiente</code> o <code>Pagado</code>.</li>
             <li><strong>Estado pedido:</strong> <code>En revisión</code>, <code>En preparación</code> o <code>Listo para retirar</code>.</li>
           </ul>
@@ -334,8 +335,8 @@
           </tr>
           <tr>
             <td><strong>Eliminar por rango de filas...</strong></td>
-            <td>Borra pedidos definitivamente de <code>operacion/orders</code>.</td>
-            <td>Para limpiar pedidos viejos, de prueba o desfasados.</td>
+            <td>Borra pedidos definitivamente desde <code>operacion</code> o <code>orders_archivo</code> y manda sus adjuntos a la papelera de Drive.</td>
+            <td>Para limpiar pedidos viejos, de prueba o desfasados, tanto del operativo como del archivo.</td>
           </tr>
         </tbody>
       </table>
@@ -372,19 +373,27 @@
       <div class="box ok">
         Conviene usar esta opcion para borrar pedidos viejos, pruebas o filas desfasadas que no interesa conservar.
       </div>
+      <div class="box ok">
+        Al eliminar desde <strong>operacion</strong>, tambien se mandan a la papelera de Google Drive los adjuntos de ese pedido.
+      </div>
     </section>
 
     <section class="section">
       <h2>Como eliminar lo que ya esta archivado</h2>
-      <p>Lo archivado no se elimina desde el menu. Se hace manualmente en la pestaña <strong>orders_archivo</strong>.</p>
+      <p>Lo archivado tambien se puede eliminar desde el menu, sin tener que borrar filas manualmente.</p>
       <ol>
         <li>Ir a <strong>orders_archivo</strong>.</li>
-        <li>Seleccionar los numeros de fila de la izquierda.</li>
-        <li>Click derecho.</li>
-        <li>Elegir <strong>Eliminar filas</strong>.</li>
+        <li>Mirar los numeros de fila de la izquierda.</li>
+        <li>Ir al menu <strong>29 BIS Gestion</strong>.</li>
+        <li>Elegir <strong>Eliminar por rango de filas...</strong>.</li>
+        <li>Escribir el rango. Ejemplo: <code>2-5</code>.</li>
+        <li>Confirmar.</li>
       </ol>
       <div class="box warn">
         No borrar la fila 1. Esa fila es el encabezado.
+      </div>
+      <div class="box ok">
+        Cuando eliminas desde <strong>orders_archivo</strong>, tambien se mandan a la papelera de Drive los adjuntos asociados a ese pedido.
       </div>
     </section>
 
@@ -436,7 +445,7 @@
         <li><strong>Para trabajar pedidos:</strong> usar <strong>operacion</strong>.</li>
         <li><strong>Para guardar pedidos viejos:</strong> usar <strong>Archivar por rango de filas...</strong>.</li>
         <li><strong>Para borrar pedidos de prueba o desfasados:</strong> usar <strong>Eliminar por rango de filas...</strong>.</li>
-        <li><strong>Para borrar archivo viejo:</strong> ir directo a <strong>orders_archivo</strong> y eliminar filas manualmente.</li>
+        <li><strong>Para borrar archivo viejo:</strong> ir a <strong>orders_archivo</strong> y usar <strong>Eliminar por rango de filas...</strong>.</li>
         <li><strong>Para cambiar precios:</strong> usar <strong>prices</strong>.</li>
       </ul>
     </section>
