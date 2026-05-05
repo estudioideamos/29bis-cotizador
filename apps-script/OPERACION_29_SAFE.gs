@@ -19,24 +19,25 @@ const OP_HEADER = [
   "Tipo papel",        // H
   "Tamano",            // I
   "Faz",               // J
-  "Nombre archivos",   // K
-  "Adjuntos",          // L
-  "Observaciones",     // M
-  "Forma de pago",     // N
-  "Estado pago",       // O (editable)
-  "Estado pedido",     // P (editable)
-  "Total",             // Q
-  "Fecha y hora de retiro", // R
-  "Urgente",           // S
-  "_row_orders"        // T (helper oculta)
+  "Cobertura",         // K
+  "Nombre archivos",   // L
+  "Adjuntos",          // M
+  "Observaciones",     // N
+  "Forma de pago",     // O
+  "Estado pago",       // P (editable)
+  "Estado pedido",     // Q (editable)
+  "Total",             // R
+  "Fecha y hora de retiro", // S
+  "Urgente",           // T
+  "_row_orders"        // U (helper oculta)
 ];
 
 // columnas en "operacion" (1-based)
 const OP_COL_ORDER_NUMBER = 1; // A
-const OP_COL_PAYMENT_METHOD = 14; // N
-const OP_COL_STATUS_PAGO = 15; // O
-const OP_COL_STATUS_PEDIDO = 16; // P
-const OP_COL_HELPER_ROW = 20; // T
+const OP_COL_PAYMENT_METHOD = 15; // O
+const OP_COL_STATUS_PAGO = 16; // P
+const OP_COL_STATUS_PEDIDO = 17; // Q
+const OP_COL_HELPER_ROW = 21; // U
 const OP_ARCHIVE_SHEET = "orders_archivo";
 const MANUAL_URL_29BIS = "https://estudioideamos.github.io/29bis-cotizador/MANUAL_29BIS_SHEETS.html";
 
@@ -143,16 +144,17 @@ function refreshOperacionEditable() {
           safe_(r[7]),          // H Tipo papel
           safe_(r[8]),          // I Tamano
           safe_(r[12]),         // J Faz
-          safe_(r[24]),         // K Nombre archivos (Y)
-          adjuntosUrl ? "Ver adjuntos" : "", // L Adjuntos (Z)
-          safe_(r[28]),         // M Observaciones (AC)
-          safe_(r[19]),         // N Forma de pago (T)
-          safe_(r[20]),         // O Estado pago (U)
-          safe_(r[21]),         // P Estado pedido (V)
-          num_(r[18]),          // Q Total (S)
-          safe_(r[22]),         // R Retiro (W)
-          safe_(r[23]),         // S Urgente (X)
-          i + 2                 // T helper -> row real en orders
+          formatCoverageForOperacion_(r[13]), // K Cobertura (N)
+          safe_(r[24]),         // L Nombre archivos (Y)
+          adjuntosUrl ? "Ver adjuntos" : "", // M Adjuntos (Z)
+          safe_(r[28]),         // N Observaciones (AC)
+          safe_(r[19]),         // O Forma de pago (T)
+          safe_(r[20]),         // P Estado pago (U)
+          safe_(r[21]),         // Q Estado pedido (V)
+          num_(r[18]),          // R Total (S)
+          safe_(r[22]),         // S Retiro (W)
+          safe_(r[23]),         // T Urgente (X)
+          i + 2                 // U helper -> row real en orders
         ]
       });
     }
@@ -188,22 +190,23 @@ function applyOperacionLayout_(op) {
   headerRange.setFontWeight("bold");
   op.getRange(1, 1, 1, 2).setBackground("#82bfb7");
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
-  op.getRange(1, 14, 1, 4).setBackground("#fab948");
+  op.getRange(1, 15, 1, 4).setBackground("#fab948");
 
   op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 140, 260, 170, 130, 150, 110, 180, 90, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 220, 220, 140, 260, 170, 130, 150, 110, 180, 90, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
 
-  op.getRange("Q:Q").setNumberFormat("$ #,##0");
-  op.getRange("R:R").setNumberFormat("d/m/yyyy hh:mm");
+  op.getRange("R:R").setNumberFormat("$ #,##0");
+  op.getRange("S:S").setNumberFormat("d/m/yyyy hh:mm");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
-  op.getRange("L:L").setWrap(true);
+  op.getRange("K:K").setWrap(true);
   op.getRange("M:M").setWrap(true);
+  op.getRange("N:N").setWrap(true);
 }
 
 function onEdit(e) {
@@ -692,6 +695,36 @@ function parseMixedDate_(value) {
   }
   const d = new Date(txt);
   return isNaN(d.getTime()) ? new Date(0) : d;
+}
+
+function formatCoverageForOperacion_(value) {
+  const text = String(value == null ? "" : value).trim();
+  if (!text) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) {
+      return text;
+    }
+
+    const parts = parsed.map((item) => {
+      const label = String((item && (item.label || item.coverage)) || "").trim();
+      const sheets = Number(item && item.sheets);
+      if (!label) {
+        return "";
+      }
+      if (!isNaN(sheets) && sheets > 0) {
+        return `${label}: ${sheets}`;
+      }
+      return label;
+    }).filter(Boolean);
+
+    return parts.join(" | ");
+  } catch (err) {
+    return text;
+  }
 }
 
 function safe_(v) {
