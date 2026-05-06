@@ -181,9 +181,11 @@ function refreshOperacionEditable() {
     clearOperacionBody_(op);
     if (out.length) {
       const values = out.map((item) => item.values);
+      const nombresArchivos = out.map((item) => [String(item.values[11] || "")]);
       const adjuntosLinks = out.map((item) => item.adjuntosUrl);
 
       op.getRange(2, 1, values.length, OP_HEADER.length).setValues(values);
+      applyNombreArchivosPlainText_(op, nombresArchivos);
       applyAdjuntosRichLinks_(op, adjuntosLinks);
       applyAlternatingRowStyles_(op, values.length);
       applyStatusValidations_(op, 2, Math.max(1200, values.length + 20));
@@ -841,6 +843,23 @@ function applyAdjuntosRichLinks_(sheet, links) {
   });
 
   sheet.getRange(2, 13, richValues.length, 1).setRichTextValues(richValues);
+}
+
+function applyNombreArchivosPlainText_(sheet, names) {
+  if (!names || !names.length) {
+    return;
+  }
+
+  const plainValues = names.map((row) => {
+    const text = String((row && row[0]) || "");
+    return [
+      SpreadsheetApp.newRichTextValue()
+        .setText(text)
+        .build()
+    ];
+  });
+
+  sheet.getRange(2, 12, plainValues.length, 1).setRichTextValues(plainValues);
 }
 
 function truncateCellText_(value, maxLen) {
