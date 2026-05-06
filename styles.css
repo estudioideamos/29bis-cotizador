@@ -115,6 +115,33 @@ body {
   color: #4b4741;
 }
 
+.store-info-note {
+  grid-column: 1 / -1;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #f0c9d8;
+  background: linear-gradient(135deg, #fff5f9 0%, #fffafc 100%);
+}
+
+.store-info-note strong {
+  color: #9a2356;
+}
+
+.store-info-note span {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.store-info-note a {
+  color: #c82f6d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.store-info-note a:hover {
+  text-decoration: underline;
+}
+
 .layout {
   width: min(1200px, 100% - 2rem);
   margin: 1.2rem auto 2rem;
