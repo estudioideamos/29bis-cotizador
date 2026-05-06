@@ -92,7 +92,7 @@ body {
   background: linear-gradient(120deg, #fff8f1 0%, #fff 38%, #f5fffd 100%);
   box-shadow: 0 12px 26px #1c1c1a10;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.7rem;
   animation: riseIn 520ms ease both;
   animation-delay: 60ms;
@@ -116,11 +116,8 @@ body {
 }
 
 .store-info-note {
-  grid-column: 1 / -1;
-  padding: 0.8rem 0.9rem;
-  border-radius: 12px;
-  border: 1px solid #f0c9d8;
-  background: linear-gradient(135deg, #fff5f9 0%, #fffafc 100%);
+  padding-left: 0.35rem;
+  border-left: 1px solid #ecdcc9;
 }
 
 .store-info-note strong {
@@ -128,8 +125,8 @@ body {
 }
 
 .store-info-note span {
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .store-info-note a {
@@ -980,6 +977,11 @@ textarea:focus {
   .store-info {
     grid-template-columns: 1fr;
     padding: 0.68rem 0.74rem;
+  }
+
+  .store-info-note {
+    padding-left: 0;
+    border-left: 0;
   }
 
   .grid {
