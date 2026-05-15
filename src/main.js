@@ -77,6 +77,8 @@
     }
   };
 
+  const FILE_UPLOAD_CHUNK_BYTES = 2 * 1024 * 1024;
+
   function setStatus(message, kind) {
     els.status.textContent = message || "";
     els.status.className = "status";
@@ -861,32 +863,104 @@
     return { key: "local", label: "Pagar en el local" };
   }
 
-  function fileToPayload(file) {
+  function postOrdersWebhook(payload) {
+    return fetch(config.ordersWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  function readBlobAsBase64(blob, fileName) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         const result = String(reader.result || "");
         const base64 = result.includes(",") ? result.split(",")[1] : result;
-        resolve({
-          name: file.name,
-          mimeType: file.type || "application/octet-stream",
-          sizeBytes: file.size || 0,
-          base64
-        });
+        resolve(base64);
       };
       reader.onerror = () => {
-        reject(new Error(`No se pudo leer el archivo: ${file.name}`));
+        reject(new Error(`No se pudo leer el archivo: ${fileName || "archivo"}`));
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(blob);
     });
   }
 
-  async function buildFilesPayload(fileList) {
-    const files = Array.from(fileList || []);
-    if (!files.length) {
-      return [];
+  async function requestUploadAction(payload) {
+    const response = await postOrdersWebhook(payload);
+    if (!response.ok) {
+      throw new Error("No se pudo subir el archivo al servidor.");
     }
-    return Promise.all(files.map(fileToPayload));
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error(data.message || "No se pudo subir el archivo.");
+    }
+    return data;
+  }
+
+  async function uploadSingleFileInChunks(file, sessionId, fileIndex, totalFiles) {
+    const uploadId = `${sessionId}-file-${fileIndex + 1}`;
+
+    await requestUploadAction({
+      action: "upload_init",
+      sessionId,
+      uploadId,
+      name: file.name,
+      mimeType: file.type || "application/octet-stream",
+      sizeBytes: file.size || 0
+    });
+
+    const totalChunks = Math.max(1, Math.ceil((file.size || 0) / FILE_UPLOAD_CHUNK_BYTES));
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+      const start = chunkIndex * FILE_UPLOAD_CHUNK_BYTES;
+      const end = Math.min(file.size || 0, start + FILE_UPLOAD_CHUNK_BYTES);
+      const blobChunk = file.slice(start, end);
+      const base64Chunk = await readBlobAsBase64(blobChunk, file.name);
+
+      setStatus(
+        `Subiendo archivos (${fileIndex + 1}/${totalFiles}) - ${file.name} - parte ${chunkIndex + 1}/${totalChunks}...`,
+        "loading"
+      );
+
+      await requestUploadAction({
+        action: "upload_chunk",
+        sessionId,
+        uploadId,
+        chunkIndex,
+        chunkData: base64Chunk
+      });
+    }
+
+    const result = await requestUploadAction({
+      action: "upload_finish",
+      sessionId,
+      uploadId
+    });
+
+    return {
+      id: result.file && result.file.id ? result.file.id : "",
+      url: result.file && result.file.url ? result.file.url : "",
+      name: result.file && result.file.name ? result.file.name : file.name,
+      mimeType: result.file && result.file.mimeType ? result.file.mimeType : (file.type || "application/octet-stream"),
+      sizeBytes: result.file && result.file.sizeBytes ? result.file.sizeBytes : (file.size || 0)
+    };
+  }
+
+  async function uploadFilesForOrder(fileList, sessionId) {
+    const files = Array.from(fileList || []);
+    if (!files.length || !config.ordersWebhookUrl) {
+      return files.map((file) => ({
+        name: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size || 0
+      }));
+    }
+
+    const uploadedFiles = [];
+    for (let index = 0; index < files.length; index += 1) {
+      uploadedFiles.push(await uploadSingleFileInChunks(files[index], sessionId, index, files.length));
+    }
+    return uploadedFiles;
   }
 
   function updatePaymentUI() {
@@ -1003,15 +1077,15 @@
     return true;
   }
 
-  async function buildOrderPayload(orderItems) {
+  async function buildOrderPayload(orderItems, uploadedFiles, uploadSessionId) {
     const urgent = !els.pickupDatetime.value;
     const pricingTotals = getAggregatedPricing(orderItems);
     const paymentMethod = getSelectedPaymentMethod();
-    const uploadedFiles = await buildFilesPayload(els.fileInput.files);
     const firstFileName = uploadedFiles[0] ? uploadedFiles[0].name : null;
 
     return {
       orderId: `${Date.now()}`,
+      uploadSessionId: uploadSessionId || "",
       createdAt: new Date().toISOString(),
       orderItems,
       customer: {
@@ -1041,11 +1115,7 @@
       return { ok: true, mode: "local-preview" };
     }
 
-    const response = await fetch(config.ordersWebhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
+    const response = await postOrdersWebhook(payload);
 
     if (!response.ok) {
       throw new Error("No se pudo guardar el pedido en Google Sheets.");
@@ -1265,10 +1335,14 @@
           orderItems.push(currentWork);
         }
 
-        const payload = await buildOrderPayload(orderItems);
         const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
         submitBtn.disabled = true;
         submitBtn.textContent = "Enviando...";
+
+        const uploadSessionId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const uploadedFiles = await uploadFilesForOrder(els.fileInput.files, uploadSessionId);
+        setStatus("Enviando pedido...", "loading");
+        const payload = await buildOrderPayload(orderItems, uploadedFiles, uploadSessionId);
 
         const result = await submitOrder(payload);
         const confirmationData = buildConfirmationData(payload, result);

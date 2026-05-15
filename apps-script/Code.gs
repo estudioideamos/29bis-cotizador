@@ -12,6 +12,7 @@ const SHEET_ID = "12rXU8RzKk3FvV7mxF7fGCjLlpecQmXr8zazRj3cEbPQ";
 const ORDERS_SHEET = "orders";
 const DRIVE_FOLDER_ID = "1FSVN4ads-CID2H19JN2u3H2EfnNetCWk";
 const PRICES_SHEET = "prices";
+const TEMP_UPLOADS_FOLDER_NAME = "__tmp_uploads_29bis";
 const ORDERS_HEADER = [
   "Fecha de creacion",
   "N° pedido",
@@ -74,10 +75,15 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+  const action = String(body && body.action ? body.action : "").trim().toLowerCase();
+  if (action) {
+    return handleUploadAction_(body);
+  }
+
   const lock = LockService.getDocumentLock();
   try {
     lock.waitLock(30000);
-    const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
     const customerEmail = String(body && body.customer && body.customer.email ? body.customer.email : "").trim();
     if (!customerEmail) {
       return jsonResponse({
@@ -98,7 +104,7 @@ function doPost(e) {
     ensureOrdersSchema_(sh);
 
     const orderNumber = buildOrderNumber_(sh);
-    const uploadedResult = uploadFilesToDrive_(body.uploadedFiles || [], orderNumber);
+    const uploadedResult = finalizeUploadedFilesForOrder_(body, orderNumber);
     const uploaded = uploadedResult.files || [];
     const folderUrl = String(uploadedResult.folderUrl || "").trim();
     const fileNames = uploaded.map((f) => f.name);
@@ -170,6 +176,31 @@ function doPost(e) {
     });
   } finally {
     lock.releaseLock();
+  }
+}
+
+function handleUploadAction_(body) {
+  try {
+    const action = String(body && body.action ? body.action : "").trim().toLowerCase();
+    if (action === "upload_init") {
+      return jsonResponse(handleUploadInit_(body));
+    }
+    if (action === "upload_chunk") {
+      return jsonResponse(handleUploadChunk_(body));
+    }
+    if (action === "upload_finish") {
+      return jsonResponse(handleUploadFinish_(body));
+    }
+    return jsonResponse({
+      ok: false,
+      message: "Accion de subida no reconocida."
+    });
+  } catch (err) {
+    return jsonResponse({
+      ok: false,
+      message: "Error al subir archivo.",
+      detail: String(err)
+    });
   }
 }
 
@@ -521,6 +552,196 @@ function uploadFilesToDrive_(uploadedFiles, orderNumber) {
     files: output,
     folderUrl: orderFolder.getUrl()
   };
+}
+
+function finalizeUploadedFilesForOrder_(body, orderNumber) {
+  const sessionId = String(body && body.uploadSessionId ? body.uploadSessionId : "").trim();
+  const uploadedFiles = Array.isArray(body && body.uploadedFiles) ? body.uploadedFiles : [];
+
+  if (sessionId) {
+    return finalizeUploadedSessionToOrderFolder_(sessionId, uploadedFiles, orderNumber);
+  }
+
+  return uploadFilesToDrive_(uploadedFiles, orderNumber);
+}
+
+function finalizeUploadedSessionToOrderFolder_(sessionId, uploadedFiles, orderNumber) {
+  if (!uploadedFiles || !uploadedFiles.length) {
+    return { files: [], folderUrl: "" };
+  }
+  if (!DRIVE_FOLDER_ID || DRIVE_FOLDER_ID.indexOf("REEMPLAZAR_") === 0) {
+    throw new Error("Configura DRIVE_FOLDER_ID antes de usar subida de archivos.");
+  }
+
+  const rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  const safeOrderNumber = String(orderNumber || "pedido").replace(/[^\w-]/g, "_");
+  const monthFolderName = buildMonthFolderName_(orderNumber);
+  const monthFolder = getOrCreateSubfolder_(rootFolder, monthFolderName);
+  const orderFolder = getOrCreateSubfolder_(monthFolder, safeOrderNumber);
+  const output = [];
+
+  uploadedFiles.forEach((fileObj, index) => {
+    const fileId = String(fileObj && fileObj.id ? fileObj.id : "").trim();
+    const fallbackName = String(fileObj && fileObj.name ? fileObj.name : `archivo_${index + 1}`);
+    if (!fileId) {
+      return;
+    }
+
+    const file = DriveApp.getFileById(fileId);
+    file.moveTo(orderFolder);
+
+    output.push({
+      id: file.getId(),
+      url: file.getUrl(),
+      name: file.getName() || fallbackName,
+      mimeType: file.getMimeType(),
+      sizeBytes: Number(fileObj && fileObj.sizeBytes ? fileObj.sizeBytes : 0)
+    });
+  });
+
+  cleanupUploadSession_(sessionId);
+
+  return {
+    files: output,
+    folderUrl: orderFolder.getUrl()
+  };
+}
+
+function handleUploadInit_(body) {
+  const uploadFolder = getOrCreateUploadFolder_(body);
+  clearFolderFiles_(uploadFolder);
+  const metadataFile = getFileByNameInFolder_(uploadFolder, "_meta.json");
+  const metadata = {
+    sessionId: String(body && body.sessionId ? body.sessionId : "").trim(),
+    uploadId: String(body && body.uploadId ? body.uploadId : "").trim(),
+    name: String(body && body.name ? body.name : "").trim(),
+    mimeType: String(body && body.mimeType ? body.mimeType : "application/octet-stream"),
+    sizeBytes: Number(body && body.sizeBytes ? body.sizeBytes : 0)
+  };
+
+  if (metadataFile) {
+    metadataFile.setContent(JSON.stringify(metadata));
+  } else {
+    uploadFolder.createFile("_meta.json", JSON.stringify(metadata), MimeType.PLAIN_TEXT);
+  }
+
+  return { ok: true };
+}
+
+function handleUploadChunk_(body) {
+  const uploadFolder = getOrCreateUploadFolder_(body);
+  const chunkIndex = Number(body && body.chunkIndex ? body.chunkIndex : 0);
+  const chunkName = `chunk_${pad_(chunkIndex, 6)}.txt`;
+  const chunkData = String(body && body.chunkData ? body.chunkData : "");
+  if (!chunkData) {
+    throw new Error("El chunk esta vacio.");
+  }
+
+  const existingChunk = getFileByNameInFolder_(uploadFolder, chunkName);
+  if (existingChunk) {
+    existingChunk.setContent(chunkData);
+  } else {
+    uploadFolder.createFile(chunkName, chunkData, MimeType.PLAIN_TEXT);
+  }
+
+  return { ok: true };
+}
+
+function handleUploadFinish_(body) {
+  const uploadFolder = getOrCreateUploadFolder_(body);
+  const metadata = readUploadMetadata_(uploadFolder);
+  const chunks = getChunkFilesSorted_(uploadFolder);
+  if (!chunks.length) {
+    throw new Error("No se encontraron partes para completar el archivo.");
+  }
+
+  const base64 = chunks.map((file) => file.getBlob().getDataAsString()).join("");
+  const bytes = Utilities.base64Decode(base64);
+  const blob = Utilities.newBlob(bytes, metadata.mimeType || "application/octet-stream", metadata.name || "archivo");
+  const finalFile = uploadFolder.createFile(blob);
+
+  chunks.forEach((file) => file.setTrashed(true));
+  const metadataFile = getFileByNameInFolder_(uploadFolder, "_meta.json");
+  if (metadataFile) {
+    metadataFile.setTrashed(true);
+  }
+
+  return {
+    ok: true,
+    file: {
+      id: finalFile.getId(),
+      url: finalFile.getUrl(),
+      name: finalFile.getName(),
+      mimeType: finalFile.getMimeType(),
+      sizeBytes: Number(metadata.sizeBytes || 0)
+    }
+  };
+}
+
+function getOrCreateUploadFolder_(body) {
+  const sessionId = String(body && body.sessionId ? body.sessionId : "").trim();
+  const uploadId = String(body && body.uploadId ? body.uploadId : "").trim();
+  if (!sessionId || !uploadId) {
+    throw new Error("Faltan datos para subir el archivo.");
+  }
+
+  const tempRoot = getOrCreateTempUploadsRoot_();
+  const sessionFolder = getOrCreateSubfolder_(tempRoot, sanitizeFolderName_(sessionId));
+  return getOrCreateSubfolder_(sessionFolder, sanitizeFolderName_(uploadId));
+}
+
+function getOrCreateTempUploadsRoot_() {
+  if (!DRIVE_FOLDER_ID || DRIVE_FOLDER_ID.indexOf("REEMPLAZAR_") === 0) {
+    throw new Error("Configura DRIVE_FOLDER_ID antes de usar subida de archivos.");
+  }
+  const rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  return getOrCreateSubfolder_(rootFolder, TEMP_UPLOADS_FOLDER_NAME);
+}
+
+function readUploadMetadata_(uploadFolder) {
+  const metadataFile = getFileByNameInFolder_(uploadFolder, "_meta.json");
+  if (!metadataFile) {
+    throw new Error("No se encontro la metadata del archivo temporal.");
+  }
+  return JSON.parse(metadataFile.getBlob().getDataAsString() || "{}");
+}
+
+function getChunkFilesSorted_(uploadFolder) {
+  const files = uploadFolder.getFiles();
+  const chunks = [];
+  while (files.hasNext()) {
+    const file = files.next();
+    const name = String(file.getName() || "");
+    if (/^chunk_\d+\.txt$/i.test(name)) {
+      chunks.push(file);
+    }
+  }
+  chunks.sort((a, b) => String(a.getName()).localeCompare(String(b.getName())));
+  return chunks;
+}
+
+function getFileByNameInFolder_(folder, fileName) {
+  const files = folder.getFilesByName(fileName);
+  return files.hasNext() ? files.next() : null;
+}
+
+function clearFolderFiles_(folder) {
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    files.next().setTrashed(true);
+  }
+}
+
+function cleanupUploadSession_(sessionId) {
+  const tempRoot = getOrCreateTempUploadsRoot_();
+  const sessionFolders = tempRoot.getFoldersByName(sanitizeFolderName_(sessionId));
+  if (sessionFolders.hasNext()) {
+    sessionFolders.next().setTrashed(true);
+  }
+}
+
+function sanitizeFolderName_(value) {
+  return String(value || "tmp").replace(/[^\w-]/g, "_");
 }
 
 function getOrCreateSubfolder_(parentFolder, folderName) {
