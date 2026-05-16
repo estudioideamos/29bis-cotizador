@@ -522,8 +522,17 @@ textarea:focus {
 }
 
 .upload-alternative input {
+  width: 1.05rem;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   margin-top: 0.2rem;
   accent-color: #d93d79;
+  flex: 0 0 auto;
 }
 
 .upload-panel.is-mail-link-mode {
