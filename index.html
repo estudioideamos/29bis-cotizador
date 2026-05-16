@@ -256,6 +256,15 @@
       </div>
 
       <p id="status" class="status" aria-live="polite"></p>
+      <div id="upload-progress" class="upload-progress hidden" aria-live="polite">
+        <div class="upload-progress-head">
+          <strong id="upload-progress-label">Subiendo archivos...</strong>
+          <span id="upload-progress-percent">0%</span>
+        </div>
+        <div class="upload-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="upload-progress-fill"></span>
+        </div>
+      </div>
       <div class="mascot-card">
         <img
           src="./assets/avatar-29.png"

@@ -27,6 +27,10 @@
     paymentLocalInfo: document.getElementById("payment-local-info"),
     summary: document.getElementById("summary"),
     status: document.getElementById("status"),
+    uploadProgress: document.getElementById("upload-progress"),
+    uploadProgressLabel: document.getElementById("upload-progress-label"),
+    uploadProgressPercent: document.getElementById("upload-progress-percent"),
+    uploadProgressFill: document.getElementById("upload-progress-fill"),
     customerName: document.getElementById("customer-name"),
     customerPhone: document.getElementById("customer-phone"),
     customerDni: document.getElementById("customer-dni"),
@@ -86,6 +90,47 @@
     els.status.className = "status";
     if (kind) {
       els.status.classList.add(kind);
+    }
+  }
+
+  function hideUploadProgress() {
+    if (!els.uploadProgress) {
+      return;
+    }
+    els.uploadProgress.classList.add("hidden");
+    if (els.uploadProgressLabel) {
+      els.uploadProgressLabel.textContent = "Subiendo archivos...";
+    }
+    if (els.uploadProgressPercent) {
+      els.uploadProgressPercent.textContent = "0%";
+    }
+    if (els.uploadProgressFill) {
+      els.uploadProgressFill.style.width = "0%";
+    }
+    const bar = els.uploadProgress.querySelector(".upload-progress-bar");
+    if (bar) {
+      bar.setAttribute("aria-valuenow", "0");
+    }
+  }
+
+  function updateUploadProgress(progressPercent, label) {
+    if (!els.uploadProgress) {
+      return;
+    }
+    const safePercent = Math.max(0, Math.min(100, Math.round(Number(progressPercent) || 0)));
+    els.uploadProgress.classList.remove("hidden");
+    if (els.uploadProgressLabel) {
+      els.uploadProgressLabel.textContent = label || "Subiendo archivos...";
+    }
+    if (els.uploadProgressPercent) {
+      els.uploadProgressPercent.textContent = `${safePercent}%`;
+    }
+    if (els.uploadProgressFill) {
+      els.uploadProgressFill.style.width = `${safePercent}%`;
+    }
+    const bar = els.uploadProgress.querySelector(".upload-progress-bar");
+    if (bar) {
+      bar.setAttribute("aria-valuenow", String(safePercent));
     }
   }
 
@@ -921,8 +966,10 @@
     return data;
   }
 
-  async function uploadSingleFileInChunks(file, sessionId, fileIndex, totalFiles) {
+  async function uploadSingleFileInChunks(file, sessionId, fileIndex, totalFiles, progressState) {
     const uploadId = `${sessionId}-file-${fileIndex + 1}`;
+    const fileSize = file.size || 0;
+    let uploadedBytesForFile = 0;
 
     await requestUploadAction({
       action: "upload_init",
@@ -933,17 +980,12 @@
       sizeBytes: file.size || 0
     });
 
-    const totalChunks = Math.max(1, Math.ceil((file.size || 0) / FILE_UPLOAD_CHUNK_BYTES));
+    const totalChunks = Math.max(1, Math.ceil(fileSize / FILE_UPLOAD_CHUNK_BYTES));
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
       const start = chunkIndex * FILE_UPLOAD_CHUNK_BYTES;
-      const end = Math.min(file.size || 0, start + FILE_UPLOAD_CHUNK_BYTES);
+      const end = Math.min(fileSize, start + FILE_UPLOAD_CHUNK_BYTES);
       const blobChunk = file.slice(start, end);
       const base64Chunk = await readBlobAsBase64(blobChunk, file.name);
-
-      setStatus(
-        `Subiendo archivos (${fileIndex + 1}/${totalFiles}) - ${file.name} - parte ${chunkIndex + 1}/${totalChunks}...`,
-        "loading"
-      );
 
       await requestUploadAction({
         action: "upload_chunk",
@@ -952,6 +994,15 @@
         chunkIndex,
         chunkData: base64Chunk
       });
+
+      uploadedBytesForFile += blobChunk.size || 0;
+      const totalUploaded = Math.min(
+        progressState.totalBytes,
+        (progressState.completedBytes || 0) + uploadedBytesForFile
+      );
+      const percent = progressState.totalBytes ? (totalUploaded / progressState.totalBytes) * 100 : 100;
+      setStatus(`Subiendo archivo ${fileIndex + 1} de ${totalFiles}: ${file.name}`, "loading");
+      updateUploadProgress(percent, `Subiendo archivo ${fileIndex + 1} de ${totalFiles}`);
     }
 
     const result = await requestUploadAction({
@@ -959,6 +1010,12 @@
       sessionId,
       uploadId
     });
+
+    progressState.completedBytes = (progressState.completedBytes || 0) + fileSize;
+    const completedPercent = progressState.totalBytes
+      ? (progressState.completedBytes / progressState.totalBytes) * 100
+      : 100;
+    updateUploadProgress(completedPercent, `Archivo ${fileIndex + 1} de ${totalFiles} subido`);
 
     return {
       id: result.file && result.file.id ? result.file.id : "",
@@ -979,10 +1036,16 @@
       }));
     }
 
+    const progressState = {
+      totalBytes: files.reduce((acc, file) => acc + (file.size || 0), 0),
+      completedBytes: 0
+    };
+    updateUploadProgress(0, files.length > 1 ? "Preparando archivos..." : "Preparando archivo...");
     const uploadedFiles = [];
     for (let index = 0; index < files.length; index += 1) {
-      uploadedFiles.push(await uploadSingleFileInChunks(files[index], sessionId, index, files.length));
+      uploadedFiles.push(await uploadSingleFileInChunks(files[index], sessionId, index, files.length, progressState));
     }
+    updateUploadProgress(100, "Archivos subidos");
     return uploadedFiles;
   }
 
@@ -1364,6 +1427,7 @@
       }
       state.isSubmitting = true;
       setStatus("");
+      hideUploadProgress();
 
       try {
         updateSummary();
@@ -1384,6 +1448,7 @@
         const uploadSessionId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         const uploadedFiles = await uploadFilesForOrder(els.fileInput.files, uploadSessionId);
         setStatus("Enviando pedido...", "loading");
+        updateUploadProgress(100, "Preparando pedido...");
         const payload = await buildOrderPayload(orderItems, uploadedFiles, uploadSessionId);
 
         const result = await submitOrder(payload);
@@ -1399,6 +1464,7 @@
             : ` Pedido registrado, pero no pudimos enviar el email automático.${result.mailError ? ` (${result.mailError})` : ""}`;
           setStatus(`${orderNumberText}${mailText}`, "ok");
         }
+        hideUploadProgress();
         openOrderConfirmationPage(confirmationData);
         els.form.reset();
         state.savedItems = [];
@@ -1414,6 +1480,7 @@
         updateFileMeta();
         syncUI();
       } catch (err) {
+        hideUploadProgress();
         const msg = String(err && err.message ? err.message : "");
         if (/Failed to fetch/i.test(msg)) {
           setStatus("No se pudo conectar con Google Apps Script. Revisá el deploy (Aplicación web), acceso en 'Cualquiera' y volvé a implementar.", "error");

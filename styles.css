@@ -820,6 +820,53 @@ textarea:focus {
   color: var(--ok);
 }
 
+.upload-progress {
+  margin-top: 0.55rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid #f0d8e3;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff 0%, #fff7fb 100%);
+}
+
+.upload-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.45rem;
+}
+
+.upload-progress-head strong {
+  color: #5e2a46;
+  font-size: 0.96rem;
+}
+
+.upload-progress-head span {
+  color: #b12f64;
+  font-weight: 800;
+  font-size: 0.96rem;
+}
+
+.upload-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 0.7rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f4e6ed;
+  box-shadow: inset 0 1px 2px #00000010;
+}
+
+.upload-progress-bar span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  box-shadow: 0 6px 16px #e8488340;
+  transition: width 180ms ease;
+}
+
 .mascot-card {
   margin-top: 1rem;
   padding: 0.2rem 0 0;
