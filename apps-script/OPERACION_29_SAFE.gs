@@ -22,22 +22,23 @@ const OP_HEADER = [
   "Cobertura",         // K
   "Nombre archivos",   // L
   "Adjuntos",          // M
-  "Observaciones",     // N
-  "Forma de pago",     // O
-  "Estado pago",       // P (editable)
-  "Estado pedido",     // Q (editable)
-  "Total",             // R
-  "Fecha y hora de retiro", // S
-  "Urgente",           // T
-  "_row_orders"        // U (helper oculta)
+  "Archivos por mail/link", // N
+  "Observaciones",     // O
+  "Forma de pago",     // P
+  "Estado pago",       // Q (editable)
+  "Estado pedido",     // R (editable)
+  "Total",             // S
+  "Fecha y hora de retiro", // T
+  "Urgente",           // U
+  "_row_orders"        // V (helper oculta)
 ];
 
 // columnas en "operacion" (1-based)
 const OP_COL_ORDER_NUMBER = 1; // A
-const OP_COL_PAYMENT_METHOD = 15; // O
-const OP_COL_STATUS_PAGO = 16; // P
-const OP_COL_STATUS_PEDIDO = 17; // Q
-const OP_COL_HELPER_ROW = 21; // U
+const OP_COL_PAYMENT_METHOD = 16; // P
+const OP_COL_STATUS_PAGO = 17; // Q
+const OP_COL_STATUS_PEDIDO = 18; // R
+const OP_COL_HELPER_ROW = 22; // V
 const OP_ARCHIVE_SHEET = "orders_archivo";
 const MANUAL_URL_29BIS = "https://estudioideamos.github.io/29bis-cotizador/MANUAL_29BIS_SHEETS.html";
 const PRICES_SHEET_29 = "prices";
@@ -56,7 +57,7 @@ const PRICES_HEADER_29 = [
 const OR_COL_ORDER_NUMBER = 2; // B
 const OR_COL_STATUS_PAGO = 21; // U
 const OR_COL_STATUS_PEDIDO = 22; // V
-const OR_COL_FECHA_CAMBIO_ESTADO = 33; // AG
+const OR_COL_FECHA_CAMBIO_ESTADO = 34; // AH
 
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -145,7 +146,7 @@ function refreshOperacionEditable() {
       const orderNumber = safe_(r[1]); // B
       if (!orderNumber) continue;
 
-      const adjuntosUrl = buildAdjuntosUrl_(r[25]);
+      const adjuntosUrl = buildAdjuntosUrl_(r[26]);
 
       out.push({
         fecha: safe_(r[0]),
@@ -162,16 +163,17 @@ function refreshOperacionEditable() {
           safe_(r[8]),          // I Tamano
           safe_(r[12]),         // J Faz
           formatCoverageForOperacion_(r[13]), // K Cobertura (N)
-          safe_(r[24]),         // L Nombre archivos (Y)
+          safe_(r[25]),         // L Nombre archivos
           adjuntosUrl ? "Ver adjuntos" : "", // M Adjuntos (Z)
-          safe_(r[28]),         // N Observaciones (AC)
-          safe_(r[19]),         // O Forma de pago (T)
-          safe_(r[20]),         // P Estado pago (U)
-          safe_(r[21]),         // Q Estado pedido (V)
-          num_(r[18]),          // R Total (S)
-          safe_(r[22]),         // S Retiro (W)
-          safe_(r[23]),         // T Urgente (X)
-          i + 2                 // U helper -> row real en orders
+          safe_(r[24]),         // N Archivos por mail/link
+          safe_(r[29]),         // O Observaciones
+          safe_(r[19]),         // P Forma de pago
+          safe_(r[20]),         // Q Estado pago
+          safe_(r[21]),         // R Estado pedido
+          num_(r[18]),          // S Total
+          safe_(r[22]),         // T Retiro
+          safe_(r[23]),         // U Urgente
+          i + 2                 // V helper -> row real en orders
         ]
       });
     }
@@ -213,25 +215,26 @@ function applyOperacionLayout_(op) {
   headerRange.setHorizontalAlignment("center");
   op.getRange(1, 1, 1, 2).setBackground("#82bfb7");
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
-  op.getRange(1, 15, 1, 4).setBackground("#fab948");
-  op.getRange(1, 19, 1, 2).setBackground("#6f8fc7");
+  op.getRange(1, 16, 1, 4).setBackground("#fab948");
+  op.getRange(1, 20, 1, 2).setBackground("#6f8fc7");
   protectHeaderRow_(op);
 
   op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 300, 220, 150, 340, 170, 130, 150, 120, 210, 100, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 300, 220, 150, 170, 340, 170, 130, 150, 120, 210, 100, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
 
-  op.getRange("R:R").setNumberFormat("$ #,##0");
-  op.getRange("S:S").setNumberFormat("d/m/yyyy hh:mm");
+  op.getRange("S:S").setNumberFormat("$ #,##0");
+  op.getRange("T:T").setNumberFormat("d/m/yyyy hh:mm");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
   op.getRange("K:K").setWrap(true);
   op.getRange("M:M").setWrap(true);
   op.getRange("N:N").setWrap(true);
+  op.getRange("O:O").setWrap(true);
 }
 
 function onEdit(e) {

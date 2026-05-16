@@ -38,6 +38,7 @@ const ORDERS_HEADER = [
   "Estado pedido",
   "Fecha y hora de retiro",
   "Urgente",
+  "Archivos por mail/link",
   "Nombres archivos",
   "Links archivos",
   "IDs archivos",
@@ -147,6 +148,7 @@ function doPost(e) {
       "En revisión",
       pickupDateTimeDisplay || "",
       body.urgent ? "SI" : "NO",
+      externalFilesByEmail ? "SI" : "NO",
       fileNames.join(" | "),
       folderUrl || fileUrls.join(" | ") || (externalFilesByEmail ? "Pendiente por mail" : ""),
       fileIds.join(" | "),
@@ -949,7 +951,7 @@ function styleOrdersHeader_(sheet) {
 
   // Bloque de cierre/estado.
   sheet.getRange(1, 19, 1, 4).setBackground("#fab948");
-  sheet.getRange(1, 23, 1, 2).setBackground("#6f8fc7");
+  sheet.getRange(1, 23, 1, 3).setBackground("#6f8fc7");
 
   applyOrdersSheetLayout_(sheet);
 }
@@ -967,7 +969,7 @@ function applyOrdersSheetLayout_(sheet) {
   const widths = [
     170, 170, 220, 140, 120, 240, 190, 180, 120,
     180, 180, 180, 120, 200, 150, 130, 150, 150,
-    130, 180, 140, 170, 210, 100, 260, 260, 170,
+    130, 180, 140, 170, 210, 100, 170, 260, 260, 170,
     140, 320, 110, 150, 150, 170, 150, 120, 220
   ];
 
@@ -977,13 +979,13 @@ function applyOrdersSheetLayout_(sheet) {
 
   if (sheet.getLastRow() > 1) {
     const numRows = Math.max(sheet.getLastRow() - 1, 1);
-    sheet.getRange(2, 25, numRows, 5).setWrap(true);
-    sheet.getRange(2, 30, numRows, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    sheet.getRange(2, 26, numRows, 5).setWrap(true);
+    sheet.getRange(2, 31, numRows, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
   }
 
   // En el archivo conviene mostrar solo lo operativo y dejar lo tecnico oculto.
   if (sheetName === "orders_archivo") {
-    sheet.hideColumns(30, 7);
+    sheet.hideColumns(31, 7);
   }
 }
 
