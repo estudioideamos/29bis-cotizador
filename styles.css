@@ -492,6 +492,7 @@ textarea:focus {
   margin: 0;
   font-size: 0.92rem;
   color: #7a2a4e;
+  line-height: 1.5;
 }
 
 .upload-meta {
@@ -499,6 +500,35 @@ textarea:focus {
   font-size: 0.9rem;
   color: #5d4f58;
   font-weight: 600;
+}
+
+.upload-note a {
+  color: #d93d79;
+  font-weight: 700;
+}
+
+.upload-alternative {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #f3c0d5;
+  border-radius: 10px;
+  background: #fff;
+  color: #5e5160;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.upload-alternative input {
+  margin-top: 0.2rem;
+  accent-color: #d93d79;
+}
+
+.upload-panel.is-mail-link-mode {
+  border-color: #82bfb7;
+  background: linear-gradient(180deg, #fff 0%, #eefaf8 100%);
 }
 
 .multi-order-box {

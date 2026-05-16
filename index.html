@@ -176,10 +176,14 @@
         <div class="upload-panel">
           <label class="field">
             <span>Archivo(s) para impresión</span>
-            <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip" multiple required>
+            <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip" multiple>
           </label>
           <p id="file-meta" class="upload-meta">Aún no seleccionaste archivos.</p>
-          <p class="upload-note">Campo obligatorio: necesitamos al menos un archivo para poder imprimir tu pedido.</p>
+          <p class="upload-note">Podés subir archivos de hasta 20 MB por archivo. Si pesan más, completá el pedido y enviá el link de Google Drive o WeTransfer a <a href="mailto:pedidos@29bis.com.ar">pedidos@29bis.com.ar</a> indicando tu número de pedido.</p>
+          <label class="upload-alternative">
+            <input id="send-link-later" type="checkbox">
+            <span>Voy a enviar el link de Drive o WeTransfer por mail después de hacer el pedido.</span>
+          </label>
         </div>
 
         <label class="field">

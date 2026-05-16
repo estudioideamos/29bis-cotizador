@@ -80,13 +80,28 @@
     ].join("");
 
     const isTransferPayment = safeText(data.paymentKey, "") === "transferencia";
+    const externalFilesByEmail = Boolean(data.externalFilesByEmail);
     if (transferNote) {
+      const blocks = [];
       if (isTransferPayment) {
+        blocks.push(`
+          <div>
+            <p class="confirmation-note-alias">ALIAS: 29bis.ploteos</p>
+            <p>Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>
+          </div>
+        `);
+      }
+      if (externalFilesByEmail) {
+        blocks.push(`
+          <div>
+            <p class="confirmation-note-alias">Archivos grandes enviados por fuera del cotizador</p>
+            <p>Recordá enviar el link de Google Drive o WeTransfer a <strong>pedidos@29bis.com.ar</strong> indicando el número de pedido.</p>
+          </div>
+        `);
+      }
+      if (blocks.length) {
         transferNote.classList.remove("hidden");
-        transferNote.innerHTML = `
-          <p class="confirmation-note-alias">ALIAS: 29bis.ploteos</p>
-          <p>Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>
-        `;
+        transferNote.innerHTML = blocks.join("");
       } else {
         transferNote.classList.add("hidden");
         transferNote.innerHTML = "";

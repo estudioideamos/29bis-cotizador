@@ -107,7 +107,11 @@ function doPost(e) {
     const uploadedResult = finalizeUploadedFilesForOrder_(body, orderNumber);
     const uploaded = uploadedResult.files || [];
     const folderUrl = String(uploadedResult.folderUrl || "").trim();
-    const fileNames = uploaded.map((f) => f.name);
+    const externalFilesByEmail = Boolean(body && body.externalFilesByEmail);
+    const externalFilesNote = externalFilesByEmail
+      ? "Cliente enviará el link de Drive o WeTransfer por mail a pedidos@29bis.com.ar."
+      : "";
+    const fileNames = uploaded.length ? uploaded.map((f) => f.name) : (externalFilesByEmail ? ["Link por mail"] : []);
     const fileUrls = uploaded.map((f) => f.url);
     const fileIds = uploaded.map((f) => f.id);
 
@@ -144,10 +148,10 @@ function doPost(e) {
       pickupDateTimeDisplay || "",
       body.urgent ? "SI" : "NO",
       fileNames.join(" | "),
-      folderUrl || fileUrls.join(" | "),
+      folderUrl || fileUrls.join(" | ") || (externalFilesByEmail ? "Pendiente por mail" : ""),
       fileIds.join(" | "),
       uploaded.length,
-      body.notes || "",
+      [String(body.notes || "").trim(), externalFilesNote].filter(Boolean).join(" | "),
       JSON.stringify(body),
       "",
       "",
@@ -371,12 +375,17 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   const paymentLabel = body && body.payment && body.payment.label ? body.payment.label : "-";
   const paymentKey = body && body.payment && body.payment.key ? String(body.payment.key) : "";
   const isTransferPayment = paymentKey === "transferencia" || /transferencia/i.test(paymentLabel);
+  const externalFilesByEmail = Boolean(body && body.externalFilesByEmail);
   const pickup = body && body.pickupDateTime
     ? (formatDateTimeAr_(body.pickupDateTime) || "Sin fecha/hora (trabajo urgente)")
     : "Sin fecha/hora (trabajo urgente)";
   const fileNames = Array.isArray(body.fileNames) ? body.fileNames : [];
-  const filesText = fileNames.length ? fileNames.join(", ") : "Sin detalle";
-  const filesSummaryText = summarizeFileNamesForEmail_(fileNames);
+  const filesText = externalFilesByEmail
+    ? "Se enviarán por mail (Drive o WeTransfer)"
+    : (fileNames.length ? fileNames.join(", ") : "Sin detalle");
+  const filesSummaryText = externalFilesByEmail
+    ? "Se enviarán por mail (Drive o WeTransfer)"
+    : summarizeFileNamesForEmail_(fileNames);
 
   const subject = `29 BIS - Confirmacion de pedido ${orderNumberDisplay}`;
   const textBody = [
@@ -391,6 +400,13 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
     `- Forma de pago: ${paymentLabel}`,
     `- Retiro: ${pickup}`,
     `- Archivos: ${filesText}`,
+    "",
+    ...(externalFilesByEmail
+      ? [
+        "Archivos grandes:",
+        "Como el material se enviará por fuera del cotizador, recordá mandar el link de Drive o WeTransfer a pedidos@29bis.com.ar indicando el número de pedido."
+      ]
+      : []),
     "",
     ...(isTransferPayment
       ? [
@@ -450,6 +466,14 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
         '<div style="border:1px solid #f5d38a;background:#fff8e9;padding:12px 14px;">',
         '<p style="margin:0 0 6px 0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:13px;letter-spacing:0.4px;text-transform:uppercase;"><strong>ALIAS: 29bis.ploteos</strong></p>',
         '<p style="margin:0;color:#6e4b0f;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>',
+        "</div>"
+      ]
+      : []),
+    ...(externalFilesByEmail
+      ? [
+        '<div style="margin-top:14px;border:1px solid #b8dde0;background:#eefaf8;padding:12px 14px;">',
+        '<p style="margin:0 0 6px 0;color:#245d5b;font-family:Arial,sans-serif;font-size:13px;font-weight:700;">Archivos pesados enviados por fuera del cotizador</p>',
+        '<p style="margin:0;color:#245d5b;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Recordá enviar el link de Google Drive o WeTransfer a <strong>pedidos@29bis.com.ar</strong> indicando el número de pedido.</p>',
         "</div>"
       ]
       : []),

@@ -34,6 +34,7 @@
     pickupDatetime: document.getElementById("pickup-datetime"),
     notes: document.getElementById("notes"),
     fileInput: document.getElementById("file-input"),
+    sendLinkLater: document.getElementById("send-link-later"),
     uploadPanel: document.querySelector(".upload-panel"),
     fileMeta: document.getElementById("file-meta"),
     progressSteps: Array.from(document.querySelectorAll(".premium-step"))
@@ -78,6 +79,7 @@
   };
 
   const FILE_UPLOAD_CHUNK_BYTES = 2 * 1024 * 1024;
+  const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
   function setStatus(message, kind) {
     els.status.textContent = message || "";
@@ -99,13 +101,32 @@
     return `${value.toFixed(decimals)} ${units[unitIndex]}`;
   }
 
+  function getSelectedFiles() {
+    return Array.from(els.fileInput.files || []);
+  }
+
+  function getOversizedFile(files) {
+    return (files || []).find((file) => (file.size || 0) > MAX_FILE_SIZE_BYTES) || null;
+  }
+
   function updateFileMeta() {
     if (!els.fileMeta) {
       return;
     }
-    const files = Array.from(els.fileInput.files || []);
+    const files = getSelectedFiles();
+    if (els.uploadPanel) {
+      els.uploadPanel.classList.toggle("is-mail-link-mode", Boolean(els.sendLinkLater && els.sendLinkLater.checked));
+    }
     if (!files.length) {
-      els.fileMeta.textContent = "Aún no seleccionaste archivos.";
+      els.fileMeta.textContent = els.sendLinkLater && els.sendLinkLater.checked
+        ? "No subiste archivos acá. Recordá enviarlos por Drive o WeTransfer a pedidos@29bis.com.ar cuando recibas el número de pedido."
+        : "Aún no seleccionaste archivos.";
+      updateProgressSteps();
+      return;
+    }
+    const oversized = getOversizedFile(files);
+    if (oversized) {
+      els.fileMeta.textContent = `El archivo ${oversized.name} supera el máximo recomendado de 20 MB. Enviá el link por mail a pedidos@29bis.com.ar con tu número de pedido.`;
       updateProgressSteps();
       return;
     }
@@ -122,7 +143,9 @@
     }
 
     const hasConfiguredWork = Boolean(getCurrentWorkSnapshot() || state.savedItems.length > 0);
-    const hasFiles = Boolean((els.fileInput.files || []).length > 0);
+    const files = getSelectedFiles();
+    const hasValidFiles = Boolean(files.length > 0) && !getOversizedFile(files);
+    const hasFiles = hasValidFiles || Boolean(els.sendLinkLater && els.sendLinkLater.checked);
     const hasCustomerData = Boolean(
       String(els.customerName.value || "").trim()
       && String(els.customerPhone.value || "").trim()
@@ -1068,6 +1091,18 @@
       }
     }
 
+    const files = getSelectedFiles();
+    const oversized = getOversizedFile(files);
+    if (oversized) {
+      setStatus(`El archivo ${oversized.name} supera el máximo recomendado de 20 MB. Completá el pedido sin adjuntarlo y después enviá el link de Drive o WeTransfer a pedidos@29bis.com.ar con tu número de pedido.`, "error");
+      return false;
+    }
+
+    if (!files.length && !(els.sendLinkLater && els.sendLinkLater.checked)) {
+      setStatus("Adjuntá al menos un archivo o marcá la opción para enviar el link de Drive o WeTransfer por mail después del pedido.", "error");
+      return false;
+    }
+
     const currentWork = getCurrentWorkSnapshot();
     if (!currentWork && state.savedItems.length === 0) {
       setStatus("Agregá al menos un trabajo con cantidad de hojas mayor a 0.", "error");
@@ -1082,6 +1117,7 @@
     const pricingTotals = getAggregatedPricing(orderItems);
     const paymentMethod = getSelectedPaymentMethod();
     const firstFileName = uploadedFiles[0] ? uploadedFiles[0].name : null;
+    const externalFilesByEmail = Boolean(els.sendLinkLater && els.sendLinkLater.checked && !uploadedFiles.length);
 
     return {
       orderId: `${Date.now()}`,
@@ -1097,6 +1133,7 @@
       pickupDateTime: els.pickupDatetime.value || null,
       urgent,
       payment: paymentMethod,
+      externalFilesByEmail,
       notes: els.notes.value.trim(),
       fileName: firstFileName,
       fileNames: uploadedFiles.map((file) => file.name),
@@ -1180,6 +1217,7 @@
     const paymentKey = payload && payload.payment && payload.payment.key ? payload.payment.key : "";
     const pickupLabel = formatDateTimeAr(payload ? payload.pickupDateTime : null);
     const fileNames = payload && Array.isArray(payload.fileNames) ? payload.fileNames : [];
+    const externalFilesByEmail = Boolean(payload && payload.externalFilesByEmail);
 
     return {
       orderNumber: normalizeOrderNumber(result && result.orderNumber ? result.orderNumber : (payload ? payload.orderId : "-")),
@@ -1189,7 +1227,8 @@
       paymentLabel,
       paymentKey,
       pickupLabel,
-      filesSummary: summarizeFileNamesForConfirmation(fileNames),
+      filesSummary: externalFilesByEmail ? "Se enviarán por mail (Drive o WeTransfer)" : summarizeFileNamesForConfirmation(fileNames),
+      externalFilesByEmail,
       mailSent: Boolean(result && result.mailSent),
       mailError: result && result.mailError ? result.mailError : ""
     };
@@ -1244,6 +1283,9 @@
     els.customWidth.addEventListener("input", updateSummary);
     els.customHeight.addEventListener("input", updateSummary);
     els.fileInput.addEventListener("change", updateFileMeta);
+    if (els.sendLinkLater) {
+      els.sendLinkLater.addEventListener("change", updateFileMeta);
+    }
     els.paymentMethodRadios.forEach((radio) => {
       radio.addEventListener("change", updatePaymentUI);
     });
