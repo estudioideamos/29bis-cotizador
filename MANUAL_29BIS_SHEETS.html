@@ -360,10 +360,34 @@
       <ul>
         <li>Cuando entra un pedido nuevo desde la web, la hoja <strong>operacion</strong> se actualiza sola.</li>
         <li>Los colores y el orden de columnas se vuelven a aplicar automáticamente cuando la hoja se regenera.</li>
+        <li>También se envía automáticamente un mail interno de respaldo a <strong>pedidos@29bis.com.ar</strong> con toda la información del pedido.</li>
       </ul>
       <div class="box ok">
         <strong>En la práctica:</strong> normalmente no hace falta tocar el botón <strong>Actualizar hoja operacion</strong>. Ese botón queda como respaldo por si alguna vez hace falta refrescar manualmente.
       </div>
+    </section>
+
+    <section class="section">
+      <h2>Mail interno de respaldo</h2>
+      <p>
+        Cada vez que entra un pedido desde el cotizador, el sistema envía dos correos:
+      </p>
+      <ul>
+        <li>Un mail de confirmación para la persona que hizo el pedido.</li>
+        <li>Un mail interno a <strong>pedidos@29bis.com.ar</strong> con el detalle completo del pedido.</li>
+      </ul>
+      <p>
+        Este mail interno sirve como respaldo si alguna vez la planilla tiene un problema, se desordena una fila o hace falta recuperar información de un pedido.
+      </p>
+      <div class="box ok">
+        <strong>Qué incluye:</strong> número de pedido, fecha de ingreso, datos del cliente, DNI, teléfono, email, tipo de impresión, papel, tamaño, cobertura, forma de pago, retiro, urgencia, total, observaciones y datos de archivos.
+      </div>
+      <div class="box warn">
+        <strong>Si algo no aparece bien en la planilla:</strong> buscar el pedido en el mail de <strong>pedidos@29bis.com.ar</strong> por número de pedido, nombre del cliente o fecha. Ese correo funciona como respaldo operativo.
+      </div>
+      <p>
+        Si el cliente eligió enviar archivos pesados por Google Drive o WeTransfer, también debe mandar ese link a <strong>pedidos@29bis.com.ar</strong> indicando el número de pedido. De esa forma queda todo centralizado en la misma casilla.
+      </p>
     </section>
 
     <section class="section">

@@ -13,6 +13,7 @@ const ORDERS_SHEET = "orders";
 const DRIVE_FOLDER_ID = "1FSVN4ads-CID2H19JN2u3H2EfnNetCWk";
 const PRICES_SHEET = "prices";
 const TEMP_UPLOADS_FOLDER_NAME = "__tmp_uploads_29bis";
+const ADMIN_ORDER_EMAIL = "pedidos@29bis.com.ar";
 const ORDERS_HEADER = [
   "Fecha de creacion",
   "N° pedido",
@@ -121,7 +122,13 @@ function doPost(e) {
     const createdAtDisplay = formatDateTimeAr_(body.createdAt) || formatDateTimeAr_(new Date()) || new Date().toISOString();
     const pickupDateTimeDisplay = formatDateTimeAr_(body.pickupDateTime);
 
-    const mailResult = sendOrderConfirmationEmail_(body, orderNumber);
+    const customerMailResult = sendOrderConfirmationEmail_(body, orderNumber);
+    const adminMailResult = sendAdminOrderNotificationEmail_(body, orderNumber, {
+      files: uploaded,
+      folderUrl: folderUrl,
+      externalFilesByEmail: externalFilesByEmail
+    });
+    const mailResult = combineMailResults_(customerMailResult, adminMailResult);
 
     sh.appendRow([
       createdAtDisplay,
@@ -171,8 +178,10 @@ function doPost(e) {
       orderNumber: orderNumber,
       fileUrls: fileUrls,
       folderUrl: folderUrl,
-      mailSent: mailResult.ok,
-      mailError: mailResult.error || ""
+      mailSent: customerMailResult.ok,
+      mailError: customerMailResult.error || "",
+      adminMailSent: adminMailResult.ok,
+      adminMailError: adminMailResult.error || ""
     });
   } catch (err) {
     return jsonResponse({
@@ -508,6 +517,201 @@ function sendOrderConfirmationEmail_(body, orderNumber) {
   } catch (err) {
     return { ok: false, error: String(err) };
   }
+}
+
+function sendAdminOrderNotificationEmail_(body, orderNumber, uploadContext) {
+  const orderNumberDisplay = normalizeOrderNumberForDisplay_(orderNumber);
+  const customer = body && body.customer ? body.customer : {};
+  const pricing = body && body.pricing ? body.pricing : {};
+  const uploadedFiles = uploadContext && Array.isArray(uploadContext.files) ? uploadContext.files : [];
+  const folderUrl = String((uploadContext && uploadContext.folderUrl) || "").trim();
+  const externalFilesByEmail = Boolean((uploadContext && uploadContext.externalFilesByEmail) || (body && body.externalFilesByEmail));
+  const customerName = String(customer.name || "-").trim();
+  const paymentLabel = body && body.payment && body.payment.label ? body.payment.label : "-";
+  const pickup = body && body.pickupDateTime
+    ? (formatDateTimeAr_(body.pickupDateTime) || "Sin fecha/hora (trabajo urgente)")
+    : "Sin fecha/hora (trabajo urgente)";
+  const createdAt = formatDateTimeAr_(body && body.createdAt) || formatDateTimeAr_(new Date());
+  const notes = String((body && body.notes) || "").trim();
+  const fileNames = uploadedFiles.length
+    ? uploadedFiles.map((file) => file.name).filter(Boolean)
+    : (Array.isArray(body && body.fileNames) ? body.fileNames.filter(Boolean) : []);
+  const fileSummary = externalFilesByEmail
+    ? "Cliente enviara link por mail / Drive / WeTransfer"
+    : summarizeFileNamesForEmail_(fileNames);
+  const filesLinkHtml = folderUrl
+    ? `<a href="${escapeHtml_(folderUrl)}" style="color:#e84883;text-decoration:none;font-weight:700;">Abrir carpeta de adjuntos</a>`
+    : (externalFilesByEmail ? "Pendiente por mail" : "Sin link disponible");
+  const itemRows = buildAdminOrderItemsRows_(body);
+  const subject = `29 BIS - Nuevo pedido ${orderNumberDisplay}`;
+
+  const textBody = [
+    `Nuevo pedido ${orderNumberDisplay}`,
+    "",
+    `Fecha: ${createdAt}`,
+    `Cliente: ${customerName}`,
+    `Telefono: ${customer.phone || "-"}`,
+    `DNI: ${customer.dni || "-"}`,
+    `Email: ${customer.email || "-"}`,
+    "",
+    `Forma de pago: ${paymentLabel}`,
+    `Estado pago: Pendiente`,
+    `Estado pedido: En revision`,
+    `Retiro: ${pickup}`,
+    `Urgente: ${body && body.urgent ? "SI" : "NO"}`,
+    "",
+    `Hojas totales: ${pricing.totalSheets || 0}`,
+    `Subtotal: $ ${formatNumber_(pricing.subtotal || 0)}`,
+    `Descuento: $ ${formatNumber_(pricing.discountAmount || 0)}`,
+    `Total: $ ${formatNumber_(pricing.total || 0)}`,
+    "",
+    `Archivos: ${fileSummary}`,
+    `Carpeta/link: ${folderUrl || (externalFilesByEmail ? "Pendiente por mail" : "-")}`,
+    "",
+    `Observaciones: ${notes || "-"}`,
+    "",
+    "Este mail es un respaldo automatico del pedido recibido desde el cotizador."
+  ].join("\n");
+
+  const htmlBody = [
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0;padding:24px;background:#f7f6f3;">',
+    '<tr><td align="center">',
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="720" style="width:720px;max-width:720px;background:#ffffff;border:1px solid #ece7dd;overflow:hidden;">',
+    '<tr><td style="padding:22px 24px;background:#ffffff;border-bottom:1px solid #ece7dd;">',
+    '<a href="https://29bis.com.ar/" style="display:inline-block;text-decoration:none;border:0;outline:none;">',
+    '<img src="https://estudioideamos.github.io/29bis-cotizador/assets/logo-29bis-dark.png" alt="29 BIS" width="130" style="display:block;width:130px;max-width:130px;height:auto;border:0;outline:none;text-decoration:none;">',
+    '</a>',
+    '<p style="margin:10px 0 0 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;">Aviso interno de nuevo pedido</p>',
+    '</td></tr>',
+    '<tr><td style="padding:26px 24px 12px 24px;">',
+    '<p style="margin:0 0 8px 0;color:#7a2b4f;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.6px;text-transform:uppercase;">Nuevo pedido recibido</p>',
+    `<h1 style="margin:0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:28px;line-height:1.2;">Pedido ${escapeHtml_(orderNumberDisplay)}</h1>`,
+    '<p style="margin:10px 0 0 0;color:#3b3b38;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;">Este mail queda como respaldo interno por si la planilla necesita revisi&oacute;n o recuperaci&oacute;n.</p>',
+    '</td></tr>',
+    '<tr><td style="padding:8px 24px 4px 24px;">',
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;">',
+    adminInfoRow_("N&uacute;mero de pedido", orderNumberDisplay),
+    adminInfoRow_("Fecha de ingreso", createdAt),
+    adminInfoRow_("Cliente", customerName),
+    adminInfoRow_("Tel&eacute;fono", customer.phone || "-"),
+    adminInfoRow_("DNI", customer.dni || "-"),
+    adminInfoRow_("Email", customer.email || "-"),
+    adminInfoRow_("Forma de pago", paymentLabel),
+    adminInfoRow_("Retiro", pickup),
+    adminInfoRow_("Urgente", body && body.urgent ? "SI" : "NO"),
+    adminInfoRow_("Hojas totales", pricing.totalSheets || 0),
+    adminInfoRow_("Subtotal", `$ ${formatNumber_(pricing.subtotal || 0)}`),
+    adminInfoRow_("Descuento", `$ ${formatNumber_(pricing.discountAmount || 0)}`),
+    adminInfoRow_("Total estimado", `$ ${formatNumber_(pricing.total || 0)}`, true),
+    '</table>',
+    '</td></tr>',
+    '<tr><td style="padding:16px 24px 6px 24px;">',
+    '<div style="border:1px solid #f1b8cf;background:#fff5f9;padding:14px 16px;">',
+    '<p style="margin:0 0 8px 0;color:#7a2b4f;font-family:Arial,sans-serif;font-size:13px;font-weight:700;">Archivos</p>',
+    `<p style="margin:0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;"><strong>Detalle:</strong> ${escapeHtml_(fileSummary)}</p>`,
+    `<p style="margin:8px 0 0 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;"><strong>Link:</strong> ${filesLinkHtml}</p>`,
+    '</div>',
+    '</td></tr>',
+    '<tr><td style="padding:10px 24px 6px 24px;">',
+    '<p style="margin:0 0 8px 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:16px;font-weight:700;">Detalle de trabajos</p>',
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;">',
+    '<tr>',
+    '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">#</th>',
+    '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Tipo</th>',
+    '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Papel</th>',
+    '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Tama&ntilde;o</th>',
+    '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Faz</th>',
+    '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Cobertura</th>',
+    '<th align="right" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Total</th>',
+    '</tr>',
+    itemRows,
+    '</table>',
+    '</td></tr>',
+    '<tr><td style="padding:12px 24px 24px 24px;">',
+    '<div style="border:1px solid #d9d2c6;background:#fbfaf8;padding:14px 16px;">',
+    '<p style="margin:0 0 8px 0;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;font-weight:700;">Observaciones del cliente</p>',
+    `<p style="margin:0;color:#3b3b38;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml_(notes || "-")}</p>`,
+    '</div>',
+    '</td></tr>',
+    '<tr><td style="padding:14px 24px;background:#f7f6f3;border-top:1px solid #ece7dd;">',
+    '<p style="margin:0;color:#6a6966;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;">&copy;2026 29 BIS &middot; Respaldo autom&aacute;tico generado por el cotizador.</p>',
+    '</td></tr>',
+    '</table>',
+    '</td></tr>',
+    '</table>'
+  ].join("");
+
+  try {
+    MailApp.sendEmail({
+      to: ADMIN_ORDER_EMAIL,
+      subject: subject,
+      body: textBody,
+      htmlBody: htmlBody,
+      name: "29 BIS"
+    });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+function adminInfoRow_(label, value, highlight) {
+  const color = highlight ? "#e84883" : "#1c1c1a";
+  const weight = highlight ? "700" : "600";
+  return `<tr><td style="padding:8px 0;border-bottom:1px solid #f0ece5;color:#6a6966;font-family:Arial,sans-serif;font-size:14px;">${label}</td><td align="right" style="padding:8px 0;border-bottom:1px solid #f0ece5;color:${color};font-family:Arial,sans-serif;font-size:14px;font-weight:${weight};word-break:break-word;overflow-wrap:anywhere;">${escapeHtml_(value)}</td></tr>`;
+}
+
+function buildAdminOrderItemsRows_(body) {
+  const items = Array.isArray(body && body.orderItems) ? body.orderItems : [];
+  if (!items.length) {
+    return '<tr><td colspan="7" style="padding:10px 8px;color:#6a6966;font-family:Arial,sans-serif;font-size:13px;">Sin detalle de trabajos.</td></tr>';
+  }
+
+  return items.map((item, index) => {
+    const machine = item && item.machine && item.machine.label ? item.machine.label : "-";
+    const paper = item && item.paper && item.paper.label ? item.paper.label : "-";
+    const size = item && item.size && item.size.label ? item.size.label : "-";
+    const sides = item && item.sides && item.sides.label ? item.sides.label : "N/A";
+    const coverage = describeCoverageForEmail_(item && item.coverageDistribution);
+    const total = item && item.pricing && item.pricing.total ? item.pricing.total : (item && item.pricing && item.pricing.subtotal ? item.pricing.subtotal : 0);
+    return [
+      '<tr>',
+      `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${index + 1}</td>`,
+      `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${escapeHtml_(machine)}</td>`,
+      `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${escapeHtml_(paper)}</td>`,
+      `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${escapeHtml_(size)}</td>`,
+      `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${escapeHtml_(sides)}</td>`,
+      `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml_(coverage)}</td>`,
+      `<td align="right" style="padding:8px;border-bottom:1px solid #f0ece5;color:#e84883;font-family:Arial,sans-serif;font-size:13px;font-weight:700;">$ ${escapeHtml_(formatNumber_(total))}</td>`,
+      '</tr>'
+    ].join("");
+  }).join("");
+}
+
+function describeCoverageForEmail_(coverageDistribution) {
+  const list = Array.isArray(coverageDistribution) ? coverageDistribution : [];
+  if (!list.length) {
+    return "-";
+  }
+  return list.map((item) => {
+    const label = item.label || item.coverage || "Cobertura";
+    const sheets = Number(item.sheets || 0);
+    return `${label}: ${sheets}`;
+  }).join(" | ");
+}
+
+function combineMailResults_(customerResult, adminResult) {
+  const errors = [];
+  if (!customerResult || !customerResult.ok) {
+    errors.push(`Cliente: ${(customerResult && customerResult.error) || "no enviado"}`);
+  }
+  if (!adminResult || !adminResult.ok) {
+    errors.push(`Admin: ${(adminResult && adminResult.error) || "no enviado"}`);
+  }
+  return {
+    ok: errors.length === 0,
+    error: errors.join(" | ")
+  };
 }
 
 function summarizeFileNamesForEmail_(fileNames) {
