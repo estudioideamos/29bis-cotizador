@@ -82,8 +82,8 @@
     }
   };
 
-  // Apps Script recibe el archivo en base64; partes mas chicas evitan cortes por limite de request.
-  const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
+  // Debe ser multiplo de 3: asi cada parte base64 se puede recomponer sin padding intermedio.
+  const FILE_UPLOAD_CHUNK_BYTES = 768 * 1024;
   const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
   function setStatus(message, kind) {
