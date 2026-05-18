@@ -82,7 +82,8 @@
     }
   };
 
-  const FILE_UPLOAD_CHUNK_BYTES = 2 * 1024 * 1024;
+  // Apps Script recibe el archivo en base64; partes mas chicas evitan cortes por limite de request.
+  const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
   const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
   function setStatus(message, kind) {
@@ -961,7 +962,8 @@
     }
     const data = await response.json();
     if (!data.ok) {
-      throw new Error(data.message || "No se pudo subir el archivo.");
+      const detail = data.detail ? ` ${data.detail}` : "";
+      throw new Error(`${data.message || "No se pudo subir el archivo."}${detail}`);
     }
     return data;
   }
