@@ -257,7 +257,7 @@
       <div class="hero-meta">
         <span class="chip pink">Cotizador + pedidos online</span>
         <span class="chip mint">Uso diario de gestión</span>
-        <span class="chip gold">Actualizado: 04/05/2026</span>
+        <span class="chip gold">Actualizado: 16/06/2026</span>
       </div>
     </header>
 
@@ -283,7 +283,7 @@
         </article>
         <article class="card">
           <h4>orders_archivo</h4>
-          <p>Es el archivo/historial de pedidos que fueron archivados. Mantiene la misma lógica visual de colores que la hoja operativa para que la lectura sea más natural.</p>
+          <p>Es el archivo/historial de pedidos que fueron archivados. Los pedidos m&aacute;s nuevos quedan arriba y los m&aacute;s viejos abajo. Mantiene la misma l&oacute;gica visual de colores que la hoja operativa para que la lectura sea m&aacute;s natural.</p>
         </article>
         <article class="card">
           <h4>prices</h4>
@@ -330,13 +330,13 @@
           </tr>
           <tr>
             <td>Trabajo</td>
-            <td><code>Tipo impresion</code>, <code>Tipo papel</code>, <code>Tamaño</code>, <code>Faz</code></td>
-            <td>Describen cómo se debe producir el trabajo.</td>
+            <td><code>Tipo impresion</code>, <code>Tipo papel</code>, <code>Tama&ntilde;o</code>, <code>Faz</code>, <code>Cobertura</code>, <code>Cantidad total hojas</code>, <code>Detalle cantidades</code></td>
+            <td>Describen c&oacute;mo se debe producir el trabajo y cu&aacute;ntas hojas tiene cada configuraci&oacute;n del pedido.</td>
           </tr>
           <tr>
             <td>Archivos</td>
-            <td><code>Nombre archivos</code>, <code>Adjuntos</code>, <code>Observaciones</code></td>
-            <td>Permiten abrir lo que subió el cliente y leer aclaraciones importantes.</td>
+            <td><code>Nombre archivos</code>, <code>Adjuntos</code>, <code>Archivos por mail/link</code>, <code>Observaciones</code></td>
+            <td>Permiten abrir lo que subi&oacute; el cliente, saber si va a mandar archivos por fuera y leer aclaraciones importantes.</td>
           </tr>
           <tr>
             <td>Seguimiento</td>
@@ -401,7 +401,7 @@
           <ul>
             <li><strong>Forma de pago:</strong> muestra si el cliente eligió transferencia o pago en el local.</li>
             <li><strong>Estado pago:</strong> <code>Pendiente</code> o <code>Pagado</code>.</li>
-            <li><strong>Estado pedido:</strong> <code>En revisión</code>, <code>En preparación</code> o <code>Listo para retirar</code>.</li>
+            <li><strong>Estado pedido:</strong> <code>En revisi&oacute;n</code>, <code>En preparaci&oacute;n</code>, <code>Listo para retirar</code> o <code>Entregado</code>.</li>
           </ul>
         </li>
       </ol>
@@ -430,6 +430,11 @@
             <td>Si sienten que algo no se ve actualizado o quieren forzar una recarga.</td>
           </tr>
           <tr>
+            <td><strong>Ordenar orders_archivo</strong></td>
+            <td>Reacomoda <code>orders_archivo</code> de m&aacute;s nuevo a m&aacute;s viejo y normaliza el cuerpo de la hoja.</td>
+            <td>Si el archivo qued&oacute; desordenado, con pedidos viejos abajo de todo o con filas que no se ven parejas.</td>
+          </tr>
+          <tr>
             <td><strong>Archivar por rango de filas...</strong></td>
             <td>Mueve pedidos desde <code>operacion</code> a <code>orders_archivo</code> usando un rango de filas.</td>
             <td>Cuando el pedido ya no debe quedar en el operativo pero quieren conservarlo en historial.</td>
@@ -454,6 +459,25 @@
       </ol>
       <div class="box ok">
         El pedido desaparece de <strong>operacion</strong>, pero sigue existiendo en <strong>orders_archivo</strong>.
+      </div>
+      <div class="box ok">
+        En <strong>orders_archivo</strong>, los pedidos archivados se acomodan de m&aacute;s nuevo a m&aacute;s viejo. Los &uacute;ltimos quedan arriba del archivo.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Cómo reordenar orders_archivo</h2>
+      <p>Si el archivo alguna vez se ve raro, hay una opción para acomodarlo sin tocar filas a mano.</p>
+      <ol>
+        <li>Ir al menú <strong>29 BIS Gestion</strong>.</li>
+        <li>Elegir <strong>Ordenar orders_archivo</strong>.</li>
+        <li>Esperar a que termine.</li>
+      </ol>
+      <div class="box ok">
+        Esta acci&oacute;n vuelve a dejar <strong>orders_archivo</strong> ordenado de m&aacute;s nuevo a m&aacute;s viejo y ayuda a emparejar el cuerpo de la hoja.
+      </div>
+      <div class="box warn">
+        En columnas t&eacute;cnicas como <code>IDs archivos</code>, algunos textos largos pueden verse cortados dentro de la celda. Eso es normal y se hace para que las filas mantengan una altura pareja.
       </div>
     </section>
 
@@ -533,6 +557,7 @@
         <li>Si un pedido no aparece enseguida: esperar unos segundos y, si hace falta, usar <strong>Actualizar hoja operacion</strong>.</li>
         <li>Si falta una columna: revisar si está oculta y, si hace falta, volver a regenerar la hoja.</li>
         <li>Si un estado aparece como inválido: revisar que el valor coincida con el dropdown exacto.</li>
+        <li>Si <strong>orders_archivo</strong> se ve desordenado o con filas desparejas: usar <strong>Ordenar orders_archivo</strong>.</li>
         <li>Si una acción del menú no hace lo esperado: no probar muchas veces seguidas. Cortar y revisar antes de seguir.</li>
       </ul>
     </section>
@@ -563,6 +588,7 @@
       <ul>
         <li><strong>Para trabajar pedidos:</strong> usar <strong>operacion</strong>.</li>
         <li><strong>Para guardar pedidos viejos:</strong> usar <strong>Archivar por rango de filas...</strong>.</li>
+        <li><strong>Para acomodar el archivo:</strong> usar <strong>Ordenar orders_archivo</strong>.</li>
         <li><strong>Para borrar pedidos de prueba o desfasados:</strong> usar <strong>Eliminar por rango de filas...</strong>.</li>
         <li><strong>Para borrar archivo viejo:</strong> ir a <strong>orders_archivo</strong> y usar <strong>Eliminar por rango de filas...</strong>.</li>
         <li><strong>Para cambiar precios:</strong> usar <strong>prices</strong>.</li>

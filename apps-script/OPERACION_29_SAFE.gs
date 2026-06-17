@@ -20,26 +20,29 @@ const OP_HEADER = [
   "Tamano",            // I
   "Faz",               // J
   "Cobertura",         // K
-  "Nombre archivos",   // L
-  "Adjuntos",          // M
-  "Archivos por mail/link", // N
-  "Observaciones",     // O
-  "Forma de pago",     // P
-  "Estado pago",       // Q (editable)
-  "Estado pedido",     // R (editable)
-  "Total",             // S
-  "Fecha y hora de retiro", // T
-  "Urgente",           // U
-  "_row_orders"        // V (helper oculta)
+  "Cantidad total hojas", // L
+  "Detalle cantidades", // M
+  "Nombre archivos",   // N
+  "Adjuntos",          // O
+  "Archivos por mail/link", // P
+  "Observaciones",     // Q
+  "Forma de pago",     // R
+  "Estado pago",       // S (editable)
+  "Estado pedido",     // T (editable)
+  "Total",             // U
+  "Fecha y hora de retiro", // V
+  "Urgente",           // W
+  "_row_orders"        // X (helper oculta)
 ];
 
 // columnas en "operacion" (1-based)
 const OP_COL_ORDER_NUMBER = 1; // A
-const OP_COL_PAYMENT_METHOD = 16; // P
-const OP_COL_STATUS_PAGO = 17; // Q
-const OP_COL_STATUS_PEDIDO = 18; // R
-const OP_COL_HELPER_ROW = 22; // V
+const OP_COL_PAYMENT_METHOD = 18; // R
+const OP_COL_STATUS_PAGO = 19; // S
+const OP_COL_STATUS_PEDIDO = 20; // T
+const OP_COL_HELPER_ROW = 24; // X
 const OP_ARCHIVE_SHEET = "orders_archivo";
+const ARCHIVE_BODY_ROW_HEIGHT = 28;
 const MANUAL_URL_29BIS = "https://estudioideamos.github.io/29bis-cotizador/MANUAL_29BIS_SHEETS.html";
 const PRICES_SHEET_29 = "prices";
 const PRICES_HEADER_29 = [
@@ -65,6 +68,7 @@ function onOpen() {
     .addItem("Abrir manual de uso", "openManual29Bis")
     .addSeparator()
     .addItem("Actualizar hoja operacion", "refreshOperacionEditable")
+    .addItem("Ordenar orders_archivo", "normalizeArchiveSheet29")
     .addItem("Archivar por rango de filas...", "archiveSelectedOrders29")
     .addItem("Eliminar por rango de filas...", "deleteOrdersByRowRange29")
     .addToUi();
@@ -126,6 +130,7 @@ function refreshOperacionEditable() {
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const orders = ss.getSheetByName(ORDERS_SHEET);
     const op = getOrCreateSheet_(ss, OP_SHEET_NAME);
+    const statusSnapshot = getOperacionStatusSnapshot_(op);
     applyOperacionLayout_(op);
 
     if (!orders) {
@@ -140,19 +145,36 @@ function refreshOperacionEditable() {
 
     const data = orders.getRange(2, 1, last - 1, Math.max(orders.getLastColumn(), 34)).getValues();
     const out = [];
+    const pendingStatusSync = [];
 
     for (let i = 0; i < data.length; i++) {
       const r = data[i];
       const orderNumber = safe_(r[1]); // B
       if (!orderNumber) continue;
 
+      const displayOrderNumber = displayOrderNumber_(orderNumber);
+      const persistedStatus = statusSnapshot[displayOrderNumber] || null;
+      const statusPago = persistedStatus && persistedStatus.statusPago ? persistedStatus.statusPago : safe_(r[20]);
+      const statusPedido = persistedStatus && persistedStatus.statusPedido ? persistedStatus.statusPedido : safe_(r[21]);
+
+      if (persistedStatus) {
+        if (statusPago !== safe_(r[20]) || statusPedido !== safe_(r[21])) {
+          pendingStatusSync.push({
+            row: i + 2,
+            statusPago: statusPago,
+            statusPedido: statusPedido
+          });
+        }
+      }
+
       const adjuntosUrl = buildAdjuntosUrl_(r[26]);
+      const payload = parseOrderPayload_(r[30]);
 
       out.push({
         fecha: safe_(r[0]),
         adjuntosUrl: adjuntosUrl,
         values: [
-          displayOrderNumber_(orderNumber), // A N° pedido
+          displayOrderNumber, // A N° pedido
           safe_(r[0]),          // B Fecha
           safe_(r[2]),          // C Cliente
           safe_(r[3]),          // D Telefono
@@ -163,17 +185,19 @@ function refreshOperacionEditable() {
           safe_(r[8]),          // I Tamano
           safe_(r[12]),         // J Faz
           formatCoverageForOperacion_(r[13]), // K Cobertura (N)
-          safe_(r[25]),         // L Nombre archivos
-          adjuntosUrl ? "Ver adjuntos" : "", // M Adjuntos (Z)
-          safe_(r[24]),         // N Archivos por mail/link
-          safe_(r[29]),         // O Observaciones
-          safe_(r[19]),         // P Forma de pago
-          safe_(r[20]),         // Q Estado pago
-          safe_(r[21]),         // R Estado pedido
-          num_(r[18]),          // S Total
-          safe_(r[22]),         // T Retiro
-          safe_(r[23]),         // U Urgente
-          i + 2                 // V helper -> row real en orders
+          num_(r[14]),          // L Cantidad total hojas
+          formatItemsQuantityForOperacion_(payload), // M Detalle cantidades
+          safe_(r[25]),         // N Nombre archivos
+          adjuntosUrl ? "Ver adjuntos" : "", // O Adjuntos (Z)
+          safe_(r[24]),         // P Archivos por mail/link
+          safe_(r[29]),         // Q Observaciones
+          safe_(r[19]),         // R Forma de pago
+          statusPago,           // S Estado pago
+          statusPedido,         // T Estado pedido
+          num_(r[18]),          // U Total
+          safe_(r[22]),         // V Retiro
+          safe_(r[23]),         // W Urgente
+          i + 2                 // X helper -> row real en orders
         ]
       });
     }
@@ -183,7 +207,7 @@ function refreshOperacionEditable() {
     clearOperacionBody_(op);
     if (out.length) {
       const values = out.map((item) => item.values);
-      const nombresArchivos = out.map((item) => [String(item.values[11] || "")]);
+      const nombresArchivos = out.map((item) => [String(item.values[13] || "")]);
       const adjuntosLinks = out.map((item) => item.adjuntosUrl);
 
       op.getRange(2, 1, values.length, OP_HEADER.length).setValues(values);
@@ -192,6 +216,12 @@ function refreshOperacionEditable() {
       applyAlternatingRowStyles_(op, values.length);
       applyStatusValidations_(op, 2, Math.max(1200, values.length + 20));
     }
+
+    pendingStatusSync.forEach((item) => {
+      orders.getRange(item.row, OR_COL_STATUS_PAGO).setValue(item.statusPago);
+      orders.getRange(item.row, OR_COL_STATUS_PEDIDO).setValue(item.statusPedido);
+      orders.getRange(item.row, OR_COL_FECHA_CAMBIO_ESTADO).setValue(formatDateTimeAr_(new Date()));
+    });
   } finally {
     lock.releaseLock();
   }
@@ -215,26 +245,27 @@ function applyOperacionLayout_(op) {
   headerRange.setHorizontalAlignment("center");
   op.getRange(1, 1, 1, 2).setBackground("#82bfb7");
   op.getRange(1, 3, 1, 4).setBackground("#d93d79");
-  op.getRange(1, 16, 1, 4).setBackground("#fab948");
-  op.getRange(1, 20, 1, 2).setBackground("#6f8fc7");
+  op.getRange(1, 18, 1, 4).setBackground("#fab948");
+  op.getRange(1, 22, 1, 2).setBackground("#6f8fc7");
   protectHeaderRow_(op);
 
   op.showColumns(1, OP_COL_HELPER_ROW - 1);
   op.hideColumns(OP_COL_HELPER_ROW);
 
-  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 300, 220, 150, 170, 340, 170, 130, 150, 120, 210, 100, 80];
+  const widths = [180, 150, 220, 130, 120, 220, 200, 170, 110, 120, 260, 130, 420, 220, 150, 170, 340, 170, 130, 150, 120, 210, 100, 80];
   widths.forEach((w, i) => op.setColumnWidth(i + 1, w));
 
   applyStatusValidations_(op, 2, 1200);
 
-  op.getRange("S:S").setNumberFormat("$ #,##0");
-  op.getRange("T:T").setNumberFormat("d/m/yyyy hh:mm");
+  op.getRange("U:U").setNumberFormat("$ #,##0");
+  op.getRange("V:V").setNumberFormat("d/m/yyyy hh:mm");
   op.getRange("B:B").setHorizontalAlignment("left");
   op.getRange("C:C").setHorizontalAlignment("left");
   op.getRange("K:K").setWrap(true);
   op.getRange("M:M").setWrap(true);
   op.getRange("N:N").setWrap(true);
-  op.getRange("O:O").setWrap(true);
+  op.getRange("P:P").setWrap(true);
+  op.getRange("Q:Q").setWrap(true);
 }
 
 function onEdit(e) {
@@ -360,7 +391,7 @@ function deleteSelectedOrderSafely() {
     const rowValues = orders.getRange(targetOrderRow, 1, 1, orders.getLastColumn()).getValues()[0];
     const archiveRow = sanitizeRowForSheet_(rowValues);
     const archive = getOrCreateArchiveFromOrders_(ss, orders);
-    archive.getRange(archive.getLastRow() + 1, 1, 1, archiveRow.length).setValues([archiveRow]);
+    prependRowsToArchiveSheet_(archive, [archiveRow]);
 
     orders.deleteRow(targetOrderRow);
     refreshOperacionEditable();
@@ -443,12 +474,16 @@ function archiveSelectedOrders29() {
   try {
     const archive = getOrCreateArchiveFromOrders_(ss, orders);
     const rowsToDelete = resolveOrderRows_(orders, targets);
+    const archiveRows = [];
 
     for (let i = 0; i < rowsToDelete.length; i++) {
       const orderRow = rowsToDelete[i];
       const rowValues = orders.getRange(orderRow, 1, 1, orders.getLastColumn()).getValues()[0];
-      const archiveRow = sanitizeRowForSheet_(rowValues);
-      archive.getRange(archive.getLastRow() + 1, 1, 1, archiveRow.length).setValues([archiveRow]);
+      archiveRows.push(sanitizeRowForSheet_(rowValues));
+    }
+
+    if (archiveRows.length) {
+      prependRowsToArchiveSheet_(archive, archiveRows);
     }
 
     rowsToDelete
@@ -650,7 +685,7 @@ function applyStatusValidations_(sheet, startRow, endRow) {
     .build();
 
   const pedidoRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["En revisión", "En preparación", "Listo para retirar"], true)
+    .requireValueInList(["En revisión", "En preparación", "Listo para retirar", "Entregado"], true)
     .setAllowInvalid(false)
     .build();
 
@@ -753,6 +788,36 @@ function clearOperacionBody_(sheet) {
   }
 }
 
+function getOperacionStatusSnapshot_(sheet) {
+  const snapshot = {};
+  if (!sheet) {
+    return snapshot;
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return snapshot;
+  }
+
+  const rowCount = lastRow - 1;
+  const values = sheet.getRange(2, 1, rowCount, OP_COL_HELPER_ROW).getDisplayValues();
+  values.forEach((row) => {
+    const orderNumber = String(row[OP_COL_ORDER_NUMBER - 1] || "").trim();
+    const statusPago = String(row[OP_COL_STATUS_PAGO - 1] || "").trim();
+    const statusPedido = String(row[OP_COL_STATUS_PEDIDO - 1] || "").trim();
+    if (!orderNumber) {
+      return;
+    }
+
+    snapshot[orderNumber] = {
+      statusPago: statusPago,
+      statusPedido: statusPedido
+    };
+  });
+
+  return snapshot;
+}
+
 function parseMixedDate_(value) {
   if (!value) return new Date(0);
   if (Object.prototype.toString.call(value) === "[object Date]" && !isNaN(value.getTime())) return value;
@@ -777,9 +842,85 @@ function formatCoverageForOperacion_(value) {
       return text;
     }
 
-    const parts = parsed.map((item) => {
+    const grouped = {};
+    const ungrouped = [];
+
+    parsed.forEach((item) => {
       const label = String((item && (item.label || item.coverage)) || "").trim();
       const sheets = Number(item && item.sheets);
+      const work = Number(item && item.work);
+      if (!label) {
+        return;
+      }
+
+      const detail = !isNaN(sheets) && sheets > 0 ? `${label}: ${sheets}` : label;
+      if (!isNaN(work) && work > 0) {
+        if (!grouped[work]) {
+          grouped[work] = [];
+        }
+        grouped[work].push(detail);
+        return;
+      }
+
+      ungrouped.push(detail);
+    });
+
+    const groupedParts = Object.keys(grouped)
+      .map((key) => Number(key))
+      .sort((a, b) => a - b)
+      .map((work) => `Trabajo ${work}: ${grouped[work].join(", ")}`);
+
+    return [...ungrouped, ...groupedParts].join(" | ");
+  } catch (err) {
+    return text;
+  }
+}
+
+function parseOrderPayload_(value) {
+  const text = String(value == null ? "" : value).trim();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return null;
+  }
+}
+
+function formatItemsQuantityForOperacion_(payload) {
+  const items = Array.isArray(payload && payload.orderItems) ? payload.orderItems : [];
+  if (!items.length) {
+    return "";
+  }
+
+  return items.map((item, index) => {
+    const context = buildWorkContextForOperacion_(item);
+    const quantity = formatWorkQuantityForOperacion_(item);
+    if (!quantity) {
+      return "";
+    }
+    return `Trabajo ${index + 1}${context ? ` (${context})` : ""}: ${quantity}`;
+  }).filter(Boolean).join(" | ");
+}
+
+function buildWorkContextForOperacion_(item) {
+  const parts = [
+    item && item.machine && item.machine.label ? item.machine.label : "",
+    item && item.paper && item.paper.label ? item.paper.label : "",
+    item && item.size && item.size.label ? item.size.label : ""
+  ].map((part) => String(part || "").trim()).filter(Boolean);
+
+  return parts.join(" / ");
+}
+
+function formatWorkQuantityForOperacion_(item) {
+  const coverageDistribution = Array.isArray(item && item.coverageDistribution) ? item.coverageDistribution : [];
+  if (coverageDistribution.length) {
+    return coverageDistribution.map((entry) => {
+      const label = String((entry && (entry.label || entry.coverage)) || "").trim();
+      const sheets = Number(entry && entry.sheets);
       if (!label) {
         return "";
       }
@@ -787,12 +928,20 @@ function formatCoverageForOperacion_(value) {
         return `${label}: ${sheets}`;
       }
       return label;
-    }).filter(Boolean);
-
-    return parts.join(" | ");
-  } catch (err) {
-    return text;
+    }).filter(Boolean).join(", ");
   }
+
+  const quantity = Number(item && item.quantity);
+  if (!isNaN(quantity) && quantity > 0) {
+    return `${quantity} hoja${quantity === 1 ? "" : "s"}`;
+  }
+
+  const totalSheets = Number(item && item.pricing && item.pricing.totalSheets);
+  if (!isNaN(totalSheets) && totalSheets > 0) {
+    return `${totalSheets} hoja${totalSheets === 1 ? "" : "s"}`;
+  }
+
+  return "";
 }
 
 function safe_(v) {
@@ -845,7 +994,7 @@ function applyAdjuntosRichLinks_(sheet, links) {
     ];
   });
 
-  sheet.getRange(2, 13, richValues.length, 1).setRichTextValues(richValues);
+  sheet.getRange(2, 15, richValues.length, 1).setRichTextValues(richValues);
 }
 
 function applyNombreArchivosPlainText_(sheet, names) {
@@ -862,7 +1011,7 @@ function applyNombreArchivosPlainText_(sheet, names) {
     ];
   });
 
-  sheet.getRange(2, 12, plainValues.length, 1).setRichTextValues(plainValues);
+  sheet.getRange(2, 14, plainValues.length, 1).setRichTextValues(plainValues);
 }
 
 function truncateCellText_(value, maxLen) {
@@ -975,6 +1124,158 @@ function syncArchiveSchemaFromOrders_(archiveSheet, ordersSheet, headerValues, l
     styleOrdersHeader_(archiveSheet);
   }
   protectHeaderRow_(archiveSheet);
+}
+
+function prependRowsToArchiveSheet_(archiveSheet, rows) {
+  const cleanRows = Array.isArray(rows) ? rows.filter((row) => Array.isArray(row) && row.length) : [];
+  if (!cleanRows.length) {
+    return;
+  }
+
+  const lastCol = Math.max(archiveSheet.getLastColumn(), cleanRows[0].length);
+  const lastRow = archiveSheet.getLastRow();
+  const existingRows = lastRow > 1
+    ? archiveSheet.getRange(2, 1, lastRow - 1, lastCol).getValues()
+    : [];
+  const mergedRows = [...cleanRows, ...existingRows]
+    .filter(hasArchiveBodyData_)
+    .sort(compareArchiveRowsNewestFirst_);
+
+  if (lastRow > 1) {
+    archiveSheet.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+    archiveSheet.getRange(2, 1, lastRow - 1, lastCol).clearFormat();
+  }
+
+  archiveSheet.getRange(2, 1, mergedRows.length, lastCol).setValues(
+    mergedRows.map((row) => normalizeArchiveRowWidth_(row, lastCol))
+  );
+  archiveSheet.getRange(2, 1, mergedRows.length, lastCol).clearFormat();
+  applyArchiveBodyHeights_(archiveSheet, mergedRows.length);
+  if (typeof applyOrdersSheetLayout_ === "function") {
+    applyOrdersSheetLayout_(archiveSheet);
+  }
+}
+
+function normalizeArchiveSheet29() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const archive = ss.getSheetByName(OP_ARCHIVE_SHEET);
+  if (!archive) {
+    ui.alert('No se encontró la hoja "orders_archivo".');
+    return;
+  }
+
+  const lastCol = archive.getLastColumn();
+  const lastRow = archive.getLastRow();
+  if (lastRow < 2 || lastCol < 1) {
+    ui.alert('La hoja "orders_archivo" no tiene pedidos para reordenar.');
+    return;
+  }
+
+  const rows = archive.getRange(2, 1, lastRow - 1, lastCol).getValues()
+    .filter(hasArchiveBodyData_)
+    .sort(compareArchiveRowsNewestFirst_);
+  if (!rows.length) {
+    archive.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+    archive.getRange(2, 1, lastRow - 1, lastCol).clearFormat();
+    ui.alert('No había pedidos cargados en "orders_archivo".');
+    return;
+  }
+
+  archive.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+  archive.getRange(2, 1, lastRow - 1, lastCol).clearFormat();
+  archive.getRange(2, 1, rows.length, lastCol).setValues(rows.map((row) => normalizeArchiveRowWidth_(row, lastCol)));
+  archive.getRange(2, 1, rows.length, lastCol).clearFormat();
+  applyArchiveBodyHeights_(archive, rows.length);
+  if (typeof applyOrdersSheetLayout_ === "function") {
+    applyOrdersSheetLayout_(archive);
+  }
+
+  ui.alert(`Listo. Se acomodaron ${rows.length} pedido(s) arriba en "orders_archivo".`);
+}
+
+function hasArchiveBodyData_(row) {
+  return (row || []).some((cell) => {
+    if (cell == null) {
+      return false;
+    }
+    if (Object.prototype.toString.call(cell) === "[object Date]") {
+      return !isNaN(cell.getTime());
+    }
+    if (typeof cell === "number") {
+      return cell !== 0;
+    }
+    if (typeof cell === "boolean") {
+      return true;
+    }
+    return String(cell).trim() !== "";
+  });
+}
+
+function normalizeArchiveRowWidth_(row, width) {
+  const source = Array.isArray(row) ? row.slice(0, width) : [];
+  while (source.length < width) {
+    source.push("");
+  }
+  return source;
+}
+
+function applyArchiveBodyHeights_(sheet, rowCount) {
+  const totalRows = Math.max(Number(rowCount) || 0, Math.max(sheet.getLastRow() - 1, 0));
+  if (!totalRows) {
+    return;
+  }
+
+  sheet.setRowHeights(2, totalRows, ARCHIVE_BODY_ROW_HEIGHT);
+}
+
+function compareArchiveRowsNewestFirst_(rowA, rowB) {
+  const keyA = getArchiveOrderNumberSortKey_(rowA);
+  const keyB = getArchiveOrderNumberSortKey_(rowB);
+  if (keyA && keyB && keyA !== keyB) {
+    return keyA > keyB ? -1 : 1;
+  }
+
+  const dateA = getArchiveDateSortValue_(rowA);
+  const dateB = getArchiveDateSortValue_(rowB);
+  if (dateA !== dateB) {
+    return dateB - dateA;
+  }
+
+  return 0;
+}
+
+function getArchiveOrderNumberSortKey_(row) {
+  const raw = Array.isArray(row) ? row[1] : "";
+  return String(raw || "")
+    .trim()
+    .replace(/^29BIS-/i, "");
+}
+
+function getArchiveDateSortValue_(row) {
+  const raw = Array.isArray(row) ? row[0] : "";
+  if (Object.prototype.toString.call(raw) === "[object Date]" && !isNaN(raw.getTime())) {
+    return raw.getTime();
+  }
+
+  const text = String(raw || "").trim();
+  if (!text) {
+    return 0;
+  }
+
+  const slash = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    return new Date(Number(slash[3]), Number(slash[2]) - 1, Number(slash[1]), 0, 0, 0, 0).getTime();
+  }
+
+  const dash = text.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+  if (dash) {
+    const year = Number(dash[3].length === 2 ? `20${dash[3]}` : dash[3]);
+    return new Date(year, Number(dash[2]) - 1, Number(dash[1]), 0, 0, 0, 0).getTime();
+  }
+
+  const parsed = new Date(text);
+  return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 }
 
 function configurarDropdownStockPrices29() {

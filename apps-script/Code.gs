@@ -621,6 +621,7 @@ function sendAdminOrderNotificationEmail_(body, orderNumber, uploadContext) {
     '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Papel</th>',
     '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Tama&ntilde;o</th>',
     '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Faz</th>',
+    '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Cantidad</th>',
     '<th align="left" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Cobertura</th>',
     '<th align="right" style="padding:8px;border-bottom:1px solid #ece7dd;background:#2b2927;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;">Total</th>',
     '</tr>',
@@ -664,7 +665,7 @@ function adminInfoRow_(label, value, highlight) {
 function buildAdminOrderItemsRows_(body) {
   const items = Array.isArray(body && body.orderItems) ? body.orderItems : [];
   if (!items.length) {
-    return '<tr><td colspan="7" style="padding:10px 8px;color:#6a6966;font-family:Arial,sans-serif;font-size:13px;">Sin detalle de trabajos.</td></tr>';
+    return '<tr><td colspan="8" style="padding:10px 8px;color:#6a6966;font-family:Arial,sans-serif;font-size:13px;">Sin detalle de trabajos.</td></tr>';
   }
 
   return items.map((item, index) => {
@@ -672,6 +673,7 @@ function buildAdminOrderItemsRows_(body) {
     const paper = item && item.paper && item.paper.label ? item.paper.label : "-";
     const size = item && item.size && item.size.label ? item.size.label : "-";
     const sides = item && item.sides && item.sides.label ? item.sides.label : "N/A";
+    const quantity = describeItemQuantityForEmail_(item);
     const coverage = describeCoverageForEmail_(item && item.coverageDistribution);
     const total = item && item.pricing && item.pricing.total ? item.pricing.total : (item && item.pricing && item.pricing.subtotal ? item.pricing.subtotal : 0);
     return [
@@ -681,11 +683,41 @@ function buildAdminOrderItemsRows_(body) {
       `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${escapeHtml_(paper)}</td>`,
       `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${escapeHtml_(size)}</td>`,
       `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;">${escapeHtml_(sides)}</td>`,
+      `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml_(quantity)}</td>`,
       `<td style="padding:8px;border-bottom:1px solid #f0ece5;color:#1c1c1a;font-family:Arial,sans-serif;font-size:13px;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml_(coverage)}</td>`,
       `<td align="right" style="padding:8px;border-bottom:1px solid #f0ece5;color:#e84883;font-family:Arial,sans-serif;font-size:13px;font-weight:700;">$ ${escapeHtml_(formatNumber_(total))}</td>`,
       '</tr>'
     ].join("");
   }).join("");
+}
+
+function describeItemQuantityForEmail_(item) {
+  const coverageDistribution = Array.isArray(item && item.coverageDistribution) ? item.coverageDistribution : [];
+  if (coverageDistribution.length) {
+    return coverageDistribution.map((entry) => {
+      const label = entry && (entry.label || entry.coverage) ? String(entry.label || entry.coverage).trim() : "";
+      const sheets = Number(entry && entry.sheets);
+      if (!label) {
+        return "";
+      }
+      if (!isNaN(sheets) && sheets > 0) {
+        return `${label}: ${sheets}`;
+      }
+      return label;
+    }).filter(Boolean).join(" | ");
+  }
+
+  const quantity = Number(item && item.quantity);
+  if (!isNaN(quantity) && quantity > 0) {
+    return `${quantity} hoja${quantity === 1 ? "" : "s"}`;
+  }
+
+  const totalSheets = Number(item && item.pricing && item.pricing.totalSheets);
+  if (!isNaN(totalSheets) && totalSheets > 0) {
+    return `${totalSheets} hoja${totalSheets === 1 ? "" : "s"}`;
+  }
+
+  return "-";
 }
 
 function describeCoverageForEmail_(coverageDistribution) {
@@ -1185,6 +1217,11 @@ function applyOrdersSheetLayout_(sheet) {
     const numRows = Math.max(sheet.getLastRow() - 1, 1);
     sheet.getRange(2, 26, numRows, 5).setWrap(true);
     sheet.getRange(2, 31, numRows, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+
+    if (sheetName === "orders_archivo") {
+      sheet.setRowHeights(2, numRows, 28);
+      sheet.getRange(2, 28, numRows, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    }
   }
 
   // En el archivo conviene mostrar solo lo operativo y dejar lo tecnico oculto.

@@ -1,14 +1,14 @@
-﻿window.APP_CONFIG = {
+window.APP_CONFIG = {
   // Opciones: "local" o "remote-json"
   pricesMode: "remote-json",
 
   // Si pricesMode = "remote-json", consulta Apps Script con ?action=prices
-  pricesJsonUrl: "https://script.google.com/macros/s/AKfycbwKbtDBiQv7gk31fNzfZlCf6cPDb3o_9SkokmdB_zQhC41GmAeROw83o9BGenyuk8MwfA/exec?action=prices",
+  pricesJsonUrl: "https://script.google.com/macros/s/AKfycbzzESSETeRakNDaKDdlC4uYH-j8OiQWvxrEgxQNXFtljJ7wA_Tvwixs7K7HRp-MFOdLQQ/exec?action=prices",
 
   // Web App de Apps Script para guardar pedidos en Google Sheets
   // y subir archivos adjuntos a Google Drive.
   // Ejemplo: https://script.google.com/macros/s/AKfycb.../exec
-  ordersWebhookUrl: "https://script.google.com/macros/s/AKfycbwKbtDBiQv7gk31fNzfZlCf6cPDb3o_9SkokmdB_zQhC41GmAeROw83o9BGenyuk8MwfA/exec",
+  ordersWebhookUrl: "https://script.google.com/macros/s/AKfycbzzESSETeRakNDaKDdlC4uYH-j8OiQWvxrEgxQNXFtljJ7wA_Tvwixs7K7HRp-MFOdLQQ/exec",
 
   // Stock por papel: true = disponible, false = sin stock
   // Ejemplo: { "plotter_cartulina_170": false, "opp": false }
