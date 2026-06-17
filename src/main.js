@@ -1303,11 +1303,7 @@
     const storageKey = `order-confirmation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     localStorage.setItem(storageKey, JSON.stringify(confirmationData));
     const confirmationUrl = `./confirmacion.html?id=${encodeURIComponent(storageKey)}`;
-
-    const opened = window.open(confirmationUrl, "_blank", "noopener");
-    if (!opened) {
-      window.location.href = confirmationUrl;
-    }
+    window.location.href = confirmationUrl;
   }
 
   function syncUI() {
