@@ -1485,7 +1485,7 @@
         hideUploadProgress();
         const msg = String(err && err.message ? err.message : "");
         if (/Failed to fetch/i.test(msg)) {
-          setStatus("No se pudo conectar con Google Apps Script. Revisá el deploy (Aplicación web), acceso en 'Cualquiera' y volvé a implementar.", "error");
+          setStatus("No se pudo confirmar la respuesta de Google Apps Script. El pedido puede haberse guardado igual: revisá la planilla antes de reenviarlo. Si no entró, probá de nuevo o revisá el deploy de la Aplicación web.", "error");
         } else {
           setStatus(err.message || "Error al enviar el pedido.", "error");
         }

@@ -178,7 +178,7 @@ function doPost(e) {
     targetRange.clearDataValidations();
     targetRange.setValues([newRowValues]);
 
-    refreshOperacionAfterOrder_();
+    scheduleOperacionRefreshAfterOrder_();
 
     return jsonResponse({
       ok: true,
@@ -227,13 +227,35 @@ function handleUploadAction_(body) {
   }
 }
 
-function refreshOperacionAfterOrder_() {
+function scheduleOperacionRefreshAfterOrder_() {
+  const fnName = "refreshOperacionAfterOrderWorker_";
+  const hasPendingTrigger = ScriptApp.getProjectTriggers().some((trigger) => {
+    return trigger.getHandlerFunction() === fnName;
+  });
+
+  if (hasPendingTrigger) {
+    return;
+  }
+
+  ScriptApp.newTrigger(fnName)
+    .timeBased()
+    .after(30 * 1000)
+    .create();
+}
+
+function refreshOperacionAfterOrderWorker_() {
   try {
     if (typeof refreshOperacionEditable === "function") {
       refreshOperacionEditable();
     }
   } catch (err) {
     console.log(`No se pudo refrescar la hoja operacion automaticamente: ${err}`);
+  } finally {
+    ScriptApp.getProjectTriggers().forEach((trigger) => {
+      if (trigger.getHandlerFunction() === "refreshOperacionAfterOrderWorker_") {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    });
   }
 }
 
