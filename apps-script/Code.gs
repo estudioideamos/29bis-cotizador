@@ -130,7 +130,7 @@ function doPost(e) {
     });
     const mailResult = combineMailResults_(customerMailResult, adminMailResult);
 
-    sh.appendRow([
+    const newRowValues = [
       createdAtDisplay,
       orderNumber,
       body.customer && body.customer.name ? body.customer.name : "",
@@ -168,7 +168,15 @@ function doPost(e) {
       "",
       mailResult.ok ? "SI" : "NO",
       mailResult.error || ""
-    ]);
+    ];
+
+    const targetRow = sh.getLastRow() + 1;
+    if (sh.getMaxRows() < targetRow) {
+      sh.insertRowsAfter(sh.getMaxRows(), targetRow - sh.getMaxRows());
+    }
+    const targetRange = sh.getRange(targetRow, 1, 1, ORDERS_HEADER.length);
+    targetRange.clearDataValidations();
+    targetRange.setValues([newRowValues]);
 
     refreshOperacionAfterOrder_();
 
