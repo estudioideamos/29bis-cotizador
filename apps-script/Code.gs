@@ -178,7 +178,22 @@ function doPost(e) {
     targetRange.clearDataValidations();
     targetRange.setValues([newRowValues]);
 
-    scheduleOperacionRefreshAfterOrder_();
+    let operacionRefreshError = "";
+    try {
+      if (typeof refreshOperacionEditableInternal_ === "function") {
+        refreshOperacionEditableInternal_();
+      } else if (typeof refreshOperacionEditable === "function") {
+        scheduleOperacionRefreshAfterOrder_();
+      }
+    } catch (refreshErr) {
+      operacionRefreshError = String(refreshErr || "");
+      console.log(`No se pudo refrescar la hoja operacion en la misma ejecucion: ${operacionRefreshError}`);
+      try {
+        scheduleOperacionRefreshAfterOrder_();
+      } catch (triggerErr) {
+        console.log(`No se pudo programar el refresco diferido de operacion: ${triggerErr}`);
+      }
+    }
 
     return jsonResponse({
       ok: true,
@@ -189,7 +204,8 @@ function doPost(e) {
       mailSent: customerMailResult.ok,
       mailError: customerMailResult.error || "",
       adminMailSent: adminMailResult.ok,
-      adminMailError: adminMailResult.error || ""
+      adminMailError: adminMailResult.error || "",
+      operacionRefreshError: operacionRefreshError
     });
   } catch (err) {
     return jsonResponse({
@@ -1182,6 +1198,20 @@ function ensureOrdersSchema_(sheet) {
 
   sheet.getRange(1, 1, 1, ORDERS_HEADER.length).setValues([ORDERS_HEADER]);
   styleOrdersHeader_(sheet);
+  clearOrdersBodyValidations_(sheet);
+}
+
+function clearOrdersBodyValidations_(sheet) {
+  if (!sheet) {
+    return;
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2 || sheet.getMaxColumns() < ORDERS_HEADER.length) {
+    return;
+  }
+
+  sheet.getRange(2, 1, lastRow - 1, ORDERS_HEADER.length).clearDataValidations();
 }
 
 function setupOrdersSchema29() {

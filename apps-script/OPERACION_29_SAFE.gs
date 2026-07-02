@@ -127,104 +127,109 @@ function refreshOperacionEditable() {
   const lock = LockService.getDocumentLock();
   lock.waitLock(30000);
   try {
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    const orders = ss.getSheetByName(ORDERS_SHEET);
-    const op = getOrCreateSheet_(ss, OP_SHEET_NAME);
-    const statusSnapshot = getOperacionStatusSnapshot_(op);
-    applyOperacionLayout_(op);
-
-    if (!orders) {
-      throw new Error(`No existe la hoja "${ORDERS_SHEET}".`);
-    }
-
-    const last = orders.getLastRow();
-    if (last < 2) {
-      clearOperacionBody_(op);
-      return;
-    }
-
-    const data = orders.getRange(2, 1, last - 1, Math.max(orders.getLastColumn(), 34)).getValues();
-    const out = [];
-    const pendingStatusSync = [];
-
-    for (let i = 0; i < data.length; i++) {
-      const r = data[i];
-      const orderNumber = safe_(r[1]); // B
-      if (!orderNumber) continue;
-
-      const displayOrderNumber = displayOrderNumber_(orderNumber);
-      const persistedStatus = statusSnapshot[displayOrderNumber] || null;
-      const statusPago = persistedStatus && persistedStatus.statusPago ? persistedStatus.statusPago : safe_(r[20]);
-      const statusPedido = persistedStatus && persistedStatus.statusPedido ? persistedStatus.statusPedido : safe_(r[21]);
-
-      if (persistedStatus) {
-        if (statusPago !== safe_(r[20]) || statusPedido !== safe_(r[21])) {
-          pendingStatusSync.push({
-            row: i + 2,
-            statusPago: statusPago,
-            statusPedido: statusPedido
-          });
-        }
-      }
-
-      const adjuntosUrl = buildAdjuntosUrl_(r[26]);
-      const payload = parseOrderPayload_(r[30]);
-
-      out.push({
-        fecha: safe_(r[0]),
-        adjuntosUrl: adjuntosUrl,
-        values: [
-          displayOrderNumber, // A N° pedido
-          safe_(r[0]),          // B Fecha
-          safe_(r[2]),          // C Cliente
-          safe_(r[3]),          // D Telefono
-          safe_(r[4]),          // E DNI
-          safe_(r[5]),          // F Email
-          safe_(r[6]),          // G Tipo impresion
-          safe_(r[7]),          // H Tipo papel
-          safe_(r[8]),          // I Tamano
-          safe_(r[12]),         // J Faz
-          formatCoverageForOperacion_(r[13]), // K Cobertura (N)
-          num_(r[14]),          // L Cantidad total hojas
-          formatItemsQuantityForOperacion_(payload), // M Detalle cantidades
-          safe_(r[25]),         // N Nombre archivos
-          adjuntosUrl ? "Ver adjuntos" : "", // O Adjuntos (Z)
-          safe_(r[24]),         // P Archivos por mail/link
-          safe_(r[29]),         // Q Observaciones
-          safe_(r[19]),         // R Forma de pago
-          statusPago,           // S Estado pago
-          statusPedido,         // T Estado pedido
-          num_(r[18]),          // U Total
-          safe_(r[22]),         // V Retiro
-          safe_(r[23]),         // W Urgente
-          i + 2                 // X helper -> row real en orders
-        ]
-      });
-    }
-
-    out.sort((a, b) => parseMixedDate_(b.fecha) - parseMixedDate_(a.fecha));
-
-    clearOperacionBody_(op);
-    if (out.length) {
-      const values = out.map((item) => item.values);
-      const nombresArchivos = out.map((item) => [String(item.values[13] || "")]);
-      const adjuntosLinks = out.map((item) => item.adjuntosUrl);
-
-      op.getRange(2, 1, values.length, OP_HEADER.length).setValues(values);
-      applyNombreArchivosPlainText_(op, nombresArchivos);
-      applyAdjuntosRichLinks_(op, adjuntosLinks);
-      applyAlternatingRowStyles_(op, values.length);
-      applyStatusValidations_(op, 2, Math.max(1200, values.length + 20));
-    }
-
-    pendingStatusSync.forEach((item) => {
-      orders.getRange(item.row, OR_COL_STATUS_PAGO).setValue(item.statusPago);
-      orders.getRange(item.row, OR_COL_STATUS_PEDIDO).setValue(item.statusPedido);
-      orders.getRange(item.row, OR_COL_FECHA_CAMBIO_ESTADO).setValue(formatDateTimeAr_(new Date()));
-    });
+    refreshOperacionEditableInternal_();
   } finally {
     lock.releaseLock();
   }
+}
+
+function refreshOperacionEditableInternal_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const orders = ss.getSheetByName(ORDERS_SHEET);
+  const op = getOrCreateSheet_(ss, OP_SHEET_NAME);
+  const statusSnapshot = getOperacionStatusSnapshot_(op);
+  applyOperacionLayout_(op);
+
+  if (!orders) {
+    throw new Error(`No existe la hoja "${ORDERS_SHEET}".`);
+  }
+
+  const last = orders.getLastRow();
+  if (last < 2) {
+    clearOperacionBody_(op);
+    return;
+  }
+
+  const data = orders.getRange(2, 1, last - 1, Math.max(orders.getLastColumn(), 34)).getValues();
+  const out = [];
+  const pendingStatusSync = [];
+
+  for (let i = 0; i < data.length; i++) {
+    const r = data[i];
+    const orderNumber = safe_(r[1]); // B
+    if (!orderNumber) continue;
+
+    const displayOrderNumber = displayOrderNumber_(orderNumber);
+    const persistedStatus = statusSnapshot[displayOrderNumber] || null;
+    const statusPago = persistedStatus && persistedStatus.statusPago ? persistedStatus.statusPago : safe_(r[20]);
+    const statusPedido = persistedStatus && persistedStatus.statusPedido ? persistedStatus.statusPedido : safe_(r[21]);
+
+    if (persistedStatus) {
+      if (statusPago !== safe_(r[20]) || statusPedido !== safe_(r[21])) {
+        pendingStatusSync.push({
+          row: i + 2,
+          statusPago: statusPago,
+          statusPedido: statusPedido
+        });
+      }
+    }
+
+    const adjuntosUrl = buildAdjuntosUrl_(r[26]);
+    const payload = parseOrderPayload_(r[30]);
+
+    out.push({
+      fecha: safe_(r[0]),
+      adjuntosUrl: adjuntosUrl,
+      values: [
+        displayOrderNumber, // A N° pedido
+        safe_(r[0]),          // B Fecha
+        safe_(r[2]),          // C Cliente
+        safe_(r[3]),          // D Telefono
+        safe_(r[4]),          // E DNI
+        safe_(r[5]),          // F Email
+        safe_(r[6]),          // G Tipo impresion
+        safe_(r[7]),          // H Tipo papel
+        safe_(r[8]),          // I Tamano
+        safe_(r[12]),         // J Faz
+        formatCoverageForOperacion_(r[13]), // K Cobertura (N)
+        num_(r[14]),          // L Cantidad total hojas
+        formatItemsQuantityForOperacion_(payload), // M Detalle cantidades
+        safe_(r[25]),         // N Nombre archivos
+        adjuntosUrl ? "Ver adjuntos" : "", // O Adjuntos (Z)
+        safe_(r[24]),         // P Archivos por mail/link
+        safe_(r[29]),         // Q Observaciones
+        safe_(r[19]),         // R Forma de pago
+        statusPago,           // S Estado pago
+        statusPedido,         // T Estado pedido
+        num_(r[18]),          // U Total
+        safe_(r[22]),         // V Retiro
+        safe_(r[23]),         // W Urgente
+        i + 2                 // X helper -> row real en orders
+      ]
+    });
+  }
+
+  out.sort((a, b) => parseMixedDate_(b.fecha) - parseMixedDate_(a.fecha));
+
+  clearOperacionBody_(op);
+  if (out.length) {
+    const values = out.map((item) => item.values);
+    const nombresArchivos = out.map((item) => [String(item.values[13] || "")]);
+    const adjuntosLinks = out.map((item) => item.adjuntosUrl);
+
+    op.getRange(2, 1, values.length, OP_HEADER.length).setValues(values);
+    applyNombreArchivosPlainText_(op, nombresArchivos);
+    applyAdjuntosRichLinks_(op, adjuntosLinks);
+    applyAlternatingRowStyles_(op, values.length);
+    applyStatusValidations_(op, 2, Math.max(1200, values.length + 20));
+  }
+
+  pendingStatusSync.forEach((item) => {
+    orders.getRange(item.row, OR_COL_STATUS_PAGO, 1, 2).clearDataValidations();
+    orders.getRange(item.row, OR_COL_STATUS_PAGO).setValue(item.statusPago);
+    orders.getRange(item.row, OR_COL_STATUS_PEDIDO).setValue(item.statusPedido);
+    orders.getRange(item.row, OR_COL_FECHA_CAMBIO_ESTADO).setValue(formatDateTimeAr_(new Date()));
+  });
 }
 
 function applyOperacionLayout_(op) {
@@ -302,8 +307,10 @@ function onEdit(e) {
   }
 
   if (col === OP_COL_STATUS_PAGO) {
+    orders.getRange(targetOrderRow, OR_COL_STATUS_PAGO, 1, 2).clearDataValidations();
     orders.getRange(targetOrderRow, OR_COL_STATUS_PAGO).setValue(newValue);
   } else if (col === OP_COL_STATUS_PEDIDO) {
+    orders.getRange(targetOrderRow, OR_COL_STATUS_PAGO, 1, 2).clearDataValidations();
     orders.getRange(targetOrderRow, OR_COL_STATUS_PEDIDO).setValue(newValue);
   }
 
