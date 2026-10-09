@@ -1,6 +1,6 @@
 ﻿(function () {
-  const TRACKING_URL = "https://docs.google.com/spreadsheets/d/1DuwnM8yVw1_DM3xEHJ7NSWXpS-a9G4wSeP7bMGjJeIY/edit?usp=drivesdk";
-
+    const TRACKING_URL = "https://seguimiento.29bis.com.ar/";
+   
   function getQueryParam(name) {
     const params = new URLSearchParams(window.location.search || "");
     return params.get(name);
@@ -70,6 +70,12 @@
     const customerName = safeText(data.customerName, "Cliente");
     greeting.textContent = `Hola ${customerName}, recibimos tu pedido correctamente y ya está en producción.`;
     orderNumber.textContent = safeText(normalizeOrderNumber(data.orderNumber), "-");
+
+        const trackingLink = document.getElementById("tracking-link");
+    const cleanOrderNumber = normalizeOrderNumber(data.orderNumber);
+    if (trackingLink && cleanOrderNumber) {
+      trackingLink.href = `${TRACKING_URL}?pedido=${encodeURIComponent(cleanOrderNumber)}`;
+    }
 
     summary.innerHTML = [
       row("Hojas totales", safeText(data.totalSheets, "0")),
