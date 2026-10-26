@@ -57,6 +57,7 @@
     coverageInputs: {},
     currentTotals: null,
     savedItems: [],
+    jobFiles: new Map(),
     showItemsPanel: false,
     isSubmitting: false
   };
@@ -155,7 +156,51 @@
     return (files || []).find((file) => (file.size || 0) > MAX_FILE_SIZE_BYTES) || null;
   }
 
+  // ---- Archivos por trabajo ----
+  function getJobEntry(itemId) {
+    return state.jobFiles.get(itemId) || { files: [], linkLater: false };
+  }
+
+  function jobHasFiles(itemId) {
+    const entry = getJobEntry(itemId);
+    return entry.files.length > 0 || entry.linkLater;
+  }
+
+  function updateUploadTitle() {
+    const titleEl = document.getElementById("upload-title");
+    const badgeEl = document.getElementById("upload-job-badge");
+    const n = state.savedItems.length + 1;
+    if (titleEl) {
+      titleEl.textContent = state.savedItems.length
+        ? `Archivo(s) del Trabajo ${n}`
+        : "Archivo(s) para impresión";
+    }
+    if (badgeEl) {
+      badgeEl.textContent = `Trabajo ${n}`;
+      badgeEl.classList.toggle("hidden", state.savedItems.length === 0);
+    }
+  }
+
+  // Devuelve los trabajos del pedido con sus archivos: los ya agregados + el que se está armando.
+  function collectJobs() {
+    const jobs = state.savedItems.map((item) => {
+      const entry = getJobEntry(item.id);
+      return { item, files: entry.files, linkLater: entry.linkLater };
+    });
+    const currentWork = getCurrentWorkSnapshot();
+    if (currentWork) {
+      const files = getSelectedFiles();
+      jobs.push({
+        item: currentWork,
+        files,
+        linkLater: !files.length && Boolean(els.sendLinkLater && els.sendLinkLater.checked)
+      });
+    }
+    return jobs;
+  }
+
   function updateFileMeta() {
+    updateUploadTitle();
     if (!els.fileMeta) {
       return;
     }
@@ -191,7 +236,9 @@
     const hasConfiguredWork = Boolean(getCurrentWorkSnapshot() || state.savedItems.length > 0);
     const files = getSelectedFiles();
     const hasValidFiles = Boolean(files.length > 0) && !getOversizedFile(files);
-    const hasFiles = hasValidFiles || Boolean(els.sendLinkLater && els.sendLinkLater.checked);
+    const currentOk = hasValidFiles || Boolean(els.sendLinkLater && els.sendLinkLater.checked);
+    const savedOk = state.savedItems.every((item) => jobHasFiles(item.id));
+    const hasFiles = savedOk && (currentOk || (!getCurrentWorkSnapshot() && state.savedItems.length > 0));
     const hasCustomerData = Boolean(
       String(els.customerName.value || "").trim()
       && String(els.customerPhone.value || "").trim()
@@ -782,12 +829,20 @@
     updateSummary();
   }
 
+  function escapeHtml(text) {
+    return String(text === null || text === undefined ? "" : text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   function renderItemsPanel() {
     const count = state.savedItems.length;
-    els.toggleItemsBtn.classList.toggle("hidden", count === 0);
-    els.toggleItemsBtn.textContent = `Ver trabajos agregados (${count})`;
-    els.toggleItemsBtn.setAttribute("aria-expanded", state.showItemsPanel ? "true" : "false");
-    els.itemsPanel.classList.toggle("hidden", !state.showItemsPanel || count === 0);
+    // Los trabajos agregados se ven siempre (cada uno con sus archivos); ya no hace falta el botón de mostrar/ocultar.
+    els.toggleItemsBtn.classList.add("hidden");
+    els.itemsPanel.classList.toggle("hidden", count === 0);
+    updateUploadTitle();
 
     if (count === 0) {
       els.itemsList.innerHTML = "";
@@ -796,18 +851,36 @@
 
     const frag = document.createDocumentFragment();
     state.savedItems.forEach((item, index) => {
+      const entry = getJobEntry(item.id);
       const row = document.createElement("div");
       row.className = "item-row";
       const customSizeText = item.customSize
         ? ` · ${item.customSize.widthM.toFixed(2)}m x ${item.customSize.heightM.toFixed(2)}m`
         : "";
+      let filesHtml;
+      if (entry.files.length) {
+        filesHtml = `<ul class="item-file-names">${entry.files.map((f) => `<li>📎 ${escapeHtml(f.name)} <span>(${formatBytes(f.size)})</span></li>`).join("")}</ul>`;
+      } else if (entry.linkLater) {
+        filesHtml = `<p class="item-file-warning is-mail">✉️ Vas a enviar el link por mail para este trabajo.</p>`;
+      } else {
+        filesHtml = `<p class="item-file-warning">⚠️ Este trabajo todavía no tiene archivo.</p>`;
+      }
       row.innerHTML = `
-        <div>
-          <strong>Trabajo ${index + 1}</strong>
-          <p>${item.machine.label} · ${item.paper.label} · ${item.size.label}${customSizeText}${item.sides ? ` · ${item.sides.label}` : ""}</p>
+        <div class="item-main">
+          <strong><span class="item-badge">Trabajo ${index + 1}</span></strong>
+          <p>${escapeHtml(item.machine.label)} · ${escapeHtml(item.paper.label)} · ${escapeHtml(item.size.label)}${customSizeText}${item.sides ? ` · ${escapeHtml(item.sides.label)}` : ""}</p>
           <small>${item.pricing.totalSheets} hojas · ${currency.format(item.pricing.total)}</small>
+          ${filesHtml}
+          <label class="item-mail-link">
+            <input type="checkbox" class="item-link-later" data-item-id="${item.id}"${entry.linkLater ? " checked" : ""}${entry.files.length ? " disabled" : ""}>
+            <span>Enviaré el link de este trabajo por mail</span>
+          </label>
         </div>
-        <button type="button" class="item-remove" data-item-id="${item.id}">Quitar</button>
+        <div class="item-actions">
+          <button type="button" class="item-change-files" data-item-id="${item.id}">${entry.files.length ? "Cambiar archivos" : "Adjuntar archivos"}</button>
+          <input type="file" class="item-file-input hidden" data-item-id="${item.id}" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip" multiple>
+          <button type="button" class="item-remove" data-item-id="${item.id}">Quitar</button>
+        </div>
       `;
       frag.appendChild(row);
     });
@@ -968,7 +1041,7 @@
     return data;
   }
 
-  async function uploadSingleFileInChunks(file, sessionId, fileIndex, totalFiles, progressState) {
+  async function uploadSingleFileInChunks(file, sessionId, fileIndex, totalFiles, progressState, uploadName) {
     const uploadId = `${sessionId}-file-${fileIndex + 1}`;
     const fileSize = file.size || 0;
     let uploadedBytesForFile = 0;
@@ -977,7 +1050,7 @@
       action: "upload_init",
       sessionId,
       uploadId,
-      name: file.name,
+      name: uploadName || file.name,
       mimeType: file.type || "application/octet-stream",
       sizeBytes: file.size || 0
     });
@@ -1022,30 +1095,46 @@
     return {
       id: result.file && result.file.id ? result.file.id : "",
       url: result.file && result.file.url ? result.file.url : "",
-      name: result.file && result.file.name ? result.file.name : file.name,
+      name: result.file && result.file.name ? result.file.name : (uploadName || file.name),
       mimeType: result.file && result.file.mimeType ? result.file.mimeType : (file.type || "application/octet-stream"),
       sizeBytes: result.file && result.file.sizeBytes ? result.file.sizeBytes : (file.size || 0)
     };
   }
 
-  async function uploadFilesForOrder(fileList, sessionId) {
-    const files = Array.from(fileList || []);
-    if (!files.length || !config.ordersWebhookUrl) {
-      return files.map((file) => ({
-        name: file.name,
-        mimeType: file.type || "application/octet-stream",
-        sizeBytes: file.size || 0
+  // Sube los archivos de todos los trabajos. Si hay más de un trabajo, cada archivo
+  // se guarda con el prefijo "Trabajo N - " para saber a qué trabajo pertenece.
+  function buildUploadName(file, jobNumber, totalJobs) {
+    return totalJobs > 1 ? `Trabajo ${jobNumber} - ${file.name}` : file.name;
+  }
+
+  async function uploadFilesForOrder(jobs, sessionId) {
+    const entries = [];
+    jobs.forEach((job, jobIndex) => {
+      job.files.forEach((file) => {
+        entries.push({ file, jobNumber: jobIndex + 1, uploadName: buildUploadName(file, jobIndex + 1, jobs.length) });
+      });
+    });
+
+    if (!entries.length || !config.ordersWebhookUrl) {
+      return entries.map((entry) => ({
+        name: entry.uploadName,
+        job: entry.jobNumber,
+        mimeType: entry.file.type || "application/octet-stream",
+        sizeBytes: entry.file.size || 0
       }));
     }
 
     const progressState = {
-      totalBytes: files.reduce((acc, file) => acc + (file.size || 0), 0),
+      totalBytes: entries.reduce((acc, entry) => acc + (entry.file.size || 0), 0),
       completedBytes: 0
     };
-    updateUploadProgress(0, files.length > 1 ? "Preparando archivos..." : "Preparando archivo...");
+    updateUploadProgress(0, entries.length > 1 ? "Preparando archivos..." : "Preparando archivo...");
     const uploadedFiles = [];
-    for (let index = 0; index < files.length; index += 1) {
-      uploadedFiles.push(await uploadSingleFileInChunks(files[index], sessionId, index, files.length, progressState));
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      const uploaded = await uploadSingleFileInChunks(entry.file, sessionId, index, entries.length, progressState, entry.uploadName);
+      uploaded.job = entry.jobNumber;
+      uploadedFiles.push(uploaded);
     }
     updateUploadProgress(100, "Archivos subidos");
     return uploadedFiles;
@@ -1156,33 +1245,49 @@
       }
     }
 
-    const files = getSelectedFiles();
-    const oversized = getOversizedFile(files);
-    if (oversized) {
-      setStatus(`El archivo ${oversized.name} supera el máximo recomendado de 20 MB. Completá el pedido sin adjuntarlo y después enviá el link de Drive o WeTransfer a pedidos@29bis.com.ar con tu número de pedido.`, "error");
-      return false;
-    }
-
-    if (!files.length && !(els.sendLinkLater && els.sendLinkLater.checked)) {
-      setStatus("Adjuntá al menos un archivo o marcá la opción para enviar el link de Drive o WeTransfer por mail después del pedido.", "error");
-      return false;
-    }
-
     const currentWork = getCurrentWorkSnapshot();
     if (!currentWork && state.savedItems.length === 0) {
       setStatus("Agregá al menos un trabajo con cantidad de hojas mayor a 0.", "error");
       return false;
     }
 
+    if (!currentWork && getSelectedFiles().length > 0) {
+      setStatus(`Tenés archivos cargados para el Trabajo ${state.savedItems.length + 1}, pero sin cantidad de hojas. Cargá la cantidad y tocá "+ Agregar este trabajo", o quitá esos archivos.`, "error");
+      return false;
+    }
+
+    const jobs = collectJobs();
+    const manyJobs = jobs.length > 1;
+    for (let i = 0; i < jobs.length; i += 1) {
+      const job = jobs[i];
+      const who = manyJobs ? `del Trabajo ${i + 1}` : "de tu trabajo";
+      const oversized = getOversizedFile(job.files);
+      if (oversized) {
+        setStatus(`El archivo ${oversized.name} (${manyJobs ? `Trabajo ${i + 1}` : "tu trabajo"}) supera el máximo recomendado de 20 MB. Completá el pedido sin adjuntarlo, marcá la opción de enviar el link por mail y después mandá el link de Drive o WeTransfer a pedidos@29bis.com.ar con tu número de pedido.`, "error");
+        return false;
+      }
+      if (!job.files.length && !job.linkLater) {
+        setStatus(`Falta el archivo ${who}. Adjuntalo o marcá la opción de enviar el link por mail.`, "error");
+        return false;
+      }
+    }
+
     return true;
   }
 
-  async function buildOrderPayload(orderItems, uploadedFiles, uploadSessionId) {
+  async function buildOrderPayload(orderItems, uploadedFiles, uploadSessionId, jobs) {
     const urgent = !els.pickupDatetime.value;
     const pricingTotals = getAggregatedPricing(orderItems);
     const paymentMethod = getSelectedPaymentMethod();
     const firstFileName = uploadedFiles[0] ? uploadedFiles[0].name : null;
-    const externalFilesByEmail = Boolean(els.sendLinkLater && els.sendLinkLater.checked && !uploadedFiles.length);
+    const jobList = jobs || [];
+    const externalFilesByEmail = jobList.some((job) => job.linkLater);
+    let notesText = els.notes.value.trim();
+    if (externalFilesByEmail && jobList.length > 1) {
+      const mailJobs = jobList.map((job, i) => (job.linkLater ? i + 1 : 0)).filter(Boolean);
+      const aviso = `[Archivos por mail: Trabajo ${mailJobs.join(", ")}]`;
+      notesText = notesText ? `${aviso} ${notesText}` : aviso;
+    }
 
     return {
       orderId: `${Date.now()}`,
@@ -1199,7 +1304,7 @@
       urgent,
       payment: paymentMethod,
       externalFilesByEmail,
-      notes: els.notes.value.trim(),
+      notes: notesText,
       fileName: firstFileName,
       fileNames: uploadedFiles.map((file) => file.name),
       uploadedFiles,
@@ -1292,7 +1397,11 @@
       paymentLabel,
       paymentKey,
       pickupLabel,
-      filesSummary: externalFilesByEmail ? "Se enviarán por mail (Drive o WeTransfer)" : summarizeFileNamesForConfirmation(fileNames),
+      filesSummary: externalFilesByEmail
+        ? (fileNames.length
+          ? `${summarizeFileNamesForConfirmation(fileNames)} · el resto se envía por mail (Drive o WeTransfer)`
+          : "Se enviarán por mail (Drive o WeTransfer)")
+        : summarizeFileNamesForConfirmation(fileNames),
       externalFilesByEmail,
       mailSent: Boolean(result && result.mailSent),
       mailError: result && result.mailError ? result.mailError : ""
@@ -1391,12 +1500,32 @@
         return;
       }
 
+      const files = getSelectedFiles();
+      const linkLater = Boolean(els.sendLinkLater && els.sendLinkLater.checked) && !files.length;
+      const jobNumber = state.savedItems.length + 1;
+      const oversized = getOversizedFile(files);
+      if (oversized) {
+        setStatus(`El archivo ${oversized.name} supera el máximo recomendado de 20 MB. Quitalo y marcá la opción de enviar el link por mail para este trabajo.`, "error");
+        return;
+      }
+      if (!files.length && !linkLater) {
+        setStatus(`Antes de agregar el Trabajo ${jobNumber}, adjuntá su archivo en el recuadro rosa de arriba o marcá la opción de enviar el link por mail.`, "error");
+        return;
+      }
+
+      state.jobFiles.set(currentWork.id, { files, linkLater });
       state.savedItems.push(currentWork);
       state.showItemsPanel = true;
+      // El espacio de archivos queda vacío para el próximo trabajo.
+      els.fileInput.value = "";
+      if (els.sendLinkLater) {
+        els.sendLinkLater.checked = false;
+      }
       renderItemsPanel();
       updateSummary();
       clearWorkInputsForNextItem();
-      setStatus("Trabajo agregado al pedido. Podés cargar otro diferente.", "ok");
+      updateFileMeta();
+      setStatus(`Trabajo ${jobNumber} agregado con sus archivos. Ahora cargá el Trabajo ${jobNumber + 1} y sus archivos.`, "ok");
     });
 
     els.toggleItemsBtn.addEventListener("click", () => {
@@ -1405,17 +1534,58 @@
     });
 
     els.itemsList.addEventListener("click", (event) => {
+      const changeBtn = event.target.closest(".item-change-files");
+      if (changeBtn) {
+        const input = Array.from(els.itemsList.querySelectorAll(".item-file-input"))
+          .find((el) => el.dataset.itemId === changeBtn.dataset.itemId);
+        if (input) {
+          input.click();
+        }
+        return;
+      }
       const button = event.target.closest(".item-remove");
       if (!button) {
         return;
       }
       const itemId = button.dataset.itemId;
+      state.jobFiles.delete(itemId);
       state.savedItems = state.savedItems.filter((item) => item.id !== itemId);
       if (state.savedItems.length === 0) {
         state.showItemsPanel = false;
       }
       renderItemsPanel();
       updateSummary();
+    });
+
+    els.itemsList.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!target) {
+        return;
+      }
+      const itemId = target.dataset ? target.dataset.itemId : "";
+      if (!itemId) {
+        return;
+      }
+      if (target.classList.contains("item-file-input")) {
+        const files = Array.from(target.files || []);
+        if (!files.length) {
+          return;
+        }
+        const oversized = getOversizedFile(files);
+        if (oversized) {
+          setStatus(`El archivo ${oversized.name} supera el máximo recomendado de 20 MB. Elegí otro o marcá la opción de enviar el link por mail para este trabajo.`, "error");
+          return;
+        }
+        state.jobFiles.set(itemId, { files, linkLater: false });
+        setStatus("");
+      } else if (target.classList.contains("item-link-later")) {
+        const entry = getJobEntry(itemId);
+        state.jobFiles.set(itemId, { files: entry.files, linkLater: target.checked && !entry.files.length });
+      } else {
+        return;
+      }
+      renderItemsPanel();
+      updateProgressSteps();
     });
 
     els.form.addEventListener("submit", async (event) => {
@@ -1433,21 +1603,22 @@
           return;
         }
 
-        const orderItems = [...state.savedItems];
-        const currentWork = getCurrentWorkSnapshot();
-        if (currentWork) {
-          orderItems.push(currentWork);
-        }
+        const jobs = collectJobs();
+        const orderItems = jobs.map((job) => ({
+          ...job.item,
+          fileNames: job.files.map((file) => buildUploadName(file, jobs.indexOf(job) + 1, jobs.length)),
+          filesByEmail: job.linkLater
+        }));
 
         const submitBtn = document.getElementById("submit-order-btn") || els.form.querySelector("button[type='submit']");
         submitBtn.disabled = true;
         submitBtn.textContent = "Enviando...";
 
         const uploadSessionId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const uploadedFiles = await uploadFilesForOrder(els.fileInput.files, uploadSessionId);
+        const uploadedFiles = await uploadFilesForOrder(jobs, uploadSessionId);
         setStatus("Enviando pedido...", "loading");
         updateUploadProgress(100, "Preparando pedido...");
-        const payload = await buildOrderPayload(orderItems, uploadedFiles, uploadSessionId);
+        const payload = await buildOrderPayload(orderItems, uploadedFiles, uploadSessionId, jobs);
 
         const result = await submitOrder(payload);
         const confirmationData = buildConfirmationData(payload, result);
@@ -1466,6 +1637,7 @@
         openOrderConfirmationPage(confirmationData);
         els.form.reset();
         state.savedItems = [];
+        state.jobFiles.clear();
         state.showItemsPanel = false;
         renderItemsPanel();
         buildPickupOptions();
