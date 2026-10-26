@@ -1090,3 +1090,34 @@ textarea:focus {
 }
 
 
+
+/* ---- Archivos por trabajo ---- */
+.upload-panel .field span em { font-style: normal; }
+.item-badge {
+  display: inline-block;
+  background: #d93d79;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.12rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.items-title { margin: 0 0 0.45rem; font-weight: 700; color: #2c3f62; font-size: 0.95rem; }
+.item-row { border-left: 5px solid #d93d79; align-items: flex-start; flex-wrap: wrap; }
+.item-main { flex: 1 1 260px; min-width: 0; }
+.item-actions { display: flex; flex-direction: column; gap: 0.4rem; align-items: stretch; }
+.item-change-files {
+  border: 1px solid #d8deea; background: #f4f6fb; color: #2f4059;
+  border-radius: 8px; padding: 0.35rem 0.5rem; font-weight: 700; cursor: pointer;
+}
+.item-file-names { list-style: none; margin: 0.35rem 0 0; padding: 0; font-size: 0.88rem; color: #3f3a36; }
+.item-file-names li { overflow-wrap: anywhere; }
+.item-file-names li span { color: #7a7268; }
+.item-file-warning { margin: 0.35rem 0 0; font-size: 0.88rem; color: #a32e5f; font-weight: 700; }
+.item-file-warning.is-mail { color: #2a7d70; }
+.item-mail-link { display: flex; gap: 0.45rem; align-items: center; margin-top: 0.4rem; font-size: 0.85rem; color: #5e5160; }
+.item-mail-link input { width: 1rem; height: 1rem; min-width: 1rem; padding: 0; accent-color: #d93d79; }
+@media (max-width: 560px) {
+  .item-actions { flex-direction: row; flex-wrap: wrap; width: 100%; }
+}
