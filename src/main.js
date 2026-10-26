@@ -1423,6 +1423,11 @@
       frag.appendChild(row);
     });
 
+    const separator = document.createElement("div");
+    separator.className = "summary-separator";
+    separator.setAttribute("aria-hidden", "true");
+    frag.appendChild(separator);
+
     const subtotalRow = document.createElement("div");
     subtotalRow.className = "row";
     subtotalRow.innerHTML = `<span>${aggregated.servicesTotal > 0 ? "Subtotal impresión" : "Subtotal"}</span><strong>${currency.format(aggregated.subtotal)}</strong>`;
@@ -1444,7 +1449,7 @@
 
     const totalRow = document.createElement("div");
     totalRow.className = "row total";
-    totalRow.innerHTML = `<span>Total estimado</span><strong>${currency.format(aggregated.total)}</strong>`;
+    totalRow.innerHTML = `<span>Total</span><strong>${currency.format(aggregated.total)}</strong>`;
     frag.appendChild(totalRow);
 
     if (state.savedItems.length > 0) {
