@@ -860,6 +860,11 @@
         delete state.services.selected[key];
       }
     });
+    // "Solo tapas" del laminado solo existe si hay anillado o abrochado; si se quitó, vuelve a "todas".
+    const lam = state.services.selected.laminado;
+    if (lam && lam.cantidadModo === "tapas" && !state.services.selected.anillado && !state.services.selected.abrochado) {
+      lam.cantidadModo = "todas";
+    }
     // Si quedaron dos servicios que no se combinan, se conserva el primero.
     const keys = Object.keys(servicesData.services).filter((key) => state.services.selected[key]);
     keys.forEach((key) => {
@@ -2103,6 +2108,10 @@
           const key = checkEl ? checkEl.dataset.serviceCheck : "";
           if (!key || !state.services.selected[key]) {
             return;
+          }
+          if (target.dataset.opt === "cantidadOtra") {
+            const maxSheets = Math.max(1, getQuantityTotal());
+            target.value = String(clampInt(target.value, 1, maxSheets));
           }
           state.services.selected[key][target.dataset.opt] = target.type === "checkbox" ? target.checked : target.value;
           onServicesChanged();
