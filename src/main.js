@@ -41,6 +41,10 @@
     sendLinkLater: document.getElementById("send-link-later"),
     uploadPanel: document.querySelector(".upload-panel"),
     fileMeta: document.getElementById("file-meta"),
+    servicesPanel: document.getElementById("services-panel"),
+    servicesList: document.getElementById("services-list"),
+    servicesLead: document.getElementById("services-lead"),
+    servicesBadge: document.getElementById("services-badge"),
     progressSteps: Array.from(document.querySelectorAll(".premium-step"))
   };
 
@@ -58,6 +62,9 @@
     currentTotals: null,
     savedItems: [],
     jobFiles: new Map(),
+    services: { selected: {} },
+    servicesSignature: "",
+    leadDays: 0,
     showItemsPanel: false,
     isSubmitting: false
   };
@@ -757,6 +764,452 @@
     };
   }
 
+
+  // ============================================================
+  // SERVICIOS ADICIONALES (anillado, empanelado, laminado, etc.)
+  // Los precios y reglas están en src/services-data.js
+  // ============================================================
+  const servicesData = window.SERVICES_DATA || null;
+
+  const SERVICE_TEXTS = {
+    acabado: { brillante: "brillante", mate: "mate" },
+    faz: { sf: "simple faz", df: "doble faz" },
+    posicion: {
+      medio: "al medio (acaballado)",
+      izquierdo: "en el costado izquierdo",
+      derecho: "en el costado derecho",
+      arriba: "arriba",
+      abajo: "abajo",
+      otro: "otra posición (aclarar en observaciones)"
+    },
+    marcas: {
+      con_marcas: "el archivo trae marcas de corte",
+      sin_marcas: "refilar al ras del diseño (sin marcas)"
+    }
+  };
+
+  function serviceDefaultOptions(key) {
+    if (key === "laminado") {
+      return { acabado: "brillante", faz: "sf", cantidadModo: "todas", cantidadOtra: 1 };
+    }
+    if (key === "abrochado") {
+      return { posicion: "" };
+    }
+    if (key === "refilado") {
+      return { marcas: "" };
+    }
+    if (key === "empanelado") {
+      return { soporte: "carton_corrugado", calado: false };
+    }
+    if (key === "troquelado") {
+      return { mismoDiseno: false };
+    }
+    return {};
+  }
+
+  const MAX_SHEETS_ACABALLADO = (servicesData && servicesData.services.abrochado && servicesData.services.abrochado.maxSheetsAcaballado) || 40;
+
+  // El abrochado al medio (acaballado) deja la tapa plegada: solo se laminan/cuentan así si va al medio.
+  function isAcaballado() {
+    const sel = state.services.selected.abrochado;
+    return Boolean(sel && sel.posicion === "medio");
+  }
+
+  function getServiceCtx() {
+    return {
+      machineKey: els.machine.value,
+      paperKey: els.paper.value,
+      sizeKey: els.size.value,
+      custom: isCustomPlotterSize(),
+      totalSheets: getQuantityTotal()
+    };
+  }
+
+  function isServiceAvailable(key, ctx) {
+    const def = servicesData.services[key];
+    if (!def) {
+      return false;
+    }
+    if (def.machine && def.machine !== ctx.machineKey) {
+      return false;
+    }
+    if (def.noCustomSize && ctx.custom) {
+      return false;
+    }
+    if (def.sizes && !def.sizes.includes(ctx.sizeKey)) {
+      return false;
+    }
+    if (def.papers && !def.papers.includes(ctx.paperKey)) {
+      return false;
+    }
+    return true;
+  }
+
+  function areServicesCompatible(a, b) {
+    return servicesData.compat.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  }
+
+  function getAvailableServiceKeys(ctx) {
+    return Object.keys(servicesData.services).filter((key) => isServiceAvailable(key, ctx));
+  }
+
+  function pruneServiceState(ctx) {
+    const available = new Set(getAvailableServiceKeys(ctx));
+    Object.keys(state.services.selected).forEach((key) => {
+      if (!available.has(key)) {
+        delete state.services.selected[key];
+      }
+    });
+    // Si quedaron dos servicios que no se combinan, se conserva el primero.
+    const keys = Object.keys(servicesData.services).filter((key) => state.services.selected[key]);
+    keys.forEach((key) => {
+      const conflict = keys.some((other) => other !== key && state.services.selected[other] && !areServicesCompatible(key, other) && keys.indexOf(other) < keys.indexOf(key));
+      if (conflict) {
+        delete state.services.selected[key];
+      }
+    });
+  }
+
+  function getSelectedServiceKeys() {
+    return Object.keys(servicesData.services).filter((key) => state.services.selected[key]);
+  }
+
+  function getServiceDisabledReason(key) {
+    const selected = getSelectedServiceKeys().filter((other) => other !== key);
+    const blocker = selected.find((other) => !areServicesCompatible(key, other));
+    if (!blocker) {
+      return "";
+    }
+    return `No se combina con ${servicesData.services[blocker].label}.`;
+  }
+
+  function clampInt(value, min, max) {
+    const n = Math.floor(Number(value) || 0);
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function computeService(key, ctx, selectedKeys) {
+    const def = servicesData.services[key];
+    const opts = Object.assign(serviceDefaultOptions(key), state.services.selected[key] || {});
+    const sheets = ctx.totalSheets;
+    const result = { key, label: def.label, detail: def.label, quantity: 1, total: 0, error: "" };
+
+    if (key === "anillado") {
+      result.total = def.price;
+      result.detail = "Anillado (doble alambre, tapas plásticas)";
+    } else if (key === "empanelado") {
+      const support = def.supports[opts.soporte] || def.supports.carton_corrugado;
+      const area = def.sizeAreaM2[ctx.sizeKey];
+      if (!area) {
+        result.error = "No se puede calcular el empanelado para este tamaño. Consultanos.";
+      } else {
+        result.quantity = sheets;
+        result.total = Math.round(area * sheets * support.pricePerM2);
+        result.detail = `Empanelado en ${support.label.toLowerCase()}${opts.calado ? " · calado en el centro" : ""} · ${sheets} hoja${sheets === 1 ? "" : "s"}`;
+      }
+    } else if (key === "laminado") {
+      const unit = (def.priceBySize[ctx.sizeKey] || {})[opts.faz] || 0;
+      const hasAbrochado = selectedKeys.includes("abrochado") && isAcaballado();
+      let qty = sheets;
+      let modeText = "";
+      if (opts.cantidadModo === "tapas") {
+        qty = Math.min(hasAbrochado ? 1 : 2, sheets);
+        modeText = hasAbrochado ? " (solo la tapa)" : " (tapa y contratapa)";
+      } else if (opts.cantidadModo === "otra") {
+        qty = clampInt(opts.cantidadOtra, 1, Math.max(1, sheets));
+      }
+      result.quantity = qty;
+      result.total = unit * qty;
+      result.detail = `Laminado ${SERVICE_TEXTS.acabado[opts.acabado] || ""} ${SERVICE_TEXTS.faz[opts.faz] || ""} · ${qty} hoja${qty === 1 ? "" : "s"}${modeText}`;
+    } else if (key === "abrochado") {
+      result.total = def.price;
+      if (!opts.posicion) {
+        result.error = "Elegí dónde va el abrochado.";
+      } else if (opts.posicion === "medio" && sheets > MAX_SHEETS_ACABALLADO) {
+        result.error = `El abrochado al medio (acaballado) se puede hacer hasta ${MAX_SHEETS_ACABALLADO} hojas. Elegí otra posición o reducí las hojas.`;
+      }
+      result.detail = `Abrochado ${SERVICE_TEXTS.posicion[opts.posicion] || ""}`.trim();
+    } else if (key === "refilado") {
+      const withStaple = selectedKeys.includes("abrochado");
+      result.quantity = sheets;
+      result.total = withStaple ? def.priceWithAbrochado : def.pricePerSheet * sheets;
+      if (!opts.marcas) {
+        result.error = "En Refilado, aclará si tu archivo trae marcas de corte.";
+      }
+      result.detail = withStaple
+        ? `Refilado (junto con abrochado) · ${SERVICE_TEXTS.marcas[opts.marcas] || ""}`.trim()
+        : `Refilado · ${sheets} hoja${sheets === 1 ? "" : "s"} · ${SERVICE_TEXTS.marcas[opts.marcas] || ""}`.trim();
+    } else if (key === "troquelado") {
+      const unit = def.priceBySize[ctx.sizeKey] || 0;
+      result.quantity = sheets;
+      const gross = unit * sheets;
+      const disc = def.discount;
+      const hasDiscount = Boolean(opts.mismoDiseno && disc && sheets >= disc.minSheets);
+      result.total = hasDiscount ? Math.round(gross * (1 - disc.rate)) : gross;
+      result.detail = `Troquelado · ${sheets} hoja${sheets === 1 ? "" : "s"}${hasDiscount ? ` · ${Math.round(disc.rate * 100)}% de descuento (mismo diseño)` : ""}`;
+    }
+    return result;
+  }
+
+  // Estado completo de servicios del trabajo que se está armando.
+  function getServicesState() {
+    if (!servicesData) {
+      return { list: [], total: 0, error: "" };
+    }
+    const ctx = getServiceCtx();
+    const keys = getSelectedServiceKeys().filter((key) => isServiceAvailable(key, ctx));
+    const list = keys.map((key) => computeService(key, ctx, keys));
+    const firstError = list.find((entry) => entry.error);
+    return {
+      list,
+      total: list.reduce((acc, entry) => acc + (entry.error ? 0 : entry.total), 0),
+      error: firstError ? firstError.error : ""
+    };
+  }
+
+  function getServiceDays(key, totalSheets) {
+    const def = servicesData.services[key];
+    if (!def) {
+      return 0;
+    }
+    if (def.daysOver && totalSheets > def.daysOver.sheets) {
+      return def.daysOver.days;
+    }
+    return def.days || 0;
+  }
+
+  // Dentro de un trabajo vale el servicio que más demora. Entre trabajos, los servicios
+  // distintos suman días; el mismo servicio repetido en otro trabajo no vuelve a sumar.
+  function computeLeadDays(jobs) {
+    if (!servicesData) {
+      return 0;
+    }
+    const seen = new Set();
+    let total = 0;
+    jobs.forEach((job) => {
+      const services = job.services || [];
+      let jobDays = 0;
+      services.forEach((service) => {
+        if (!seen.has(service.key)) {
+          jobDays = Math.max(jobDays, getServiceDays(service.key, job.totalSheets || 0));
+        }
+      });
+      services.forEach((service) => seen.add(service.key));
+      total += jobDays;
+    });
+    return total;
+  }
+
+  function getAllJobsForLeadDays() {
+    const jobs = state.savedItems.map((item) => ({
+      services: item.services || [],
+      totalSheets: item.pricing ? item.pricing.totalSheets : 0
+    }));
+    const sv = getServicesState();
+    if (sv.list.length) {
+      jobs.push({ services: sv.list, totalSheets: getQuantityTotal() });
+    }
+    return jobs;
+  }
+
+  function getEarliestPickupDate(businessDays) {
+    const allowed = new Set((pickupSchedule.allowedWeekdays || []).map((d) => Number(d)));
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    let counted = 0;
+    let guard = 0;
+    while (counted < businessDays && guard < 400) {
+      date.setDate(date.getDate() + 1);
+      guard += 1;
+      if (allowed.has(date.getDay())) {
+        counted += 1;
+      }
+    }
+    return date;
+  }
+
+  function syncLeadDays() {
+    if (!servicesData) {
+      return;
+    }
+    const days = computeLeadDays(getAllJobsForLeadDays());
+    if (els.servicesLead) {
+      if (days > 0) {
+        const from = getEarliestPickupDate(days);
+        const fromText = from.toLocaleDateString("es-AR", { weekday: "long", day: "2-digit", month: "2-digit" });
+        els.servicesLead.textContent = `Por los servicios elegidos, tu pedido necesita ${days} día${days === 1 ? "" : "s"} hábil${days === 1 ? "" : "es"} de producción: podés retirarlo desde el ${fromText}.`;
+        els.servicesLead.classList.remove("hidden");
+      } else {
+        els.servicesLead.classList.add("hidden");
+      }
+    }
+    if (days !== state.leadDays) {
+      const previous = els.pickupDatetime.value;
+      state.leadDays = days;
+      buildPickupOptions();
+      if (previous && !Array.from(els.pickupDatetime.options).some((opt) => opt.value === previous)) {
+        setStatus("Cambió el plazo por los servicios elegidos. Elegí de nuevo la fecha de retiro.", "error");
+      }
+    }
+  }
+
+  function optionHtml(value, label, selected) {
+    return `<option value="${escapeHtml(value)}"${selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
+  }
+
+  function buildServiceOptionsHtml(key, ctx, selectedKeys) {
+    const opts = Object.assign(serviceDefaultOptions(key), state.services.selected[key] || {});
+    const def = servicesData.services[key];
+    if (key === "laminado") {
+      const hasBinding = selectedKeys.includes("anillado") || selectedKeys.includes("abrochado");
+      const tapasLabel = selectedKeys.includes("abrochado") && isAcaballado()
+        ? "Solo la tapa (queda acaballada, cuenta 1 hoja)"
+        : "Solo tapa y contratapa (2 hojas)";
+      return `
+        <div class="service-options">
+          <label><span>Acabado</span><select data-opt="acabado">${optionHtml("brillante", "Brillante", opts.acabado === "brillante")}${optionHtml("mate", "Mate", opts.acabado === "mate")}</select></label>
+          <label><span>Faz</span><select data-opt="faz">${optionHtml("sf", "Simple faz", opts.faz === "sf")}${optionHtml("df", "Doble faz", opts.faz === "df")}</select></label>
+          <label><span>¿Qué hojas laminar?</span><select data-opt="cantidadModo">
+            ${optionHtml("todas", `Todas las hojas (${ctx.totalSheets})`, opts.cantidadModo === "todas")}
+            ${hasBinding ? optionHtml("tapas", tapasLabel, opts.cantidadModo === "tapas") : ""}
+            ${optionHtml("otra", "Otra cantidad", opts.cantidadModo === "otra")}
+          </select></label>
+          ${opts.cantidadModo === "otra" ? `<label><span>Cantidad de hojas a laminar</span><input type="number" min="1" max="${Math.max(1, ctx.totalSheets)}" step="1" value="${clampInt(opts.cantidadOtra, 1, 100000)}" data-opt="cantidadOtra"></label>` : ""}
+        </div>`;
+    }
+    if (key === "abrochado") {
+      return `
+        <div class="service-options">
+          <label><span>¿Dónde va el abrochado?</span><select data-opt="posicion">
+            ${optionHtml("", "Elegí una opción…", !opts.posicion)}
+            ${Object.keys(SERVICE_TEXTS.posicion).map((k) => {
+              const base = SERVICE_TEXTS.posicion[k].replace(/^./, (c) => c.toUpperCase());
+              const tooMany = k === "medio" && ctx.totalSheets > MAX_SHEETS_ACABALLADO;
+              return optionHtml(k, tooMany ? `${base} — máx. ${MAX_SHEETS_ACABALLADO} hojas` : base, opts.posicion === k);
+            }).join("")}
+          </select></label>
+          ${ctx.totalSheets > MAX_SHEETS_ACABALLADO ? `<p class="service-warning">El abrochado al medio (acaballado) se hace hasta ${MAX_SHEETS_ACABALLADO} hojas. Con ${ctx.totalSheets} hojas elegí otra posición.</p>` : ""}
+        </div>`;
+    }
+    if (key === "refilado") {
+      return `
+        <div class="service-options">
+          <label><span>¿Tu archivo trae marcas de corte?</span><select data-opt="marcas">
+            ${optionHtml("", "Elegí una opción…", !opts.marcas)}
+            ${optionHtml("con_marcas", "Sí, trae marcas de corte", opts.marcas === "con_marcas")}
+            ${optionHtml("sin_marcas", "No, refilar al ras del diseño", opts.marcas === "sin_marcas")}
+          </select></label>
+        </div>`;
+    }
+    if (key === "empanelado") {
+      return `
+        <div class="service-options">
+          <label><span>Soporte</span><select data-opt="soporte">
+            ${Object.keys(def.supports).map((k) => optionHtml(k, `${def.supports[k].label} (${currency.format(def.supports[k].pricePerM2)} el m²)`, opts.soporte === k)).join("")}
+          </select></label>
+          <label class="service-check"><input type="checkbox" data-opt="calado"${opts.calado ? " checked" : ""}><span>Va calado en el centro (carteles de recibida)</span></label>
+        </div>`;
+    }
+    if (key === "troquelado") {
+      const parts = [];
+      if (def.fileNote) {
+        const safeUrl = /^https:\/\//.test(def.helpUrl || "") ? def.helpUrl : "";
+        parts.push(`<p class="service-file-note">📐 ${escapeHtml(def.fileNote)}${safeUrl ? ` <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener">Ver cómo preparar el archivo</a>` : ""}</p>`);
+      }
+      if (ctx.totalSheets >= def.discount.minSheets) {
+        parts.push(`<label class="service-check"><input type="checkbox" data-opt="mismoDiseno"${opts.mismoDiseno ? " checked" : ""}><span>Las ${ctx.totalSheets} hojas son del mismo diseño de corte (30% de descuento)</span></label>`);
+      }
+      if (ctx.totalSheets > def.daysOver.sheets) {
+        parts.push(`<p class="service-warning">Con más de ${def.daysOver.sheets} hojas, la demora de este servicio es de 1 semana.</p>`);
+      }
+      return parts.length ? `<div class="service-options">${parts.join("")}</div>` : "";
+    }
+    return "";
+  }
+
+  function updateServicePrices() {
+    const sv = getServicesState();
+    const byKey = {};
+    sv.list.forEach((entry) => { byKey[entry.key] = entry; });
+    els.servicesList.querySelectorAll("[data-price-for]").forEach((node) => {
+      const entry = byKey[node.dataset.priceFor];
+      if (entry && !entry.error) {
+        node.textContent = currency.format(entry.total);
+        node.classList.add("is-final");
+      } else {
+        const def = servicesData.services[node.dataset.priceFor];
+        node.textContent = def ? def.priceHint : "";
+        node.classList.remove("is-final");
+      }
+    });
+  }
+
+  function renderServicesPanel(force) {
+    if (!servicesData || !els.servicesPanel || !els.servicesList) {
+      return;
+    }
+    const ctx = getServiceCtx();
+    pruneServiceState(ctx);
+    const available = getAvailableServiceKeys(ctx);
+    els.servicesPanel.classList.toggle("hidden", available.length === 0);
+    if (els.servicesBadge) {
+      els.servicesBadge.textContent = `Trabajo ${state.savedItems.length + 1}`;
+      els.servicesBadge.classList.toggle("hidden", state.savedItems.length === 0);
+    }
+
+    const selectedKeys = getSelectedServiceKeys();
+    const signatureData = {
+      available,
+      selected: selectedKeys.map((k) => {
+        const o = Object.assign({}, state.services.selected[k]);
+        delete o.cantidadOtra;
+        return [k, o];
+      }),
+      sheets: ctx.totalSheets,
+      job: state.savedItems.length
+    };
+    const signature = JSON.stringify(signatureData);
+    if (!force && signature === state.servicesSignature) {
+      updateServicePrices();
+      return;
+    }
+    state.servicesSignature = signature;
+
+    const frag = document.createDocumentFragment();
+    available.forEach((key) => {
+      const def = servicesData.services[key];
+      const checked = Boolean(state.services.selected[key]);
+      const reason = checked ? "" : getServiceDisabledReason(key);
+      const card = document.createElement("div");
+      card.className = `service-card${checked ? " is-checked" : ""}${reason ? " is-disabled" : ""}`;
+      card.innerHTML = `
+        <label class="service-head">
+          <input type="checkbox" data-service-check="${key}"${checked ? " checked" : ""}${reason ? " disabled" : ""}>
+          <span class="service-name">${escapeHtml(def.label)}</span>
+          <span class="service-price" data-price-for="${key}"></span>
+        </label>
+        ${reason ? `<p class="service-reason">${escapeHtml(reason)}</p>` : ""}
+        ${def.info ? `<p class="service-info">${escapeHtml(def.info)}</p>` : ""}
+        ${checked ? buildServiceOptionsHtml(key, ctx, selectedKeys) : ""}
+      `;
+      frag.appendChild(card);
+    });
+    els.servicesList.innerHTML = "";
+    els.servicesList.appendChild(frag);
+    updateServicePrices();
+  }
+
+  function onServicesChanged() {
+    renderServicesPanel(false);
+    updateSummary();
+  }
+
+  function resetServicesForNextJob() {
+    state.services.selected = {};
+    state.servicesSignature = "";
+    renderServicesPanel(true);
+  }
+
   function getCurrentWorkSnapshot() {
     const totals = getCurrentQuote();
     if (!totals.totalSheets || totals.total <= 0) {
@@ -767,6 +1220,7 @@
     const paperKey = totals.paperKey;
     const sizeKey = totals.sizeKey;
     const sideKey = isLaser(machineKey) ? totals.sideKey : null;
+    const servicesSnapshot = getServicesState();
 
     return {
       id: `work-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
@@ -787,11 +1241,19 @@
       sides: sideKey ? { key: sideKey, label: pricing.labels.sides[sideKey] } : null,
       quantity: usesCoverage(machineKey, paperKey) ? null : Number(els.quantity.value) || 0,
       coverageDistribution: usesCoverage(machineKey, paperKey, sideKey) ? getCoverageDistribution() : [],
+      services: servicesSnapshot.list.map((entry) => ({
+        key: entry.key,
+        label: entry.label,
+        detail: entry.detail,
+        quantity: entry.quantity,
+        total: entry.total
+      })),
       pricing: {
         subtotal: totals.subtotal,
         discountRate: totals.discountRate,
         discountAmount: totals.discountAmount,
-        total: totals.total,
+        servicesTotal: servicesSnapshot.total,
+        total: totals.total + servicesSnapshot.total,
         totalSheets: totals.totalSheets
       }
     };
@@ -807,10 +1269,12 @@
 
     const discountRate = getLaserDiscountRate(laserSheets);
     const discountAmount = laserSubtotal * discountRate;
-    const total = subtotal - discountAmount;
+    const servicesTotal = orderItems.reduce((acc, item) => acc + (item.pricing.servicesTotal || 0), 0);
+    const total = subtotal - discountAmount + servicesTotal;
 
     return {
       subtotal,
+      servicesTotal,
       totalSheets,
       laserSheets,
       laserSubtotal,
@@ -826,6 +1290,7 @@
     } else {
       els.quantity.value = "";
     }
+    resetServicesForNextJob();
     updateSummary();
   }
 
@@ -870,6 +1335,7 @@
           <strong><span class="item-badge">Trabajo ${index + 1}</span></strong>
           <p>${escapeHtml(item.machine.label)} · ${escapeHtml(item.paper.label)} · ${escapeHtml(item.size.label)}${customSizeText}${item.sides ? ` · ${escapeHtml(item.sides.label)}` : ""}</p>
           <small>${item.pricing.totalSheets} hojas · ${currency.format(item.pricing.total)}</small>
+          ${(item.services || []).length ? `<ul class="item-service-list">${item.services.map((sv) => `<li>🔧 ${escapeHtml(sv.detail)} <span>(${currency.format(sv.total)})</span></li>`).join("")}</ul>` : ""}
           ${filesHtml}
           <label class="item-mail-link">
             <input type="checkbox" class="item-link-later" data-item-id="${item.id}"${entry.linkLater ? " checked" : ""}${entry.files.length ? " disabled" : ""}>
@@ -891,6 +1357,8 @@
   function updateSummary() {
     state.currentTotals = getCurrentQuote();
 
+    renderServicesPanel(false);
+    syncLeadDays();
     updateCustomAreaPreview();
     updateCustomWhatsappLink();
     renderItemsPanel();
@@ -942,10 +1410,25 @@
       frag.appendChild(row);
     });
 
+    const currentServices = servicesData ? getServicesState().list.filter((entry) => !entry.error) : [];
+    currentServices.forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `<span>${escapeHtml(entry.detail)}</span><strong>${currency.format(entry.total)}</strong>`;
+      frag.appendChild(row);
+    });
+
     const subtotalRow = document.createElement("div");
     subtotalRow.className = "row";
-    subtotalRow.innerHTML = `<span>Subtotal</span><strong>${currency.format(aggregated.subtotal)}</strong>`;
+    subtotalRow.innerHTML = `<span>${aggregated.servicesTotal > 0 ? "Subtotal impresión" : "Subtotal"}</span><strong>${currency.format(aggregated.subtotal)}</strong>`;
     frag.appendChild(subtotalRow);
+
+    if (aggregated.servicesTotal > 0) {
+      const servicesRow = document.createElement("div");
+      servicesRow.className = "row";
+      servicesRow.innerHTML = `<span>Servicios adicionales</span><strong>${currency.format(aggregated.servicesTotal)}</strong>`;
+      frag.appendChild(servicesRow);
+    }
 
     if (aggregated.discountRate > 0) {
       const discountRow = document.createElement("div");
@@ -1173,18 +1656,25 @@
       return;
     }
 
+    const previousPickup = els.pickupDatetime.value;
     clearSelect(els.pickupDatetime);
-    els.pickupDatetime.appendChild(createOption("", "Sin fecha (trabajo urgente)"));
+    els.pickupDatetime.appendChild(createOption("", state.leadDays > 0
+      ? "Sin fecha (urgente: el plazo de los servicios se coordina con el local)"
+      : "Sin fecha (trabajo urgente)"));
+    const earliest = getEarliestPickupDate(state.leadDays);
 
     const allowedDays = new Set((pickupSchedule.allowedWeekdays || []).map((d) => Number(d)));
     const slots = Array.isArray(pickupSchedule.slots) ? pickupSchedule.slots : [];
-    const daysAhead = Math.max(1, Number(pickupSchedule.daysAhead || 21));
+    const daysAhead = Math.max(1, Number(pickupSchedule.daysAhead || 21)) + state.leadDays * 2;
     const now = new Date();
 
     for (let offset = 0; offset <= daysAhead; offset += 1) {
       const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
       const weekday = currentDate.getDay();
       if (!allowedDays.has(weekday)) {
+        continue;
+      }
+      if (state.leadDays > 0 && currentDate.getTime() < earliest.getTime()) {
         continue;
       }
 
@@ -1216,6 +1706,10 @@
           )
         );
       });
+    }
+
+    if (previousPickup && Array.from(els.pickupDatetime.options).some((opt) => opt.value === previousPickup)) {
+      els.pickupDatetime.value = previousPickup;
     }
   }
 
@@ -1256,6 +1750,14 @@
       return false;
     }
 
+    if (servicesData) {
+      const sv = getServicesState();
+      if (sv.error) {
+        setStatus(`${sv.error} (Trabajo ${state.savedItems.length + 1})`, "error");
+        return false;
+      }
+    }
+
     const jobs = collectJobs();
     const manyJobs = jobs.length > 1;
     for (let i = 0; i < jobs.length; i += 1) {
@@ -1289,6 +1791,20 @@
       notesText = notesText ? `${aviso} ${notesText}` : aviso;
     }
 
+    const serviceLines = orderItems
+      .map((item, i) => {
+        const list = item.services || [];
+        if (!list.length) {
+          return "";
+        }
+        const text = list.map((sv) => `${sv.detail} (${currency.format(sv.total)})`).join("; ");
+        return orderItems.length > 1 ? `Trabajo ${i + 1}: ${text}` : text;
+      })
+      .filter(Boolean);
+    if (serviceLines.length) {
+      notesText = `[SERVICIOS] ${serviceLines.join(" | ")}${notesText ? ` — ${notesText}` : ""}`;
+    }
+
     return {
       orderId: `${Date.now()}`,
       uploadSessionId: uploadSessionId || "",
@@ -1309,7 +1825,8 @@
       fileNames: uploadedFiles.map((file) => file.name),
       uploadedFiles,
       pricing: {
-        subtotal: pricingTotals.subtotal,
+        subtotal: pricingTotals.subtotal + pricingTotals.servicesTotal,
+        servicesTotal: pricingTotals.servicesTotal,
         discountRate: pricingTotals.discountRate,
         discountAmount: pricingTotals.discountAmount,
         total: pricingTotals.total,
@@ -1500,6 +2017,11 @@
         return;
       }
 
+      const servicesCheck = servicesData ? getServicesState() : { error: "" };
+      if (servicesCheck.error) {
+        setStatus(servicesCheck.error, "error");
+        return;
+      }
       const files = getSelectedFiles();
       const linkLater = Boolean(els.sendLinkLater && els.sendLinkLater.checked) && !files.length;
       const jobNumber = state.savedItems.length + 1;
@@ -1550,12 +2072,58 @@
       const itemId = button.dataset.itemId;
       state.jobFiles.delete(itemId);
       state.savedItems = state.savedItems.filter((item) => item.id !== itemId);
+      state.servicesSignature = "";
       if (state.savedItems.length === 0) {
         state.showItemsPanel = false;
       }
       renderItemsPanel();
       updateSummary();
     });
+
+    if (els.servicesList) {
+      els.servicesList.addEventListener("change", (event) => {
+        const target = event.target;
+        if (!target || !target.dataset) {
+          return;
+        }
+        if (target.dataset.serviceCheck) {
+          const key = target.dataset.serviceCheck;
+          if (target.checked) {
+            state.services.selected[key] = serviceDefaultOptions(key);
+          } else {
+            delete state.services.selected[key];
+          }
+          setStatus("");
+          onServicesChanged();
+          return;
+        }
+        if (target.dataset.opt) {
+          const card = target.closest(".service-card");
+          const checkEl = card ? card.querySelector("[data-service-check]") : null;
+          const key = checkEl ? checkEl.dataset.serviceCheck : "";
+          if (!key || !state.services.selected[key]) {
+            return;
+          }
+          state.services.selected[key][target.dataset.opt] = target.type === "checkbox" ? target.checked : target.value;
+          onServicesChanged();
+        }
+      });
+      els.servicesList.addEventListener("input", (event) => {
+        const target = event.target;
+        if (!target || !target.dataset || target.dataset.opt !== "cantidadOtra") {
+          return;
+        }
+        const card = target.closest(".service-card");
+        const checkEl = card ? card.querySelector("[data-service-check]") : null;
+        const key = checkEl ? checkEl.dataset.serviceCheck : "";
+        if (!key || !state.services.selected[key]) {
+          return;
+        }
+        state.services.selected[key].cantidadOtra = target.value;
+        updateServicePrices();
+        updateSummary();
+      });
+    }
 
     els.itemsList.addEventListener("change", (event) => {
       const target = event.target;
@@ -1638,6 +2206,9 @@
         els.form.reset();
         state.savedItems = [];
         state.jobFiles.clear();
+        state.services.selected = {};
+        state.servicesSignature = "";
+        state.leadDays = 0;
         state.showItemsPanel = false;
         renderItemsPanel();
         buildPickupOptions();
@@ -1680,6 +2251,5 @@
 
   init();
 })();
-
 
 
