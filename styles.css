@@ -1121,3 +1121,32 @@ textarea:focus {
 @media (max-width: 560px) {
   .item-actions { flex-direction: row; flex-wrap: wrap; width: 100%; }
 }
+
+/* ---- Servicios adicionales ---- */
+.services-panel { margin: 0.9rem 0; border: 1px solid #cfe3df; border-radius: 12px; background: linear-gradient(180deg, #fff 0%, #eefaf8 100%); padding: 0.75rem; }
+.services-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; color: #1f5c52; }
+.services-head small { font-weight: 600; color: #5d7f78; }
+.services-sub { margin: 0.25rem 0 0.6rem; font-size: 0.9rem; color: #4e6560; }
+.services-list { display: grid; gap: 0.5rem; }
+.service-card { border: 1px solid #d5e5e1; border-radius: 10px; background: #fff; padding: 0.55rem 0.65rem; }
+.service-card.is-checked { border-color: #2a7d70; box-shadow: 0 0 0 2px #2a7d7022; }
+.service-card.is-disabled { opacity: 0.55; }
+.service-head { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; margin: 0; }
+.service-head input { width: 1.1rem; height: 1.1rem; min-width: 1.1rem; padding: 0; accent-color: #2a7d70; }
+.service-name { font-weight: 800; flex: 1 1 auto; }
+.service-price { font-size: 0.88rem; color: #5d7f78; text-align: right; }
+.service-price.is-final { color: #1f5c52; font-weight: 800; }
+.service-info, .service-reason { margin: 0.3rem 0 0 1.7rem; font-size: 0.86rem; color: #5d5a55; line-height: 1.4; }
+.service-reason { color: #a32e5f; font-weight: 700; }
+.service-options { display: grid; gap: 0.5rem; margin: 0.55rem 0 0.1rem 1.7rem; }
+.service-options label { display: grid; gap: 0.2rem; font-size: 0.88rem; font-weight: 700; color: #3f4a47; }
+.service-options label span { font-weight: 700; }
+.service-options select, .service-options input[type="number"] { width: 100%; }
+.service-options .service-check { display: flex; align-items: center; gap: 0.5rem; }
+.service-options .service-check input { width: 1rem; height: 1rem; min-width: 1rem; padding: 0; accent-color: #2a7d70; }
+.service-warning { margin: 0; font-size: 0.88rem; color: #8a5a00; background: #fff2dc; border: 1px solid #ffd7a1; border-radius: 8px; padding: 0.4rem 0.55rem; }
+.services-lead { margin: 0.6rem 0 0; font-size: 0.92rem; font-weight: 700; color: #1f5c52; background: #e3f4f0; border-radius: 8px; padding: 0.5rem 0.65rem; }
+.item-service-list { list-style: none; margin: 0.35rem 0 0; padding: 0; font-size: 0.88rem; color: #1f5c52; }
+.item-service-list li span { color: #5d7f78; }
+.service-file-note { margin: 0; font-size: 0.88rem; line-height: 1.45; color: #1f5c52; background: #e3f4f0; border-radius: 8px; padding: 0.45rem 0.6rem; }
+.service-file-note a { color: #d93d79; font-weight: 800; white-space: nowrap; }
