@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=20261014a">
 </head>
 <body>
   <div class="bg-orb bg-orb-a"></div>
@@ -160,22 +160,9 @@
           </label>
         </div>
 
-        <div class="multi-order-box">
-          <div class="multi-order-head">
-            <p>¿Necesitás más de un tipo de impresión en el mismo pedido?</p>
-            <button type="button" id="add-item-btn" class="btn btn-quiet">+ Agregar este trabajo</button>
-          </div>
-          <button type="button" id="toggle-items-btn" class="multi-toggle hidden" aria-expanded="false">
-            Ver trabajos agregados (0)
-          </button>
-          <div id="items-panel" class="items-panel hidden">
-            <div id="items-list" class="items-list"></div>
-          </div>
-        </div>
-
         <div class="upload-panel">
           <label class="field">
-            <span>Archivo(s) para impresión</span>
+            <span><em id="upload-job-badge" class="item-badge hidden">Trabajo 1</em> <b id="upload-title">Archivo(s) para impresión</b></span>
             <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip" multiple>
           </label>
           <p id="file-meta" class="upload-meta">Aún no seleccionaste archivos.</p>
@@ -184,6 +171,20 @@
             <input id="send-link-later" type="checkbox">
             <span>Voy a enviar el link de Drive o WeTransfer por mail después de hacer el pedido.</span>
           </label>
+        </div>
+
+        <div class="multi-order-box">
+          <div class="multi-order-head">
+            <p>¿Necesitás más de un trabajo en el mismo pedido? Cargá los datos y el archivo de este trabajo, y después tocá “Agregar”. Cada trabajo guarda sus propios archivos.</p>
+            <button type="button" id="add-item-btn" class="btn btn-quiet">+ Agregar este trabajo</button>
+          </div>
+          <button type="button" id="toggle-items-btn" class="multi-toggle hidden" aria-expanded="false">
+            Ver trabajos agregados (0)
+          </button>
+          <div id="items-panel" class="items-panel hidden">
+            <p class="items-title">Trabajos ya agregados a tu pedido</p>
+            <div id="items-list" class="items-list"></div>
+          </div>
         </div>
 
         <label class="field">
@@ -284,7 +285,7 @@
 
   <script src="./src/config.js?v=20260617b"></script>
   <script src="./src/pricing-data.js?v=20260617b"></script>
-  <script src="./src/main.js?v=20260617b"></script>
+  <script src="./src/main.js?v=20261014a"></script>
 </body>
 </html>
 
