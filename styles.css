@@ -1150,3 +1150,6 @@ textarea:focus {
 .item-service-list li span { color: #5d7f78; }
 .service-file-note { margin: 0; font-size: 0.88rem; line-height: 1.45; color: #1f5c52; background: #e3f4f0; border-radius: 8px; padding: 0.45rem 0.6rem; }
 .service-file-note a { color: #d93d79; font-weight: 800; white-space: nowrap; }
+
+/* Separador entre el detalle (productos y servicios) y los subtotales del resumen */
+.summary-separator { height: 0; border-top: 3px solid #2d2b29; margin: 0.55rem 0 0.2rem; border-radius: 2px; }
