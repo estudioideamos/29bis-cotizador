@@ -79,7 +79,7 @@
 
     summary.innerHTML = [
       row("Hojas totales", safeText(data.totalSheets, "0")),
-      row("Total estimado", safeText(data.totalFormatted, "$ 0"), "accent"),
+      row("Total", safeText(data.totalFormatted, "$ 0"), "accent"),
       row("Forma de pago", safeText(data.paymentLabel, "-")),
       row("Retiro", safeText(data.pickupLabel, "Sin fecha/hora (trabajo urgente)")),
       row("Archivos", safeText(data.filesSummary, "Sin detalle"))
