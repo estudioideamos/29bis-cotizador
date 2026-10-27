@@ -392,6 +392,7 @@
 
       if (remote && remote.mode === "price-rows" && Array.isArray(remote.priceRows)) {
         patchPricingFromRows(base, remote.priceRows);
+        applyServicePricesFromRows(remote.priceRows);
         if (remote.paperAvailability && typeof remote.paperAvailability === "object") {
           Object.entries(remote.paperAvailability).forEach(([paperKey, isAvailable]) => {
             runtimePaperAvailability[paperKey] = normalizeBool(isAvailable, true);
@@ -769,7 +770,7 @@
   // SERVICIOS ADICIONALES (anillado, empanelado, laminado, etc.)
   // Los precios y reglas están en src/services-data.js
   // ============================================================
-  const servicesData = window.SERVICES_DATA || null;
+  let servicesData = window.SERVICES_DATA ? deepClone(window.SERVICES_DATA) : null;
 
   const SERVICE_TEXTS = {
     acabado: { brillante: "brillante", mate: "mate" },
@@ -787,6 +788,112 @@
       sin_marcas: "refilar al ras del diseño (sin marcas)"
     }
   };
+
+
+  // ---- Precios y plazos de servicios desde la hoja "prices" (filas con Tipo = "servicio") ----
+  function applyServicePricesFromRows(rows) {
+    if (!servicesData) {
+      return;
+    }
+    const svc = servicesData.services;
+    const anyActive = {};
+    const seenKeys = {};
+    (rows || []).forEach((row) => {
+      if (String(row.machine || "").trim() !== "servicio") {
+        return;
+      }
+      const key = String(row.paper_key || "").trim().toLowerCase();
+      const def = svc[key];
+      if (!def) {
+        return;
+      }
+      seenKeys[key] = true;
+      if (row.active !== false) {
+        anyActive[key] = true;
+      }
+      const size = String(row.size_key || "").trim();
+      const concept = String(row.coverage_key || "").trim().toLowerCase();
+      const faz = String(row.side_key || "").trim().toLowerCase();
+      const price = toNumber(row.price);
+      if (price == null) {
+        return;
+      }
+      if (concept === "dias") {
+        def.days = price;
+      } else if (key === "anillado" || key === "abrochado") {
+        if (concept === "trabajo") {
+          def.price = price;
+        } else if (concept === "max_hojas_acaballado") {
+          def.maxSheetsAcaballado = price;
+        }
+      } else if (key === "empanelado") {
+        if (def.supports[concept]) {
+          def.supports[concept].pricePerM2 = price;
+        }
+      } else if (key === "laminado") {
+        if (concept === "hoja" && def.priceBySize[size] && (faz === "sf" || faz === "df")) {
+          def.priceBySize[size][faz] = price;
+        }
+      } else if (key === "refilado") {
+        if (concept === "hoja") {
+          def.pricePerSheet = price;
+        } else if (concept === "con_abrochado") {
+          def.priceWithAbrochado = price;
+        }
+      } else if (key === "troquelado") {
+        if (concept === "hoja" && def.priceBySize[size] !== undefined) {
+          def.priceBySize[size] = price;
+        } else if (concept === "descuento_porcentaje") {
+          def.discount.rate = price / 100;
+        } else if (concept === "descuento_desde_hojas") {
+          def.discount.minSheets = price;
+        } else if (concept === "demora_mas_de_hojas") {
+          def.daysOver.sheets = price;
+        } else if (concept === "demora_dias") {
+          def.daysOver.days = price;
+        }
+      }
+    });
+    // Un servicio con todas sus filas en "Disponible = NO" deja de ofrecerse.
+    Object.keys(seenKeys).forEach((key) => {
+      svc[key].disabled = !anyActive[key];
+    });
+  }
+
+  function getServicePriceHint(key) {
+    const def = servicesData.services[key];
+    if (key === "anillado" || key === "abrochado") {
+      return `${currency.format(def.price)} por trabajo`;
+    }
+    if (key === "empanelado") {
+      const min = Math.min(...Object.values(def.supports).map((sp) => sp.pricePerM2));
+      return `desde ${currency.format(min)} por m²`;
+    }
+    if (key === "laminado") {
+      const all = [];
+      Object.values(def.priceBySize).forEach((o) => { all.push(o.sf, o.df); });
+      return `desde ${currency.format(Math.min(...all.filter((n) => n > 0)))} por hoja`;
+    }
+    if (key === "refilado") {
+      return `${currency.format(def.pricePerSheet)} por hoja (${currency.format(def.priceWithAbrochado)} si va con abrochado)`;
+    }
+    if (key === "troquelado") {
+      return `desde ${currency.format(Math.min(...Object.values(def.priceBySize)))} por hoja`;
+    }
+    return "";
+  }
+
+  function formatLeadText(days) {
+    return days >= 5 ? "1 semana" : `${days} día${days === 1 ? "" : "s"} hábil${days === 1 ? "" : "es"}`;
+  }
+
+  function getServiceInfo(key) {
+    const def = servicesData.services[key];
+    if (key === "troquelado") {
+      return `Solo en autoadhesivos. Con más de ${def.daysOver.sheets} hojas la demora es de ${formatLeadText(def.daysOver.days)}. Desde ${def.discount.minSheets} hojas del mismo diseño tenés ${Math.round(def.discount.rate * 100)}% de descuento.`;
+    }
+    return def.info || "";
+  }
 
   function serviceDefaultOptions(key) {
     if (key === "laminado") {
@@ -807,7 +914,9 @@
     return {};
   }
 
-  const MAX_SHEETS_ACABALLADO = (servicesData && servicesData.services.abrochado && servicesData.services.abrochado.maxSheetsAcaballado) || 40;
+  function getMaxSheetsAcaballado() {
+    return (servicesData && servicesData.services.abrochado && Number(servicesData.services.abrochado.maxSheetsAcaballado)) || 40;
+  }
 
   // El abrochado al medio (acaballado) deja la tapa plegada: solo se laminan/cuentan así si va al medio.
   function isAcaballado() {
@@ -827,7 +936,7 @@
 
   function isServiceAvailable(key, ctx) {
     const def = servicesData.services[key];
-    if (!def) {
+    if (!def || def.disabled) {
       return false;
     }
     if (def.machine && def.machine !== ctx.machineKey) {
@@ -897,10 +1006,11 @@
     const def = servicesData.services[key];
     const opts = Object.assign(serviceDefaultOptions(key), state.services.selected[key] || {});
     const sheets = ctx.totalSheets;
-    const result = { key, label: def.label, detail: def.label, quantity: 1, total: 0, error: "" };
+    const result = { key, label: def.label, detail: def.label, quantity: 1, total: 0, error: "", priceRef: null };
 
     if (key === "anillado") {
       result.total = def.price;
+      result.priceRef = { size: "todos", concept: "trabajo", faz: "", unit: def.price };
       result.detail = "Anillado (doble alambre, tapas plásticas)";
     } else if (key === "empanelado") {
       const support = def.supports[opts.soporte] || def.supports.carton_corrugado;
@@ -909,6 +1019,7 @@
         result.error = "No se puede calcular el empanelado para este tamaño. Consultanos.";
       } else {
         result.quantity = sheets;
+        result.priceRef = { size: "todos", concept: Object.keys(def.supports).find((k) => def.supports[k] === support) || "carton_corrugado", faz: "", unit: support.pricePerM2 };
         result.total = Math.round(area * sheets * support.pricePerM2);
         result.detail = `Empanelado en ${support.label.toLowerCase()}${opts.calado ? " · calado en el centro" : ""} · ${sheets} hoja${sheets === 1 ? "" : "s"}`;
       }
@@ -924,20 +1035,23 @@
         qty = clampInt(opts.cantidadOtra, 1, Math.max(1, sheets));
       }
       result.quantity = qty;
+      result.priceRef = { size: ctx.sizeKey, concept: "hoja", faz: opts.faz, unit };
       result.total = unit * qty;
       result.detail = `Laminado ${SERVICE_TEXTS.acabado[opts.acabado] || ""} ${SERVICE_TEXTS.faz[opts.faz] || ""} · ${qty} hoja${qty === 1 ? "" : "s"}${modeText}`;
     } else if (key === "abrochado") {
       result.total = def.price;
+      result.priceRef = { size: "todos", concept: "trabajo", faz: "", unit: def.price };
       if (!opts.posicion) {
         result.error = "Elegí dónde va el abrochado.";
-      } else if (opts.posicion === "medio" && sheets > MAX_SHEETS_ACABALLADO) {
-        result.error = `El abrochado al medio (acaballado) se puede hacer hasta ${MAX_SHEETS_ACABALLADO} hojas. Elegí otra posición o reducí las hojas.`;
+      } else if (opts.posicion === "medio" && sheets > getMaxSheetsAcaballado()) {
+        result.error = `El abrochado al medio (acaballado) se puede hacer hasta ${getMaxSheetsAcaballado()} hojas. Elegí otra posición o reducí las hojas.`;
       }
       result.detail = `Abrochado ${SERVICE_TEXTS.posicion[opts.posicion] || ""}`.trim();
     } else if (key === "refilado") {
       const withStaple = selectedKeys.includes("abrochado");
       result.quantity = sheets;
       result.total = withStaple ? def.priceWithAbrochado : def.pricePerSheet * sheets;
+      result.priceRef = { size: "todos", concept: withStaple ? "con_abrochado" : "hoja", faz: "", unit: withStaple ? def.priceWithAbrochado : def.pricePerSheet };
       if (!opts.marcas) {
         result.error = "En Refilado, aclará si tu archivo trae marcas de corte.";
       }
@@ -947,6 +1061,7 @@
     } else if (key === "troquelado") {
       const unit = def.priceBySize[ctx.sizeKey] || 0;
       result.quantity = sheets;
+      result.priceRef = { size: ctx.sizeKey, concept: "hoja", faz: "", unit };
       const gross = unit * sheets;
       const disc = def.discount;
       const hasDiscount = Boolean(opts.mismoDiseno && disc && sheets >= disc.minSheets);
@@ -1089,11 +1204,11 @@
             ${optionHtml("", "Elegí una opción…", !opts.posicion)}
             ${Object.keys(SERVICE_TEXTS.posicion).map((k) => {
               const base = SERVICE_TEXTS.posicion[k].replace(/^./, (c) => c.toUpperCase());
-              const tooMany = k === "medio" && ctx.totalSheets > MAX_SHEETS_ACABALLADO;
-              return optionHtml(k, tooMany ? `${base} — máx. ${MAX_SHEETS_ACABALLADO} hojas` : base, opts.posicion === k);
+              const tooMany = k === "medio" && ctx.totalSheets > getMaxSheetsAcaballado();
+              return optionHtml(k, tooMany ? `${base} — máx. ${getMaxSheetsAcaballado()} hojas` : base, opts.posicion === k);
             }).join("")}
           </select></label>
-          ${ctx.totalSheets > MAX_SHEETS_ACABALLADO ? `<p class="service-warning">El abrochado al medio (acaballado) se hace hasta ${MAX_SHEETS_ACABALLADO} hojas. Con ${ctx.totalSheets} hojas elegí otra posición.</p>` : ""}
+          ${ctx.totalSheets > getMaxSheetsAcaballado() ? `<p class="service-warning">El abrochado al medio (acaballado) se hace hasta ${getMaxSheetsAcaballado()} hojas. Con ${ctx.totalSheets} hojas elegí otra posición.</p>` : ""}
         </div>`;
     }
     if (key === "refilado") {
@@ -1122,10 +1237,10 @@
         parts.push(`<p class="service-file-note">📐 ${escapeHtml(def.fileNote)}${safeUrl ? ` <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener">Ver cómo preparar el archivo</a>` : ""}</p>`);
       }
       if (ctx.totalSheets >= def.discount.minSheets) {
-        parts.push(`<label class="service-check"><input type="checkbox" data-opt="mismoDiseno"${opts.mismoDiseno ? " checked" : ""}><span>Las ${ctx.totalSheets} hojas son del mismo diseño de corte (30% de descuento)</span></label>`);
+        parts.push(`<label class="service-check"><input type="checkbox" data-opt="mismoDiseno"${opts.mismoDiseno ? " checked" : ""}><span>Las ${ctx.totalSheets} hojas son del mismo diseño de corte (${Math.round(def.discount.rate * 100)}% de descuento)</span></label>`);
       }
       if (ctx.totalSheets > def.daysOver.sheets) {
-        parts.push(`<p class="service-warning">Con más de ${def.daysOver.sheets} hojas, la demora de este servicio es de 1 semana.</p>`);
+        parts.push(`<p class="service-warning">Con más de ${def.daysOver.sheets} hojas, la demora de este servicio es de ${formatLeadText(def.daysOver.days)}.</p>`);
       }
       return parts.length ? `<div class="service-options">${parts.join("")}</div>` : "";
     }
@@ -1143,7 +1258,7 @@
         node.classList.add("is-final");
       } else {
         const def = servicesData.services[node.dataset.priceFor];
-        node.textContent = def ? def.priceHint : "";
+        node.textContent = def ? getServicePriceHint(node.dataset.priceFor) : "";
         node.classList.remove("is-final");
       }
     });
@@ -1194,7 +1309,7 @@
           <span class="service-price" data-price-for="${key}"></span>
         </label>
         ${reason ? `<p class="service-reason">${escapeHtml(reason)}</p>` : ""}
-        ${def.info ? `<p class="service-info">${escapeHtml(def.info)}</p>` : ""}
+        ${getServiceInfo(key) ? `<p class="service-info">${escapeHtml(getServiceInfo(key))}</p>` : ""}
         ${checked ? buildServiceOptionsHtml(key, ctx, selectedKeys) : ""}
       `;
       frag.appendChild(card);
@@ -1251,7 +1366,8 @@
         label: entry.label,
         detail: entry.detail,
         quantity: entry.quantity,
-        total: entry.total
+        total: entry.total,
+        priceRef: entry.priceRef
       })),
       pricing: {
         subtotal: totals.subtotal,
@@ -2265,5 +2381,3 @@
 
   init();
 })();
-
-
