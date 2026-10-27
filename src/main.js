@@ -25,6 +25,7 @@
     paymentMethodRadios: document.querySelectorAll("input[name='payment-method']"),
     paymentTransferInfo: document.getElementById("payment-transfer-info"),
     paymentLocalInfo: document.getElementById("payment-local-info"),
+    paymentMpInfo: document.getElementById("payment-mp-info"),
     summary: document.getElementById("summary"),
     status: document.getElementById("status"),
     uploadProgress: document.getElementById("upload-progress"),
@@ -1620,6 +1621,9 @@
     if (selected.value === "transferencia") {
       return { key: "transferencia", label: "Transferencia bancaria" };
     }
+    if (selected.value === "mercadopago") {
+      return { key: "mercadopago", label: "Mercado Pago (pago online)" };
+    }
     return { key: "local", label: "Pagar en el local" };
   }
 
@@ -1764,6 +1768,9 @@
     const isLocal = method?.key === "local";
     els.paymentTransferInfo.classList.toggle("hidden", !isTransfer);
     els.paymentLocalInfo.classList.toggle("hidden", !isLocal);
+    if (els.paymentMpInfo) {
+      els.paymentMpInfo.classList.toggle("hidden", method?.key !== "mercadopago");
+    }
     updateProgressSteps();
   }
 
@@ -1988,7 +1995,9 @@
       mode: "sheets",
       orderNumber: data.orderNumber || payload.orderId,
       mailSent: Boolean(data.mailSent),
-      mailError: data.mailError || ""
+      mailError: data.mailError || "",
+      paymentUrl: data.paymentUrl || "",
+      paymentToken: data.paymentToken || ""
     };
   }
 
@@ -2048,6 +2057,8 @@
       totalFormatted: currency.format(total),
       paymentLabel,
       paymentKey,
+      paymentUrl: result && result.paymentUrl ? result.paymentUrl : "",
+      paymentToken: result && result.paymentToken ? result.paymentToken : "",
       pickupLabel,
       filesSummary: externalFilesByEmail
         ? (fileNames.length
@@ -2377,6 +2388,12 @@
   }
 
   async function init() {
+    if (config.mercadoPagoEnabled === false) {
+      const mpOption = document.getElementById("payment-mp-option");
+      if (mpOption) {
+        mpOption.remove();
+      }
+    }
     pricing = await loadPricingData();
     buildMachineOptions();
     buildSidesOptions();
