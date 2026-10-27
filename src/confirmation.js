@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     const TRACKING_URL = "https://seguimiento.29bis.com.ar/";
    
   function getQueryParam(name) {
@@ -56,6 +56,75 @@
     `;
   }
 
+  function getApiUrl() {
+    const cfg = window.APP_CONFIG || {};
+    return cfg.ordersWebhookUrl || "";
+  }
+
+  function renderMercadoPago(data, isMpPayment) {
+    const box = document.getElementById("mp-pay");
+    if (!box) {
+      return;
+    }
+    if (!isMpPayment) {
+      box.classList.add("hidden");
+      box.innerHTML = "";
+      return;
+    }
+    box.classList.remove("hidden");
+    const orderNumber = normalizeOrderNumber(data.orderNumber);
+
+    function showButton(url) {
+      box.innerHTML = `
+        <p class="confirmation-note-alias">Pago online</p>
+        <p>Podés pagar con tarjeta (1 pago), dinero en cuenta de Mercado Pago o QR. Cuando se acredite, tu pedido se marca como pagado automáticamente.</p>
+        <p><a class="btn btn-primary" id="mp-pay-btn" href="${url}">Pagar ahora con Mercado Pago</a></p>
+      `;
+    }
+
+    function showRetry(message) {
+      box.innerHTML = `
+        <p class="confirmation-note-alias">Pago online</p>
+        <p>${message}</p>
+        <p><button type="button" class="btn btn-primary" id="mp-retry-btn">Generar link de pago</button></p>
+        <p>Si no funciona, escribinos a <strong>pedidos@29bis.com.ar</strong> con el número de pedido y lo resolvemos.</p>
+      `;
+      const btn = document.getElementById("mp-retry-btn");
+      if (btn) {
+        btn.addEventListener("click", requestLink);
+      }
+    }
+
+    function requestLink() {
+      const api = getApiUrl();
+      if (!api || !data.paymentToken) {
+        showRetry("No pudimos generar el link de pago desde esta pantalla.");
+        return;
+      }
+      box.innerHTML = "<p>Generando link de pago…</p>";
+      fetch(`${api}?action=mp_link&pedido=${encodeURIComponent(orderNumber)}&t=${encodeURIComponent(data.paymentToken)}`)
+        .then((r) => r.json())
+        .then((res) => {
+          if (res && res.ok && res.url) {
+            showButton(res.url);
+          } else if (res && res.ok && res.estado === "pagado") {
+            box.innerHTML = "<p class=\"confirmation-note-alias\">¡Pago acreditado!</p><p>Tu pedido ya figura como pagado.</p>";
+          } else {
+            showRetry("No pudimos generar el link de pago.");
+          }
+        })
+        .catch(() => showRetry("No pudimos generar el link de pago."));
+    }
+
+    if (data.paymentUrl) {
+      showButton(data.paymentUrl);
+    } else if (data.paymentToken) {
+      showRetry("Tu pedido quedó registrado, pero el link de pago no se generó todavía.");
+    } else {
+      showRetry("Tu pedido quedó registrado. Escribinos para coordinar el pago.");
+    }
+  }
+
   function renderConfirmation(data) {
     const greeting = document.getElementById("confirmation-greeting");
     const orderNumber = document.getElementById("order-number");
@@ -68,7 +137,10 @@
     }
 
     const customerName = safeText(data.customerName, "Cliente");
-    greeting.textContent = `Hola ${customerName}, recibimos tu pedido correctamente y ya está en producción.`;
+    const isMpPayment = safeText(data.paymentKey, "") === "mercadopago";
+    greeting.textContent = isMpPayment
+      ? `Hola ${customerName}, recibimos tu pedido. Para que entre en producción, completá el pago con Mercado Pago.`
+      : `Hola ${customerName}, recibimos tu pedido correctamente y ya está en producción.`;
     orderNumber.textContent = safeText(normalizeOrderNumber(data.orderNumber), "-");
 
         const trackingLink = document.getElementById("tracking-link");
@@ -113,6 +185,8 @@
         transferNote.innerHTML = "";
       }
     }
+
+    renderMercadoPago(data, isMpPayment);
 
     if (data.mailSent) {
       mailStatus.className = "status ok";
