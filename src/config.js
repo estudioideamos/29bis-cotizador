@@ -10,6 +10,9 @@ window.APP_CONFIG = {
   // Ejemplo: https://script.google.com/macros/s/AKfycb.../exec
   ordersWebhookUrl: "https://script.google.com/macros/s/AKfycbzzESSETeRakNDaKDdlC4uYH-j8OiQWvxrEgxQNXFtljJ7wA_Tvwixs7K7HRp-MFOdLQQ/exec",
 
+  // Botón de pago con Mercado Pago. Para apagarlo rápido: poné false.
+  mercadoPagoEnabled: true,
+
   // Stock por papel: true = disponible, false = sin stock
   // Ejemplo: { "plotter_cartulina_170": false, "opp": false }
   paperAvailabilityOverrides: {},
