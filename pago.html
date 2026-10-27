@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>29 BIS | Estado del pago</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="./assets/avatar-29.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=20261026a">
+</head>
+<body>
+  <div class="bg-orb bg-orb-a"></div>
+  <div class="bg-orb bg-orb-b"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <a href="https://29bis.com.ar/" aria-label="Ir a 29 BIS">
+        <img class="brand-logo" src="./assets/logo-29bis-dark.png" alt="Logo 29 BIS" loading="lazy">
+      </a>
+    </div>
+    <p class="topbar-title">Estado del pago</p>
+  </header>
+
+  <main class="confirmation-layout">
+    <section class="card confirmation-card" id="pago-card">
+      <p class="confirmation-kicker">Pago con Mercado Pago</p>
+      <h2 id="pago-title">Verificando tu pago…</h2>
+      <p class="muted" id="pago-text">Un momento, estamos consultando a Mercado Pago.</p>
+      <div class="confirmation-order-box">
+        <p>Número de pedido</p>
+        <strong id="pago-pedido">-</strong>
+      </div>
+      <div class="actions" id="pago-actions"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>©2026 29 BIS. Creado por <a href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer">Estudio Ideamos</a></p>
+  </footer>
+
+  <script src="./src/config.js?v=20261027a"></script>
+  <script src="./src/pago.js?v=20261027a"></script>
+</body>
+</html>
