@@ -215,6 +215,10 @@
           <input type="radio" name="payment-method" value="transferencia" required>
           <span>Transferencia bancaria</span>
         </label>
+        <label class="payment-option" id="payment-mp-option">
+          <input type="radio" name="payment-method" value="mercadopago">
+          <span>Pagar online con Mercado Pago</span>
+        </label>
         <label class="payment-option">
           <input type="radio" name="payment-method" value="local">
           <span>Pagar en el local</span>
@@ -223,6 +227,10 @@
         <div id="payment-transfer-info" class="payment-transfer-info hidden">
           <p><strong>ALIAS: 29bis.ploteos</strong></p>
           <p class="payment-note">Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>
+        </div>
+
+        <div id="payment-mp-info" class="payment-local-info hidden">
+          <p>Al confirmar el pedido te mostramos el botón para pagar con tarjeta (1 pago), dinero en cuenta de Mercado Pago o QR. Sin recargo.</p>
         </div>
 
         <div id="payment-local-info" class="payment-local-info hidden">
@@ -293,9 +301,9 @@
     <p>©2026 29 BIS. Creado con ❤️ por <a href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer">Estudio Ideamos</a></p>
   </footer>
 
-  <script src="./src/config.js?v=20260617b"></script>
+  <script src="./src/config.js?v=20261027a"></script>
   <script src="./src/pricing-data.js?v=20260617b"></script>
   <script src="./src/services-data.js?v=20261025a"></script>
-  <script src="./src/main.js?v=20261026a"></script>
+  <script src="./src/main.js?v=20261027a"></script>
 </body>
 </html>
