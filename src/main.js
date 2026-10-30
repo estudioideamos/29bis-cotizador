@@ -1800,9 +1800,25 @@
 
     const previousPickup = els.pickupDatetime.value;
     clearSelect(els.pickupDatetime);
-    els.pickupDatetime.appendChild(createOption("", state.leadDays > 0
-      ? "Sin fecha (urgente: el plazo de los servicios se coordina con el local)"
-      : "Sin fecha (trabajo urgente)"));
+    const requiresDate = state.leadDays > 0;
+    if (requiresDate) {
+      // Pedidos con servicios: no pueden ser urgentes, hay que elegir fecha de retiro.
+      const placeholder = createOption("", "Elegí fecha y hora de retiro");
+      placeholder.disabled = true;
+      els.pickupDatetime.appendChild(placeholder);
+    } else {
+      els.pickupDatetime.appendChild(createOption("", "Sin fecha (trabajo urgente)"));
+    }
+    const pickupLabelText = document.getElementById("pickup-label-text");
+    if (pickupLabelText) {
+      pickupLabelText.textContent = requiresDate ? "Fecha y hora de retiro" : "Fecha y hora de retiro (opcional)";
+    }
+    const pickupDisclaimer = document.getElementById("pickup-disclaimer");
+    if (pickupDisclaimer) {
+      pickupDisclaimer.innerHTML = requiresDate
+        ? "Los pedidos con servicios <strong>no pueden ser urgentes</strong>: el retiro se hace a partir de la fecha indicada arriba, según la demora de cada servicio."
+        : "Si no se completa fecha/hora de retiro, se toma como <strong>trabajo urgente</strong>. La entrega según lo solicitado queda atada al caudal de trabajo.";
+    }
     const earliest = getEarliestPickupDate(state.leadDays);
 
     const allowedDays = new Set((pickupSchedule.allowedWeekdays || []).map((d) => Number(d)));
@@ -1852,6 +1868,8 @@
 
     if (previousPickup && Array.from(els.pickupDatetime.options).some((opt) => opt.value === previousPickup)) {
       els.pickupDatetime.value = previousPickup;
+    } else {
+      els.pickupDatetime.selectedIndex = 0;
     }
   }
 
@@ -1900,6 +1918,12 @@
       }
     }
 
+    if (state.leadDays > 0 && !els.pickupDatetime.value) {
+      setStatus("Los pedidos con servicios no pueden ser urgentes: elegí la fecha y hora de retiro.", "error");
+      els.pickupDatetime.focus();
+      return false;
+    }
+
     const jobs = collectJobs();
     const manyJobs = jobs.length > 1;
     for (let i = 0; i < jobs.length; i += 1) {
@@ -1933,19 +1957,8 @@
       notesText = notesText ? `${aviso} ${notesText}` : aviso;
     }
 
-    const serviceLines = orderItems
-      .map((item, i) => {
-        const list = item.services || [];
-        if (!list.length) {
-          return "";
-        }
-        const text = list.map((sv) => `${sv.detail} (${currency.format(sv.total)})`).join("; ");
-        return orderItems.length > 1 ? `Trabajo ${i + 1}: ${text}` : text;
-      })
-      .filter(Boolean);
-    if (serviceLines.length) {
-      notesText = `[SERVICIOS] ${serviceLines.join(" | ")}${notesText ? ` — ${notesText}` : ""}`;
-    }
+    // El detalle de servicios ya viaja en cada trabajo (orderItems[].services) y se ve
+    // en la columna "Servicios" de la planilla: no se mezcla con las observaciones del cliente.
 
     return {
       orderId: `${Date.now()}`,
