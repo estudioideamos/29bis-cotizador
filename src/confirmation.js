@@ -178,7 +178,7 @@
         blocks.push(`
           <div>
             <p class="confirmation-note-alias">Pedido sin apuro</p>
-            <p>Producimos y entregamos en tandas, sin fecha fija. Te avisamos por WhatsApp o mail cuando esté listo.</p>
+            <p>Lo producimos de acuerdo a los plazos del local. Te avisamos por WhatsApp o mail cuando esté listo.</p>
           </div>
         `);
       }
