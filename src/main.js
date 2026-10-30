@@ -1793,6 +1793,9 @@
     return `${year}-${month}-${day}T${hourMinute}`;
   }
 
+  const PICKUP_URGENT = "urgente";
+  const PICKUP_SIN_APURO = "sin-apuro";
+
   function buildPickupOptions() {
     if (!els.pickupDatetime) {
       return;
@@ -1801,23 +1804,18 @@
     const previousPickup = els.pickupDatetime.value;
     clearSelect(els.pickupDatetime);
     const requiresDate = state.leadDays > 0;
-    if (requiresDate) {
-      // Pedidos con servicios: no pueden ser urgentes, hay que elegir fecha de retiro.
-      const placeholder = createOption("", "Elegí fecha y hora de retiro");
-      placeholder.disabled = true;
-      els.pickupDatetime.appendChild(placeholder);
-    } else {
-      els.pickupDatetime.appendChild(createOption("", "Sin fecha (trabajo urgente)"));
+    // Hay que elegir sí o sí una opción: urgente, sin apuro o una fecha.
+    // Los pedidos con servicios no pueden ser urgentes.
+    const placeholder = createOption("", "Elegí cuándo lo necesitás");
+    placeholder.disabled = true;
+    els.pickupDatetime.appendChild(placeholder);
+    if (!requiresDate) {
+      els.pickupDatetime.appendChild(createOption(PICKUP_URGENT, "Urgente (sin fecha)"));
     }
+    els.pickupDatetime.appendChild(createOption(PICKUP_SIN_APURO, "Sin apuro (avisenme cuando esté listo)"));
     const pickupLabelText = document.getElementById("pickup-label-text");
     if (pickupLabelText) {
-      pickupLabelText.textContent = requiresDate ? "Fecha y hora de retiro" : "Fecha y hora de retiro (opcional)";
-    }
-    const pickupDisclaimer = document.getElementById("pickup-disclaimer");
-    if (pickupDisclaimer) {
-      pickupDisclaimer.innerHTML = requiresDate
-        ? "Los pedidos con servicios <strong>no pueden ser urgentes</strong>: el retiro se hace a partir de la fecha indicada arriba, según la demora de cada servicio."
-        : "Si no se completa fecha/hora de retiro, se toma como <strong>trabajo urgente</strong>. La entrega según lo solicitado queda atada al caudal de trabajo.";
+      pickupLabelText.textContent = "Fecha y hora de retiro";
     }
     const earliest = getEarliestPickupDate(state.leadDays);
 
@@ -1871,6 +1869,37 @@
     } else {
       els.pickupDatetime.selectedIndex = 0;
     }
+    updatePickupDisclaimer();
+  }
+
+  function getPickupMode() {
+    const value = els.pickupDatetime ? els.pickupDatetime.value : "";
+    if (value === PICKUP_URGENT) {
+      return "urgente";
+    }
+    if (value === PICKUP_SIN_APURO) {
+      return "sin_apuro";
+    }
+    return value ? "fecha" : "";
+  }
+
+  function updatePickupDisclaimer() {
+    const pickupDisclaimer = document.getElementById("pickup-disclaimer");
+    if (!pickupDisclaimer) {
+      return;
+    }
+    const mode = getPickupMode();
+    if (mode === "sin_apuro") {
+      pickupDisclaimer.innerHTML = "<strong>Sin apuro:</strong> lo producimos y entregamos en tandas, sin fecha fija. Te avisamos por WhatsApp o mail cuando esté listo.";
+    } else if (mode === "urgente") {
+      pickupDisclaimer.innerHTML = "<strong>Trabajo urgente:</strong> la entrega queda atada al caudal de trabajo del momento.";
+    } else if (mode === "fecha") {
+      pickupDisclaimer.innerHTML = "La entrega según lo solicitado queda atada al caudal de trabajo.";
+    } else if (state.leadDays > 0) {
+      pickupDisclaimer.innerHTML = "Los pedidos con servicios <strong>no pueden ser urgentes</strong>: el retiro es a partir de la fecha mínima que indicamos arriba (según la demora de cada servicio), o elegí <strong>Sin apuro</strong>.";
+    } else {
+      pickupDisclaimer.innerHTML = "Elegí <strong>Urgente</strong>, <strong>Sin apuro</strong> o una fecha y hora de retiro. La entrega según lo solicitado queda atada al caudal de trabajo.";
+    }
   }
 
   function validateForm() {
@@ -1918,8 +1947,10 @@
       }
     }
 
-    if (state.leadDays > 0 && !els.pickupDatetime.value) {
-      setStatus("Los pedidos con servicios no pueden ser urgentes: elegí la fecha y hora de retiro.", "error");
+    if (!els.pickupDatetime.value) {
+      setStatus(state.leadDays > 0
+        ? "Los pedidos con servicios no pueden ser urgentes: elegí una fecha de retiro o la opción Sin apuro."
+        : "Elegí cuándo necesitás tu pedido: Urgente, Sin apuro o una fecha y hora de retiro.", "error");
       els.pickupDatetime.focus();
       return false;
     }
@@ -1944,7 +1975,8 @@
   }
 
   async function buildOrderPayload(orderItems, uploadedFiles, uploadSessionId, jobs) {
-    const urgent = !els.pickupDatetime.value;
+    const pickupMode = getPickupMode();
+    const urgent = pickupMode === "urgente";
     const pricingTotals = getAggregatedPricing(orderItems);
     const paymentMethod = getSelectedPaymentMethod();
     const firstFileName = uploadedFiles[0] ? uploadedFiles[0].name : null;
@@ -1971,7 +2003,8 @@
         dni: els.customerDni.value.trim(),
         email: els.customerEmail.value.trim()
       },
-      pickupDateTime: els.pickupDatetime.value || null,
+      pickupDateTime: pickupMode === "fecha" ? els.pickupDatetime.value : null,
+      pickupMode,
       urgent,
       payment: paymentMethod,
       externalFilesByEmail,
@@ -2021,7 +2054,10 @@
     localStorage.setItem("orders-29bis", JSON.stringify(list.slice(0, 30)));
   }
 
-  function formatDateTimeAr(value) {
+  function formatDateTimeAr(value, mode) {
+    if (mode === "sin_apuro") {
+      return "Sin apuro";
+    }
     if (!value) {
       return "Sin fecha/hora (trabajo urgente)";
     }
@@ -2059,7 +2095,8 @@
     const totalSheets = payload && payload.pricing && payload.pricing.totalSheets ? payload.pricing.totalSheets : 0;
     const paymentLabel = payload && payload.payment && payload.payment.label ? payload.payment.label : "-";
     const paymentKey = payload && payload.payment && payload.payment.key ? payload.payment.key : "";
-    const pickupLabel = formatDateTimeAr(payload ? payload.pickupDateTime : null);
+    const pickupMode = payload && payload.pickupMode ? payload.pickupMode : "";
+    const pickupLabel = formatDateTimeAr(payload ? payload.pickupDateTime : null, pickupMode);
     const fileNames = payload && Array.isArray(payload.fileNames) ? payload.fileNames : [];
     const externalFilesByEmail = Boolean(payload && payload.externalFilesByEmail);
 
@@ -2073,6 +2110,7 @@
       paymentUrl: result && result.paymentUrl ? result.paymentUrl : "",
       paymentToken: result && result.paymentToken ? result.paymentToken : "",
       pickupLabel,
+      pickupMode,
       filesSummary: externalFilesByEmail
         ? (fileNames.length
           ? `${summarizeFileNamesForConfirmation(fileNames)} · el resto se envía por mail (Drive o WeTransfer)`
@@ -2131,6 +2169,9 @@
     els.fileInput.addEventListener("change", updateFileMeta);
     if (els.sendLinkLater) {
       els.sendLinkLater.addEventListener("change", updateFileMeta);
+    }
+    if (els.pickupDatetime) {
+      els.pickupDatetime.addEventListener("change", updatePickupDisclaimer);
     }
     els.paymentMethodRadios.forEach((radio) => {
       radio.addEventListener("change", updatePaymentUI);
