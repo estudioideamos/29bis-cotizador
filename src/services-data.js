@@ -77,7 +77,7 @@ window.SERVICES_DATA = {
       priceHint: "desde $1.500 por hoja",
       // Cuando esté lista la publicación de Instagram, pegá su link entre las comillas.
       // Mientras esté vacío, el botón "Ver cómo preparar el archivo" no se muestra.
-      helpUrl: "",
+      helpUrl: "https://www.instagram.com/p/DfF8Srpgen0/?obrf=MWE5NGVtcGEzcnMwag==",
       fileNote: "Para troquelar necesitamos un archivo de Illustrator (.ai) con lo que se imprime en una capa y la silueta de corte en otra capa.",
       discount: { minSheets: 10, rate: 0.3 },   // 30% desde 10 hojas del mismo diseño
       info: "Solo en autoadhesivos. Con más de 10 hojas la demora es de 1 semana. Desde 10 hojas del mismo diseño tenés 30% de descuento.",
