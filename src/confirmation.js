@@ -143,10 +143,15 @@
       : `Hola ${customerName}, recibimos tu pedido correctamente y ya está en producción.`;
     orderNumber.textContent = safeText(normalizeOrderNumber(data.orderNumber), "-");
 
-        const trackingLink = document.getElementById("tracking-link");
+    const isSinApuro = safeText(data.pickupMode, "") === "sin_apuro";
+    const trackingLink = document.getElementById("tracking-link");
     const cleanOrderNumber = normalizeOrderNumber(data.orderNumber);
     if (trackingLink && cleanOrderNumber) {
       trackingLink.href = `${TRACKING_URL}?pedido=${encodeURIComponent(cleanOrderNumber)}`;
+    }
+    if (trackingLink && isSinApuro) {
+      // Los pedidos "sin apuro" no entran en la fila de producción: no hay seguimiento en vivo.
+      trackingLink.classList.add("hidden");
     }
 
     summary.innerHTML = [
@@ -166,6 +171,14 @@
           <div>
             <p class="confirmation-note-alias">ALIAS: 29bis.ploteos</p>
             <p>Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>
+          </div>
+        `);
+      }
+      if (isSinApuro) {
+        blocks.push(`
+          <div>
+            <p class="confirmation-note-alias">Pedido sin apuro</p>
+            <p>Producimos y entregamos en tandas, sin fecha fija. Te avisamos por WhatsApp o mail cuando esté listo.</p>
           </div>
         `);
       }
