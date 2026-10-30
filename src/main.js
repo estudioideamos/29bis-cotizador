@@ -1890,7 +1890,7 @@
     }
     const mode = getPickupMode();
     if (mode === "sin_apuro") {
-      pickupDisclaimer.innerHTML = "<strong>Sin apuro:</strong> lo producimos y entregamos en tandas, sin fecha fija. Te avisamos por WhatsApp o mail cuando esté listo.";
+      pickupDisclaimer.innerHTML = "<strong>Sin apuro:</strong> lo producimos de acuerdo a los plazos del local. Te avisamos por WhatsApp o mail cuando esté listo.";
     } else if (mode === "urgente") {
       pickupDisclaimer.innerHTML = "<strong>Trabajo urgente:</strong> la entrega queda atada al caudal de trabajo del momento.";
     } else if (mode === "fecha") {
