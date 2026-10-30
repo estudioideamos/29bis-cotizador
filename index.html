@@ -262,13 +262,13 @@
           <input id="customer-email" type="email" form="quote-form" required>
         </label>
         <label class="field">
-          <span id="pickup-label-text">Fecha y hora de retiro (opcional)</span>
+          <span id="pickup-label-text">Fecha y hora de retiro</span>
           <select id="pickup-datetime" form="quote-form">
-            <option value="">Sin fecha (trabajo urgente)</option>
+            <option value="" disabled selected>Elegí cuándo lo necesitás</option>
           </select>
         </label>
         <p class="disclaimer" id="pickup-disclaimer">
-          Si no se completa fecha/hora de retiro, se toma como <strong>trabajo urgente</strong>.
+          Elegí <strong>Urgente</strong>, <strong>Sin apuro</strong> o una fecha y hora de retiro.
           La entrega según lo solicitado queda atada al caudal de trabajo.
         </p>
       </section>
@@ -304,6 +304,6 @@
   <script src="./src/config.js?v=20261027a"></script>
   <script src="./src/pricing-data.js?v=20260617b"></script>
   <script src="./src/services-data.js?v=20261030a"></script>
-  <script src="./src/main.js?v=20261030a"></script>
+  <script src="./src/main.js?v=20261030b"></script>
 </body>
 </html>
