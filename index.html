@@ -114,15 +114,15 @@
 
         <div id="custom-size-panel" class="custom-size-panel hidden">
           <h3>Tamaño personalizado (plotter)</h3>
-          <p class="muted">Ingresá ancho y alto en metros. El sistema calcula m² y lo multiplica por el precio por m².</p>
+          <p class="muted">Ingresá ancho y alto <strong>en metros</strong> (por ejemplo, 0,90 x 1,20). Mínimo 0,35 m y máximo 3 m por lado.</p>
           <div class="grid">
             <label class="field">
               <span>Ancho (m)</span>
-              <input id="custom-width" type="number" min="0.01" step="0.01" inputmode="decimal">
+              <input id="custom-width" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Ej: 0,90">
             </label>
             <label class="field">
               <span>Alto (m)</span>
-              <input id="custom-height" type="number" min="0.01" step="0.01" inputmode="decimal">
+              <input id="custom-height" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Ej: 1,20">
             </label>
           </div>
           <p id="custom-area-preview" class="custom-area-preview">Área: 0.00 m²</p>

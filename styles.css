@@ -352,6 +352,10 @@ textarea:focus {
   color: #2e4669;
 }
 
+.custom-area-preview.error {
+  color: var(--danger);
+}
+
 .custom-whatsapp-link {
   display: inline-block;
   text-decoration: none;

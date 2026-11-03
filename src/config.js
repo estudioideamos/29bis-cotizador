@@ -22,6 +22,12 @@ window.APP_CONFIG = {
   whatsappNumber: "543417466857",
   whatsappMessage: "Hola! Quiero cotizar un pedido en tamaño personalizado.",
 
+  // Recargo por pedido urgente: porcentaje sobre el total y monto mínimo en pesos.
+  urgentSurcharge: { rate: 0.2, min: 1000 },
+
+  // Medidas permitidas para el tamaño personalizado de plotter (en metros, por lado).
+  customSizeLimits: { minM: 0.35, maxM: 3 },
+
   // Configuración de retiro (opciones cerradas en el front)
   pickupSchedule: {
     // 0=domingo, 1=lunes, ... 6=sábado

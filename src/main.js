@@ -470,6 +470,43 @@
     return { widthM, heightM, areaM2 };
   }
 
+  function getCustomSizeLimits() {
+    const limits = config.customSizeLimits || {};
+    return {
+      minM: Number(limits.minM) > 0 ? Number(limits.minM) : 0.35,
+      maxM: Number(limits.maxM) > 0 ? Number(limits.maxM) : 3
+    };
+  }
+
+  function formatMeters(value) {
+    return String(value).replace(".", ",");
+  }
+
+  // Devuelve el motivo por el que las medidas personalizadas no sirven, o "" si están bien.
+  // Si todavía no cargaron las dos medidas, no marca error.
+  function getCustomSizeError() {
+    if (!isCustomPlotterSize()) {
+      return "";
+    }
+    const { widthM, heightM } = getCustomDimensions();
+    if (widthM <= 0 || heightM <= 0) {
+      return "";
+    }
+    const { minM, maxM } = getCustomSizeLimits();
+    const biggest = Math.max(widthM, heightM);
+    const smallest = Math.min(widthM, heightM);
+    if (biggest >= 10) {
+      return `Parece que ingresaste la medida en milímetros o centímetros. Escribila en metros: por ejemplo, 900 mm = 0,9 m.`;
+    }
+    if (biggest > maxM) {
+      return `La medida máxima es ${formatMeters(maxM)} m por lado. Para algo más grande, consultanos por WhatsApp.`;
+    }
+    if (smallest < minM) {
+      return `La medida mínima es ${formatMeters(minM)} m por lado. Para imprimir en A4 o A3, elegí impresión láser.`;
+    }
+    return "";
+  }
+
   function updateCustomAreaPreview() {
     const { widthM, heightM, areaM2 } = getCustomDimensions();
     const show = isCustomPlotterSize();
@@ -477,7 +514,10 @@
     if (!show) {
       return;
     }
-    els.customAreaPreview.textContent = `Área: ${areaM2.toFixed(2)} m² (${widthM.toFixed(2)} m x ${heightM.toFixed(2)} m)`;
+    const error = getCustomSizeError();
+    els.customAreaPreview.classList.toggle("error", Boolean(error));
+    els.customAreaPreview.textContent = error
+      || `Área: ${areaM2.toFixed(2)} m² (${widthM.toFixed(2)} m x ${heightM.toFixed(2)} m)`;
   }
 
   function updateCustomWhatsappLink() {
@@ -717,7 +757,8 @@
     let subtotal = 0;
     let detailLines = [];
     const customSize = isCustomPlotterSize() ? getCustomDimensions() : null;
-    const areaMultiplier = customSize ? customSize.areaM2 : 1;
+    // Con medidas fuera de rango no se cotiza (evita precios absurdos por medidas en mm).
+    const areaMultiplier = customSize ? (getCustomSizeError() ? 0 : customSize.areaM2) : 1;
 
     if (withCoverage) {
       Object.entries(state.coverageInputs).forEach(([coverageKey, input]) => {
@@ -1390,6 +1431,27 @@
     };
   }
 
+  // Recargo por urgente: porcentaje del total con un mínimo (ver config.urgentSurcharge).
+  function getUrgentSurcharge(baseTotal) {
+    if (getPickupMode() !== "urgente" || !(baseTotal > 0)) {
+      return 0;
+    }
+    const cfg = config.urgentSurcharge || {};
+    const rate = Number(cfg.rate) > 0 ? Number(cfg.rate) : 0;
+    const min = Number(cfg.min) > 0 ? Number(cfg.min) : 0;
+    if (!rate && !min) {
+      return 0;
+    }
+    return Math.round(Math.max(baseTotal * rate, min));
+  }
+
+  function getUrgentSurchargeText() {
+    const cfg = config.urgentSurcharge || {};
+    const pct = Math.round((Number(cfg.rate) || 0) * 100);
+    const min = Number(cfg.min) || 0;
+    return min ? `+${pct}%, mínimo ${currency.format(min)}` : `+${pct}%`;
+  }
+
   function getAggregatedPricing(orderItems) {
     const subtotal = orderItems.reduce((acc, item) => acc + (item.pricing.subtotal || 0), 0);
     const totalSheets = orderItems.reduce((acc, item) => acc + (item.pricing.totalSheets || 0), 0);
@@ -1573,9 +1635,17 @@
       frag.appendChild(discountRow);
     }
 
+    const urgentSurcharge = getUrgentSurcharge(aggregated.total);
+    if (urgentSurcharge > 0) {
+      const urgentRow = document.createElement("div");
+      urgentRow.className = "row";
+      urgentRow.innerHTML = `<span>Recargo por urgente (${escapeHtml(getUrgentSurchargeText())})</span><strong>+ ${currency.format(urgentSurcharge)}</strong>`;
+      frag.appendChild(urgentRow);
+    }
+
     const totalRow = document.createElement("div");
     totalRow.className = "row total";
-    totalRow.innerHTML = `<span>Total</span><strong>${currency.format(aggregated.total)}</strong>`;
+    totalRow.innerHTML = `<span>Total</span><strong>${currency.format(aggregated.total + urgentSurcharge)}</strong>`;
     frag.appendChild(totalRow);
 
     if (state.savedItems.length > 0) {
@@ -1810,7 +1880,7 @@
     placeholder.disabled = true;
     els.pickupDatetime.appendChild(placeholder);
     if (!requiresDate) {
-      els.pickupDatetime.appendChild(createOption(PICKUP_URGENT, "Urgente (sin fecha)"));
+      els.pickupDatetime.appendChild(createOption(PICKUP_URGENT, `Urgente (${getUrgentSurchargeText()})`));
     }
     els.pickupDatetime.appendChild(createOption(PICKUP_SIN_APURO, "Sin apuro (avisenme cuando esté listo)"));
     const pickupLabelText = document.getElementById("pickup-label-text");
@@ -1892,7 +1962,7 @@
     if (mode === "sin_apuro") {
       pickupDisclaimer.innerHTML = "<strong>Sin apuro:</strong> lo producimos de acuerdo a los plazos del local. Te avisamos por WhatsApp o mail cuando esté listo.";
     } else if (mode === "urgente") {
-      pickupDisclaimer.innerHTML = "<strong>Trabajo urgente:</strong> la entrega queda atada al caudal de trabajo del momento.";
+      pickupDisclaimer.innerHTML = `<strong>Urgente (${escapeHtml(getUrgentSurchargeText())}):</strong> tu pedido pasa adelante de la fila y lo producimos con prioridad, según el caudal de trabajo del momento. ¿No lo necesitás ya? Elegí un horario de retiro y no pagás recargo.`;
     } else if (mode === "fecha") {
       pickupDisclaimer.innerHTML = "La entrega según lo solicitado queda atada al caudal de trabajo.";
     } else if (state.leadDays > 0) {
@@ -1924,6 +1994,11 @@
       const { widthM, heightM, areaM2 } = getCustomDimensions();
       if (widthM <= 0 || heightM <= 0 || areaM2 <= 0) {
         setStatus("Ingresá ancho y alto válidos en metros para el tamaño personalizado.", "error");
+        return false;
+      }
+      const customError = getCustomSizeError();
+      if (customError) {
+        setStatus(customError, "error");
         return false;
       }
     }
@@ -1978,6 +2053,7 @@
     const pickupMode = getPickupMode();
     const urgent = pickupMode === "urgente";
     const pricingTotals = getAggregatedPricing(orderItems);
+    const urgentSurcharge = urgent ? getUrgentSurcharge(pricingTotals.total) : 0;
     const paymentMethod = getSelectedPaymentMethod();
     const firstFileName = uploadedFiles[0] ? uploadedFiles[0].name : null;
     const jobList = jobs || [];
@@ -2017,7 +2093,8 @@
         servicesTotal: pricingTotals.servicesTotal,
         discountRate: pricingTotals.discountRate,
         discountAmount: pricingTotals.discountAmount,
-        total: pricingTotals.total,
+        urgentSurcharge,
+        total: pricingTotals.total + urgentSurcharge,
         totalSheets: pricingTotals.totalSheets
       }
     };
@@ -2171,7 +2248,10 @@
       els.sendLinkLater.addEventListener("change", updateFileMeta);
     }
     if (els.pickupDatetime) {
-      els.pickupDatetime.addEventListener("change", updatePickupDisclaimer);
+      els.pickupDatetime.addEventListener("change", () => {
+        updatePickupDisclaimer();
+        updateSummary();
+      });
     }
     els.paymentMethodRadios.forEach((radio) => {
       radio.addEventListener("change", updatePaymentUI);
@@ -2211,6 +2291,11 @@
 
     els.addItemBtn.addEventListener("click", () => {
       updateSummary();
+      const customError = getCustomSizeError();
+      if (customError) {
+        setStatus(customError, "error");
+        return;
+      }
       const currentWork = getCurrentWorkSnapshot();
       if (!currentWork) {
         setStatus("Primero cargá una cantidad válida para este trabajo antes de agregarlo.", "error");
