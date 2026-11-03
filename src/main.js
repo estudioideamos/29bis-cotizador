@@ -1866,6 +1866,12 @@
   const PICKUP_URGENT = "urgente";
   const PICKUP_SIN_APURO = "sin-apuro";
 
+  // Hora más temprana que se puede elegir para retirar: ahora + el margen mínimo de producción.
+  function getMinPickupTime(now) {
+    const minutes = Math.max(0, Number(pickupSchedule.minLeadMinutes) || 0);
+    return (now || new Date()).getTime() + minutes * 60 * 1000;
+  }
+
   function buildPickupOptions() {
     if (!els.pickupDatetime) {
       return;
@@ -1920,8 +1926,8 @@
           0
         );
 
-        // Evita ofrecer horarios ya pasados el mismo día
-        if (optionDate.getTime() <= now.getTime()) {
+        // Evita ofrecer horarios ya pasados o demasiado cercanos (ver pickupSchedule.minLeadMinutes)
+        if (optionDate.getTime() < getMinPickupTime(now)) {
           return;
         }
 
@@ -2028,6 +2034,17 @@
         : "Elegí cuándo necesitás tu pedido: Urgente, Sin apuro o una fecha y hora de retiro.", "error");
       els.pickupDatetime.focus();
       return false;
+    }
+
+    // Si la página quedó abierta un rato, el horario elegido puede haber quedado demasiado cerca.
+    if (getPickupMode() === "fecha") {
+      const chosen = new Date(els.pickupDatetime.value);
+      if (!Number.isNaN(chosen.getTime()) && chosen.getTime() < getMinPickupTime()) {
+        buildPickupOptions();
+        setStatus(`Ese horario de retiro ya está muy cerca: necesitamos al menos ${Number(pickupSchedule.minLeadMinutes) || 0} minutos para preparar tu pedido. Elegí otro horario o la opción Urgente.`, "error");
+        els.pickupDatetime.focus();
+        return false;
+      }
     }
 
     const jobs = collectJobs();

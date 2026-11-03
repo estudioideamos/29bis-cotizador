@@ -41,6 +41,9 @@ window.APP_CONFIG = {
       "17:30", "18:00", "18:30", "19:00", "19:30"
     ],
     // Días futuros que se muestran
-    daysAhead: 21
+    daysAhead: 21,
+    // Minutos mínimos entre el momento del pedido y el horario de retiro elegido
+    // (para que nadie use un horario inmediato como si fuera urgente sin pagar el recargo)
+    minLeadMinutes: 20
   }
 };
