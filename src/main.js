@@ -1199,16 +1199,43 @@
     return date;
   }
 
+  // Papeles que necesitan días de producción (ver config.paperLeadDays).
+  function getPaperLeadInfo() {
+    const table = config.paperLeadDays || {};
+    let days = 0;
+    const labels = [];
+    const consider = (paperKey) => {
+      const d = Number(table[paperKey]) || 0;
+      if (d > 0) {
+        days = Math.max(days, d);
+        const label = getPaperLabel(paperKey);
+        if (!labels.includes(label)) {
+          labels.push(label);
+        }
+      }
+    };
+    state.savedItems.forEach((item) => consider(item.paper && item.paper.key));
+    if (getQuantityTotal() > 0) {
+      consider(els.paper.value);
+    }
+    return { days, labels };
+  }
+
   function syncLeadDays() {
     if (!servicesData) {
       return;
     }
-    const days = computeLeadDays(getAllJobsForLeadDays());
+    const serviceDays = computeLeadDays(getAllJobsForLeadDays());
+    const paperInfo = getPaperLeadInfo();
+    const days = Math.max(serviceDays, paperInfo.days);
     if (els.servicesLead) {
       if (days > 0) {
         const from = getEarliestPickupDate(days);
         const fromText = from.toLocaleDateString("es-AR", { weekday: "long", day: "2-digit", month: "2-digit" });
-        els.servicesLead.textContent = `Por los servicios elegidos, tu pedido necesita ${days} día${days === 1 ? "" : "s"} hábil${days === 1 ? "" : "es"} de producción: podés retirarlo desde el ${fromText}.`;
+        const reason = paperInfo.days >= serviceDays && paperInfo.days > 0
+          ? `Por el papel elegido (${paperInfo.labels.join(", ")})`
+          : "Por los servicios elegidos";
+        els.servicesLead.textContent = `${reason}, tu pedido necesita ${days} día${days === 1 ? "" : "s"} hábil${days === 1 ? "" : "es"} de producción: podés retirarlo desde el ${fromText}.`;
         els.servicesLead.classList.remove("hidden");
       } else {
         els.servicesLead.classList.add("hidden");
@@ -1219,7 +1246,7 @@
       state.leadDays = days;
       buildPickupOptions();
       if (previous && !Array.from(els.pickupDatetime.options).some((opt) => opt.value === previous)) {
-        setStatus("Cambió el plazo por los servicios elegidos. Elegí de nuevo la fecha de retiro.", "error");
+        setStatus("Cambió el plazo de producción de tu pedido. Elegí de nuevo la fecha de retiro.", "error");
       }
     }
   }
@@ -1972,7 +1999,7 @@
     } else if (mode === "fecha") {
       pickupDisclaimer.innerHTML = "La entrega según lo solicitado queda atada al caudal de trabajo.";
     } else if (state.leadDays > 0) {
-      pickupDisclaimer.innerHTML = "Los pedidos con servicios <strong>no pueden ser urgentes</strong>: el retiro es a partir de la fecha mínima que indicamos arriba (según la demora de cada servicio), o elegí <strong>Sin apuro</strong>.";
+      pickupDisclaimer.innerHTML = "Este pedido <strong>no puede ser urgente</strong> (por los servicios o el papel elegido): el retiro es a partir de la fecha mínima que indicamos arriba, o elegí <strong>Sin apuro</strong>.";
     } else {
       pickupDisclaimer.innerHTML = "Elegí <strong>Urgente</strong>, <strong>Sin apuro</strong> o una fecha y hora de retiro. La entrega según lo solicitado queda atada al caudal de trabajo.";
     }
@@ -2030,7 +2057,7 @@
 
     if (!els.pickupDatetime.value) {
       setStatus(state.leadDays > 0
-        ? "Los pedidos con servicios no pueden ser urgentes: elegí una fecha de retiro o la opción Sin apuro."
+        ? "Este pedido no puede ser urgente (por los servicios o el papel elegido): elegí una fecha de retiro o la opción Sin apuro."
         : "Elegí cuándo necesitás tu pedido: Urgente, Sin apuro o una fecha y hora de retiro.", "error");
       els.pickupDatetime.focus();
       return false;

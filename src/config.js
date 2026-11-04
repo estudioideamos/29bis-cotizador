@@ -25,6 +25,9 @@ window.APP_CONFIG = {
   // Recargo por pedido urgente: porcentaje sobre el total y monto mínimo en pesos.
   urgentSurcharge: { rate: 0.2, min: 1000 },
 
+  // Papeles que necesitan días hábiles de producción (no se pueden pedir para el mismo día ni urgentes).
+  paperLeadDays: { plotter_fotografico_180: 1 },
+
   // Medidas permitidas para el tamaño personalizado de plotter (en metros, por lado).
   customSizeLimits: { minM: 0.35, maxM: 3 },
 
