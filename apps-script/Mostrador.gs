@@ -1,0 +1,561 @@
+// ============================================================
+// 29 BIS - MOSTRADOR (cotizador.29bis.com.ar/mostrador)
+//
+// Qué hace:
+//  - Cada persona del equipo entra con su contraseña (pestaña oculta "equipo").
+//  - Producción: lista los pedidos y permite cambiar el estado. Cuando pasa a
+//    "Listo para retirar" o "Ver email" se disparan LOS MISMOS avisos que hoy
+//    (mail por Brevo + WhatsApp por Make), igual que si lo cambiaran a mano.
+//  - Entregar pedidos: cobrar y entregar pedidos web, o entregar los ya pagados.
+//  - Corregir cotización de pedidos web (con cobro extra o devolución si ya estaba pagado).
+//  - Trabajos presenciales, señas y saldos.
+//  - Todo cobro queda en la pestaña "cobros"; cada acción queda en "registro".
+//
+// Instalación (una sola vez): ejecutar mostradorPreparar() desde el editor.
+// En Código.gs, dentro de doPost, hay que sumar UNA línea (ver guía).
+// ============================================================
+
+const MOST_TZ = 'America/Argentina/Buenos_Aires';
+const MOST_EQUIPO = 'equipo';
+const MOST_COBROS = 'cobros';
+const MOST_SALDOS = 'saldos';
+const MOST_REGISTRO = 'registro';
+const MOST_HORAS_SESION = 14;
+
+const MOST_COBROS_HEADER = ['Fecha', 'Hora', 'Comprobante', 'Origen', 'Pedido', 'Detalle', 'Tipo trabajo',
+  'Tipo cliente', 'Cliente', 'DNI', 'Medio', 'Caja', 'Monto', 'Atendió'];
+const MOST_SALDOS_HEADER = ['Comprobante', 'Fecha', 'Cliente', 'DNI', 'Detalle', 'Total', 'Seña', 'Saldo',
+  'Estado', 'Cobrado el', 'Medio saldo', 'Atendió seña', 'Atendió saldo', 'Tipo trabajo', 'Tipo cliente'];
+const MOST_REGISTRO_HEADER = ['Fecha y hora', 'Usuario', 'Pedido', 'Acción', 'Detalle'];
+
+const MOST_ESTADOS = ['En revisión', 'En preparación', 'Listo para retirar', 'Retirado', 'Cancelado',
+  'Ver email', 'Presupuesto', 'Pendiente'];
+const MOST_MEDIOS = {
+  efectivo: { label: 'Efectivo', caja: 'Efectivo' },
+  qr: { label: 'QR / tarjeta', caja: 'Mercado Pago' },
+  mp: { label: 'Transferencia MP', caja: 'Mercado Pago' },
+  mpweb: { label: 'Mercado Pago web', caja: 'Mercado Pago' },
+  banco: { label: 'Transferencia banco', caja: 'Banco' }
+};
+
+// columnas de "operacion" (1-based), según OPERACION_29_SAFE.gs
+const MOST_OP = { pedido: 1, estado: 2, pago: 3, total: 4, retiro: 5, cliente: 6, dni: 7, email: 8,
+  telefono: 9, tipo: 10, papel: 11, tamano: 12, faz: 13, detalle: 16, obs: 19, formaPago: 21,
+  urgente: 23, filaOrders: 24, servicios: 26 };
+// columnas de "orders" (1-based)
+const MOST_OR = { pedido: 2, total: 19, pago: 21, estado: 22, links: 27, payload: 31, asignado: 33, cambio: 34 };
+
+// ------------------------------------------------------------
+// Entrada: se llama desde doPost cuando body.mostrador === true
+// ------------------------------------------------------------
+function mostradorManejar_(body) {
+  try {
+    const accion = String(body.accion || '');
+    if (accion === 'login') return jsonResponse(mostLogin_(body));
+
+    const usuario = mostValidarSesion_(body.sesion);
+    if (!usuario) return jsonResponse({ ok: false, sesion: false, message: 'Tu sesión venció. Volvé a entrar.' });
+
+    let r;
+    if (accion === 'datos') r = mostDatos_(usuario);
+    else if (accion === 'estado') r = mostCambiarEstado_(usuario, body);
+    else if (accion === 'cobrar_web') r = mostCobrarWeb_(usuario, body);
+    else if (accion === 'entregar') r = mostEntregar_(usuario, body);
+    else if (accion === 'corregir') r = mostCorregir_(usuario, body);
+    else if (accion === 'presencial') r = mostPresencial_(usuario, body);
+    else if (accion === 'cobrar_saldo') r = mostCobrarSaldo_(usuario, body);
+    else r = { ok: false, message: 'Acción desconocida.' };
+    return jsonResponse(r);
+  } catch (err) {
+    console.error('Mostrador falló: ' + err + '\n' + (err && err.stack));
+    return jsonResponse({ ok: false, message: 'Error en el servidor: ' + err });
+  }
+}
+
+// ------------------------------------------------------------
+// Sesión
+// ------------------------------------------------------------
+function mostSecreto_() {
+  const props = PropertiesService.getScriptProperties();
+  let s = props.getProperty('MOST_SECRET');
+  if (!s) {
+    s = Utilities.getUuid() + Utilities.getUuid();
+    props.setProperty('MOST_SECRET', s);
+  }
+  return s;
+}
+
+function mostFirma_(texto) {
+  return Utilities.computeHmacSha256Signature(texto, mostSecreto_())
+    .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('').slice(0, 32);
+}
+
+function mostLogin_(body) {
+  const clave = String(body.clave || '').trim();
+  if (!clave) return { ok: false, message: 'Escribí tu contraseña.' };
+  const hoja = mostHoja_(MOST_EQUIPO, ['Nombre', 'Contraseña', 'Activo']);
+  const filas = hoja.getLastRow() > 1 ? hoja.getRange(2, 1, hoja.getLastRow() - 1, 3).getDisplayValues() : [];
+  for (let i = 0; i < filas.length; i++) {
+    const nombre = String(filas[i][0]).trim();
+    const pass = String(filas[i][1]).trim();
+    const activo = String(filas[i][2]).trim().toUpperCase();
+    if (nombre && pass && pass === clave && (activo === 'SI' || activo === 'SÍ')) {
+      const vence = Date.now() + MOST_HORAS_SESION * 3600 * 1000;
+      const base = nombre + '|' + vence;
+      mostRegistrar_(nombre, '', 'Entró al mostrador', '');
+      return { ok: true, usuario: nombre, sesion: Utilities.base64EncodeWebSafe(base + '|' + mostFirma_(base)) };
+    }
+  }
+  return { ok: false, message: 'Contraseña incorrecta.' };
+}
+
+function mostValidarSesion_(sesion) {
+  try {
+    const txt = Utilities.newBlob(Utilities.base64DecodeWebSafe(String(sesion || ''))).getDataAsString();
+    const partes = txt.split('|');
+    if (partes.length !== 3) return '';
+    const base = partes[0] + '|' + partes[1];
+    if (mostFirma_(base) !== partes[2]) return '';
+    if (Number(partes[1]) < Date.now()) return '';
+    // si lo dieron de baja en "equipo", la sesión deja de valer
+    const hoja = mostHoja_(MOST_EQUIPO, ['Nombre', 'Contraseña', 'Activo']);
+    const filas = hoja.getLastRow() > 1 ? hoja.getRange(2, 1, hoja.getLastRow() - 1, 3).getDisplayValues() : [];
+    const sigue = filas.some(function (f) {
+      const a = String(f[2]).trim().toUpperCase();
+      return String(f[0]).trim() === partes[0] && (a === 'SI' || a === 'SÍ');
+    });
+    return sigue ? partes[0] : '';
+  } catch (x) {
+    return '';
+  }
+}
+
+// ------------------------------------------------------------
+// Utilidades
+// ------------------------------------------------------------
+function mostSS_() { return SpreadsheetApp.openById(SHEET_ID); }
+
+function mostHoja_(nombre, encabezado) {
+  const ss = mostSS_();
+  let h = ss.getSheetByName(nombre);
+  if (!h) {
+    h = ss.insertSheet(nombre);
+    h.getRange(1, 1, 1, encabezado.length).setValues([encabezado]).setFontWeight('bold')
+      .setBackground('#2d2b29').setFontColor('#ffffff');
+    h.setFrozenRows(1);
+    h.hideSheet();
+  }
+  return h;
+}
+
+function mostAhora_() {
+  const d = new Date();
+  return {
+    d: d,
+    fecha: Utilities.formatDate(d, MOST_TZ, 'dd/MM/yyyy'),
+    hora: Utilities.formatDate(d, MOST_TZ, 'HH:mm'),
+    completa: Utilities.formatDate(d, MOST_TZ, 'dd/MM/yyyy HH:mm')
+  };
+}
+
+function mostNorm_(v) {
+  return String(v === null || v === undefined ? '' : v).trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+}
+
+function mostRegistrar_(usuario, pedido, accion, detalle) {
+  try {
+    const h = mostHoja_(MOST_REGISTRO, MOST_REGISTRO_HEADER);
+    h.appendRow([mostAhora_().completa, usuario, pedido, accion, detalle || '']);
+  } catch (err) {
+    console.error('No se pudo escribir el registro: ' + err);
+  }
+}
+
+function mostCobro_(datos) {
+  const ahora = mostAhora_();
+  const medio = MOST_MEDIOS[datos.medio] || { label: datos.medio, caja: '' };
+  const h = mostHoja_(MOST_COBROS, MOST_COBROS_HEADER);
+  const fila = h.getLastRow() + 1;
+  const rango = h.getRange(fila, 1, 1, MOST_COBROS_HEADER.length);
+  // Todo como texto salvo el monto, para que la fecha no cambie de formato y la planilla diaria la encuentre.
+  rango.setNumberFormat('@');
+  h.getRange(fila, 13).setNumberFormat('#,##0');
+  rango.setValues([[ahora.fecha, ahora.hora, datos.comprobante || '', datos.origen || '', String(datos.pedido || ''),
+    datos.detalle || '', datos.tipoTrabajo || '', datos.tipoCliente || '', String(datos.cliente || ''), String(datos.dni || ''),
+    medio.label, medio.caja, Math.round(Number(datos.monto) || 0), datos.usuario || '']]);
+}
+
+function mostTipoTrabajoWeb_(tipoImpresion) {
+  const t = mostNorm_(tipoImpresion);
+  const l = t.indexOf('laser') !== -1, p = t.indexOf('plotter') !== -1;
+  return l && p ? 'M' : l ? 'L' : p ? 'P' : '';
+}
+
+// Busca el pedido en "operacion" y en "orders". Devuelve { op, opFila, or, orFila, valores }.
+function mostBuscarPedido_(pedido) {
+  const ss = mostSS_();
+  const op = ss.getSheetByName(OP_SHEET_NAME);
+  const or = ss.getSheetByName(ORDERS_SHEET);
+  const buscado = normalizarIdPedido_(pedido);
+  const res = { op: op, or: or, opFila: 0, orFila: 0, valores: null };
+  if (op && op.getLastRow() >= 2) {
+    const n = op.getLastRow() - 1;
+    const datos = op.getRange(2, 1, n, MOST_OP.servicios).getValues();
+    for (let i = 0; i < n; i++) {
+      if (normalizarIdPedido_(datos[i][0]) === buscado) {
+        res.opFila = i + 2;
+        res.valores = datos[i];
+        break;
+      }
+    }
+  }
+  if (or && or.getLastRow() >= 2) {
+    const ayuda = res.valores ? Number(res.valores[MOST_OP.filaOrders - 1] || 0) : 0;
+    if (ayuda >= 2 && normalizarIdPedido_(String(or.getRange(ayuda, MOST_OR.pedido).getValue()).replace(/^29BIS-/i, '')) === buscado) {
+      res.orFila = ayuda;
+    } else {
+      const ids = or.getRange(2, MOST_OR.pedido, or.getLastRow() - 1, 1).getValues();
+      for (let i = 0; i < ids.length; i++) {
+        if (normalizarIdPedido_(String(ids[i][0]).replace(/^29BIS-/i, '')) === buscado) { res.orFila = i + 2; break; }
+      }
+    }
+  }
+  return res;
+}
+
+// Escribe estado de pedido y/o de pago en las dos hojas, como lo hace hoy la edición a mano.
+function mostEscribirEstados_(b, estadoPedido, estadoPago, usuario) {
+  const ahora = mostAhora_();
+  if (b.opFila) {
+    if (estadoPedido) b.op.getRange(b.opFila, MOST_OP.estado).setValue(estadoPedido);
+    if (estadoPago) b.op.getRange(b.opFila, MOST_OP.pago).setValue(estadoPago);
+  }
+  if (b.orFila) {
+    b.or.getRange(b.orFila, MOST_OR.pago, 1, 2).clearDataValidations();
+    if (estadoPago) b.or.getRange(b.orFila, MOST_OR.pago).setValue(estadoPago);
+    if (estadoPedido) b.or.getRange(b.orFila, MOST_OR.estado).setValue(estadoPedido);
+    b.or.getRange(b.orFila, MOST_OR.cambio).setValue(ahora.completa);
+    if (usuario) b.or.getRange(b.orFila, MOST_OR.asignado).setValue(usuario);
+  }
+}
+
+// Dispara los avisos al cliente igual que la edición a mano (mail Brevo + WhatsApp por Make).
+function mostAvisarCliente_(b, estado) {
+  if (!b.opFila) return;
+  if (estado !== 'Listo para retirar' && estado !== 'Ver email') return;
+  const orderNumber = String(b.op.getRange(b.opFila, MOST_OP.pedido).getValue() || '').trim();
+  try {
+    notificarCambioEstado_(b.op, b.opFila, orderNumber, estado);
+  } catch (err) {
+    console.error('Mostrador: falló el mail de aviso del pedido ' + orderNumber + ': ' + err);
+  }
+  try {
+    avisarFilaAMake_(b.op, b.opFila);
+  } catch (err) {
+    console.error('Mostrador: falló el aviso a Make del pedido ' + orderNumber + ': ' + err);
+  }
+}
+
+function mostConLock_(fn) {
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ------------------------------------------------------------
+// Datos para la página
+// ------------------------------------------------------------
+function mostDatos_(usuario) {
+  const ss = mostSS_();
+  const op = ss.getSheetByName(OP_SHEET_NAME);
+  const or = ss.getSheetByName(ORDERS_SHEET);
+  const pedidos = [];
+
+  // payload y links de "orders", por número de pedido
+  const extras = {};
+  if (or && or.getLastRow() >= 2) {
+    const n = or.getLastRow() - 1;
+    const ids = or.getRange(2, MOST_OR.pedido, n, 1).getValues();
+    const links = or.getRange(2, MOST_OR.links, n, 1).getValues();
+    const payloads = or.getRange(2, MOST_OR.payload, n, 1).getValues();
+    const cambios = or.getRange(2, MOST_OR.cambio, n, 1).getDisplayValues();
+    for (let i = 0; i < n; i++) {
+      const id = normalizarIdPedido_(String(ids[i][0]).replace(/^29BIS-/i, ''));
+      if (!id) continue;
+      extras[id] = { link: buildAdjuntosUrl_(links[i][0]), payload: payloads[i][0], cambio: String(cambios[i][0] || '') };
+    }
+  }
+
+  if (op && op.getLastRow() >= 2) {
+    const n = op.getLastRow() - 1;
+    const filas = op.getRange(2, 1, n, MOST_OP.servicios).getValues();
+    for (let i = 0; i < n; i++) {
+      const f = filas[i];
+      const id = String(f[0] || '').trim();
+      if (!id) continue;
+      const estado = String(f[MOST_OP.estado - 1] || '').trim();
+      const en = mostNorm_(estado);
+      if (en === 'presupuesto') continue;
+      // Los retirados solo se muestran si se entregaron hoy (para poder corregir algo).
+      const exHoy = extras[normalizarIdPedido_(id)] || {};
+      if (en === 'retirado' && String(exHoy.cambio).indexOf(mostAhora_().fecha) !== 0) continue;
+      const retiroRaw = f[MOST_OP.retiro - 1];
+      let retiro = '';
+      if (retiroRaw instanceof Date && !isNaN(retiroRaw.getTime())) {
+        retiro = Utilities.formatDate(retiroRaw, MOST_TZ, "yyyy-MM-dd'T'HH:mm");
+      } else if (mostNorm_(retiroRaw) === 'sin apuro') {
+        retiro = 'sin_apuro';
+      }
+      const ex = extras[normalizarIdPedido_(id)] || {};
+      const payload = parseOrderPayload_(ex.payload);
+      const trabajos = mostTrabajosDesdePayload_(payload);
+      pedidos.push({
+        n: id,
+        estado: estado,
+        pago: String(f[MOST_OP.pago - 1] || '').trim(),
+        total: Number(f[MOST_OP.total - 1]) || 0,
+        retiro: retiro,
+        urgente: mostNorm_(f[MOST_OP.urgente - 1]) === 'si',
+        cliente: String(f[MOST_OP.cliente - 1] || '').trim(),
+        dni: String(f[MOST_OP.dni - 1] || '').trim(),
+        tipo: String(f[MOST_OP.tipo - 1] || '').trim(),
+        papel: String(f[MOST_OP.papel - 1] || '').trim(),
+        tamano: String(f[MOST_OP.tamano - 1] || '').trim(),
+        faz: String(f[MOST_OP.faz - 1] || '').trim(),
+        detalle: String(f[MOST_OP.detalle - 1] || '').trim(),
+        obs: String(f[MOST_OP.obs - 1] || '').trim().slice(0, 300),
+        formaPago: String(f[MOST_OP.formaPago - 1] || '').trim(),
+        servicios: String(f[MOST_OP.servicios - 1] || '').trim(),
+        link: ex.link || '',
+        trabajos: trabajos
+      });
+    }
+  }
+
+  // cobros de hoy
+  const hoy = mostAhora_().fecha;
+  const cobros = [];
+  const hc = mostSS_().getSheetByName(MOST_COBROS);
+  if (hc && hc.getLastRow() >= 2) {
+    const n = hc.getLastRow() - 1;
+    const desde = Math.max(0, n - 600); // alcanza de sobra para un día
+    const filas = hc.getRange(2 + desde, 1, n - desde, MOST_COBROS_HEADER.length).getDisplayValues();
+    const montos = hc.getRange(2 + desde, 13, n - desde, 1).getValues();
+    filas.forEach(function (f, i) {
+      if (f[0] !== hoy) return;
+      cobros.push({ hora: f[1], comprobante: f[2], origen: f[3], pedido: f[4], detalle: f[5], cliente: f[8],
+        medio: f[10], caja: f[11], monto: Number(montos[i][0]) || 0, usuario: f[13] });
+    });
+  }
+
+  // saldos de señas pendientes
+  const saldos = [];
+  const hs = mostSS_().getSheetByName(MOST_SALDOS);
+  if (hs && hs.getLastRow() >= 2) {
+    const filas = hs.getRange(2, 1, hs.getLastRow() - 1, MOST_SALDOS_HEADER.length).getDisplayValues();
+    const nums = hs.getRange(2, 6, hs.getLastRow() - 1, 3).getValues();
+    filas.forEach(function (f, i) {
+      if (mostNorm_(f[8]) !== 'pendiente') return;
+      saldos.push({ comprobante: f[0], fecha: f[1], cliente: f[2], dni: f[3], detalle: f[4],
+        total: Number(nums[i][0]) || 0, sena: Number(nums[i][1]) || 0, saldo: Number(nums[i][2]) || 0 });
+    });
+  }
+
+  return { ok: true, usuario: usuario, ahora: mostAhora_().completa, pedidos: pedidos, cobros: cobros, saldos: saldos };
+}
+
+function mostTrabajosDesdePayload_(payload) {
+  const items = Array.isArray(payload && payload.orderItems) ? payload.orderItems : [];
+  return items.map(function (it, i) {
+    const partes = [
+      it.machine && it.machine.label,
+      it.paper && it.paper.label,
+      it.customSize && it.customSize.widthM ? (it.customSize.widthM + ' x ' + it.customSize.heightM + ' m') : (it.size && it.size.label),
+      it.machine && it.machine.key === 'laser' && it.sides && it.sides.label ? it.sides.label : ''
+    ].filter(Boolean);
+    const servicios = (Array.isArray(it.services) ? it.services : [])
+      .map(function (s) { return String((s && (s.detail || s.label)) || '').trim(); }).filter(Boolean).join('; ');
+    const archivo = Array.isArray(payload.fileNames) && payload.fileNames.length > 1
+      ? (payload.fileNames.filter(function (n) { return String(n).indexOf('Trabajo ' + (i + 1) + ' - ') === 0; })[0] || '')
+      : '';
+    return {
+      maquina: it.machine && it.machine.key ? it.machine.key : '',
+      detalle: partes.join(' · '),
+      cantidad: formatWorkQuantityForOperacion_(it),
+      servicios: servicios,
+      archivo: archivo
+    };
+  });
+}
+
+// ------------------------------------------------------------
+// Acciones
+// ------------------------------------------------------------
+function mostCambiarEstado_(usuario, body) {
+  const estado = String(body.estado || '').trim();
+  if (MOST_ESTADOS.indexOf(estado) === -1) return { ok: false, message: 'Estado no válido.' };
+  return mostConLock_(function () {
+    const b = mostBuscarPedido_(body.pedido);
+    if (!b.opFila && !b.orFila) return { ok: false, message: 'No encontré el pedido ' + body.pedido + '.' };
+    const antes = b.valores ? String(b.valores[MOST_OP.estado - 1] || '') : '';
+    mostEscribirEstados_(b, estado, '', usuario);
+    SpreadsheetApp.flush();
+    mostAvisarCliente_(b, estado);
+    mostRegistrar_(usuario, body.pedido, 'Cambio de estado', antes + ' → ' + estado);
+    return { ok: true };
+  });
+}
+
+function mostCobrarWeb_(usuario, body) {
+  const medio = String(body.medio || '');
+  if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Medio de pago no válido.' };
+  return mostConLock_(function () {
+    const b = mostBuscarPedido_(body.pedido);
+    if (!b.opFila) return { ok: false, message: 'No encontré el pedido ' + body.pedido + '.' };
+    const v = b.valores;
+    if (mostNorm_(v[MOST_OP.pago - 1]) === 'pagado') return { ok: false, message: 'Ese pedido ya figura como pagado. Actualizá la lista.' };
+    const total = Number(v[MOST_OP.total - 1]) || 0;
+    if (!(total > 0) || total > 3000000) return { ok: false, message: 'El total de ese pedido parece mal cotizado. Corregí la cotización antes de cobrar.' };
+    mostEscribirEstados_(b, 'Retirado', 'Pagado', usuario);
+    mostCobro_({ origen: 'Web', pedido: String(v[0]), detalle: String(v[MOST_OP.detalle - 1] || v[MOST_OP.papel - 1] || ''),
+      tipoTrabajo: mostTipoTrabajoWeb_(v[MOST_OP.tipo - 1]), cliente: v[MOST_OP.cliente - 1], dni: v[MOST_OP.dni - 1],
+      medio: medio, monto: total, usuario: usuario });
+    mostRegistrar_(usuario, body.pedido, 'Cobró y entregó', MOST_MEDIOS[medio].label + ' $ ' + total);
+    return { ok: true, monto: total };
+  });
+}
+
+function mostEntregar_(usuario, body) {
+  return mostConLock_(function () {
+    const b = mostBuscarPedido_(body.pedido);
+    if (!b.opFila) return { ok: false, message: 'No encontré el pedido ' + body.pedido + '.' };
+    const v = b.valores;
+    if (mostNorm_(v[MOST_OP.pago - 1]) !== 'pagado') return { ok: false, message: 'Ese pedido todavía no está pagado: cobralo antes de entregarlo.' };
+    mostEscribirEstados_(b, 'Retirado', '', usuario);
+    // El pago online entra a la caja del día en que se entrega (como "Mercado Pago web").
+    const online = mostNorm_(v[MOST_OP.formaPago - 1]).indexOf('mercado pago') !== -1;
+    if (online) {
+      mostCobro_({ origen: 'Web (pagado online)', pedido: String(v[0]), detalle: String(v[MOST_OP.detalle - 1] || ''),
+        tipoTrabajo: mostTipoTrabajoWeb_(v[MOST_OP.tipo - 1]), cliente: v[MOST_OP.cliente - 1], dni: v[MOST_OP.dni - 1],
+        medio: 'mpweb', monto: Number(v[MOST_OP.total - 1]) || 0, usuario: usuario });
+    }
+    mostRegistrar_(usuario, body.pedido, 'Entregó (ya pagado)', String(v[MOST_OP.formaPago - 1] || ''));
+    return { ok: true };
+  });
+}
+
+function mostCorregir_(usuario, body) {
+  const nuevo = Math.round(Number(body.monto) || 0);
+  const motivo = String(body.motivo || '').trim();
+  if (!(nuevo > 0) || !motivo) return { ok: false, message: 'Cargá el monto correcto y el motivo.' };
+  return mostConLock_(function () {
+    const b = mostBuscarPedido_(body.pedido);
+    if (!b.opFila) return { ok: false, message: 'No encontré el pedido ' + body.pedido + '.' };
+    const v = b.valores;
+    const antes = Number(v[MOST_OP.total - 1]) || 0;
+    const pagado = mostNorm_(v[MOST_OP.pago - 1]) === 'pagado';
+    const dif = nuevo - antes;
+    if (pagado) {
+      const medio = String(body.medio || '');
+      if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Elegí con qué se cobra o se devuelve la diferencia.' };
+      if (!dif) return { ok: false, message: 'No hay diferencia para registrar.' };
+      mostCobro_({ origen: dif > 0 ? 'Cobro por corrección' : 'Devolución por corrección', pedido: String(v[0]),
+        detalle: motivo, tipoTrabajo: mostTipoTrabajoWeb_(v[MOST_OP.tipo - 1]), cliente: v[MOST_OP.cliente - 1],
+        dni: v[MOST_OP.dni - 1], medio: medio, monto: dif, usuario: usuario });
+    }
+    b.op.getRange(b.opFila, MOST_OP.total).setValue(nuevo);
+    if (b.orFila) {
+      const celda = b.or.getRange(b.orFila, MOST_OR.total);
+      celda.setValue(nuevo);
+      try { celda.setNote('Corregido por ' + usuario + ' el ' + mostAhora_().completa + ': $ ' + antes + ' → $ ' + nuevo + ' (' + motivo + ')'); } catch (x) { /* opcional */ }
+    }
+    mostRegistrar_(usuario, body.pedido, 'Corrigió cotización', '$ ' + antes + ' → $ ' + nuevo + ' · ' + motivo);
+    return { ok: true, diferencia: dif };
+  });
+}
+
+function mostSiguienteComprobante_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const n = Number(props.getProperty('MOST_COMPROBANTE') || 0) + 1;
+    props.setProperty('MOST_COMPROBANTE', String(n));
+    return 'P-' + ('0000' + n).slice(-5);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function mostPresencial_(usuario, body) {
+  const medio = String(body.medio || '');
+  if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Medio de pago no válido.' };
+  const total = Math.round(Number(body.total) || 0);
+  if (!(total > 0)) return { ok: false, message: 'El ticket está vacío.' };
+  const cliente = String(body.cliente || '').trim() || 'Consumidor final';
+  const dni = String(body.dni || '').trim();
+  const detalle = String(body.detalle || '').trim().slice(0, 2000);
+  const sena = Math.round(Number(body.sena) || 0);
+  const comp = mostSiguienteComprobante_();
+  const base = { comprobante: comp, detalle: detalle, tipoTrabajo: String(body.tipoTrabajo || ''),
+    tipoCliente: String(body.tipoCliente || ''), cliente: cliente, dni: dni, medio: medio, usuario: usuario };
+  if (sena > 0) {
+    if (sena >= total) return { ok: false, message: 'La seña tiene que ser menor al total.' };
+    mostCobro_(Object.assign({}, base, { origen: 'Seña', detalle: 'Seña · ' + detalle, monto: sena }));
+    const hs = mostHoja_(MOST_SALDOS, MOST_SALDOS_HEADER);
+    hs.appendRow([comp, mostAhora_().completa, cliente, dni, detalle, total, sena, total - sena, 'Pendiente', '', '',
+      usuario, '', base.tipoTrabajo, base.tipoCliente]);
+    mostRegistrar_(usuario, comp, 'Seña presencial', '$ ' + sena + ' de $ ' + total);
+  } else {
+    mostCobro_(Object.assign({}, base, { origen: 'Presencial', monto: total }));
+    mostRegistrar_(usuario, comp, 'Cobro presencial', MOST_MEDIOS[medio].label + ' $ ' + total);
+  }
+  return { ok: true, comprobante: comp, hora: mostAhora_().hora };
+}
+
+function mostCobrarSaldo_(usuario, body) {
+  const medio = String(body.medio || '');
+  if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Medio de pago no válido.' };
+  return mostConLock_(function () {
+    const hs = mostHoja_(MOST_SALDOS, MOST_SALDOS_HEADER);
+    if (hs.getLastRow() < 2) return { ok: false, message: 'No encontré ese saldo.' };
+    const filas = hs.getRange(2, 1, hs.getLastRow() - 1, MOST_SALDOS_HEADER.length).getValues();
+    for (let i = 0; i < filas.length; i++) {
+      const f = filas[i];
+      if (String(f[0]) !== String(body.comprobante)) continue;
+      if (mostNorm_(f[8]) !== 'pendiente') return { ok: false, message: 'Ese saldo ya estaba cobrado.' };
+      const saldo = Number(f[7]) || 0;
+      const fila = i + 2;
+      hs.getRange(fila, 9, 1, 3).setValues([['Cobrado', mostAhora_().completa, MOST_MEDIOS[medio].label]]);
+      hs.getRange(fila, 13).setValue(usuario);
+      mostCobro_({ comprobante: f[0], origen: 'Saldo', detalle: 'Saldo · ' + f[4], tipoTrabajo: f[13], tipoCliente: f[14],
+        cliente: f[2], dni: f[3], medio: medio, monto: saldo, usuario: usuario });
+      mostRegistrar_(usuario, f[0], 'Cobró saldo', MOST_MEDIOS[medio].label + ' $ ' + saldo);
+      return { ok: true, monto: saldo };
+    }
+    return { ok: false, message: 'No encontré ese saldo.' };
+  });
+}
+
+// ------------------------------------------------------------
+// Para ejecutar a mano, UNA sola vez
+// ------------------------------------------------------------
+function mostradorPreparar() {
+  const equipo = mostHoja_(MOST_EQUIPO, ['Nombre', 'Contraseña', 'Activo']);
+  if (equipo.getLastRow() < 2) {
+    equipo.getRange(2, 1, MOST_EQUIPO_INICIAL.length, 3).setValues(MOST_EQUIPO_INICIAL);
+    equipo.getRange(2, 2, MOST_EQUIPO_INICIAL.length, 1).setNumberFormat('@');
+  }
+  const regla = SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'NO'], true).build();
+  equipo.getRange(2, 3, 50, 1).setDataValidation(regla);
+  mostHoja_(MOST_COBROS, MOST_COBROS_HEADER);
+  mostHoja_(MOST_SALDOS, MOST_SALDOS_HEADER);
+  mostHoja_(MOST_REGISTRO, MOST_REGISTRO_HEADER);
+  mostSecreto_();
+  console.log('Listo: pestañas equipo, cobros, saldos y registro creadas (ocultas).');
+}

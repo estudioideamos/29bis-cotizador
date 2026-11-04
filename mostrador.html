@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>29 BIS · Mostrador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./mostrador.css?v=20261104a">
+</head>
+<body>
+<div class="login" id="login"><div class="card">
+  <div class="brand">29 <span>BIS</span></div><p class="hint" style="margin:0">Mostrador · uso interno</p>
+  <input type="password" id="pw" placeholder="Tu contraseña" autocomplete="current-password" autofocus>
+  <button class="btn main" id="enter">Entrar</button>
+  <div class="err" id="pwErr"></div>
+</div></div>
+
+<header>
+  <div class="brand">29 <span>BIS</span></div><div class="tag">Mostrador · uso interno</div>
+  <div class="right">
+    <button class="refresh" id="refresh" title="Actualizar">↻ Actualizar</button>
+    <span class="user">Atiende: <span id="who"></span><button id="out">Salir</button></span><span id="clock"></span>
+  </div>
+</header>
+<nav>
+  <button class="on" data-tab="t0">Producción <span class="count" id="nprod">0</span></button>
+  <button data-tab="t1">Trabajo presencial</button>
+  <button data-tab="t2">Entregar pedidos <span class="count" id="npend">0</span></button>
+  <button data-tab="t3">Cobros de hoy <span class="count" id="ncobros">0</span></button>
+</nav>
+<main>
+<!-- PRODUCCIÓN -->
+<section class="tab on" id="t0">
+  <div class="pcount" id="pcount"></div>
+  <div class="pfil">
+    <div class="field"><label>Máquina</label><div class="seg" id="fTipo"></div></div>
+    <div class="field"><label>Estado</label><div class="seg" id="fEst"></div></div>
+    <div class="field"><label>Mostrar solo</label><div class="seg" id="fSolo"></div></div>
+    <div class="field" style="min-width:220px"><label>Buscar</label><input type="search" id="fq" placeholder="N°, nombre o papel"></div>
+    <div class="legend"><span><i style="background:#fde4ee;border:2px solid var(--primary)"></i>Urgente</span><span><i style="background:#fff6d6;border:2px solid var(--accent)"></i>Con servicios</span><span class="hint" id="updated"></span></div>
+  </div>
+  <div id="plist"><p class="hint">Cargando pedidos…</p></div>
+</section>
+
+<!-- TRABAJO PRESENCIAL -->
+<section class="tab" id="t1">
+ <div class="cols">
+  <div class="card">
+    <h2>Agregar al ticket</h2>
+    <div class="seg kind" id="kind"></div>
+    <div id="pImp">
+      <div class="field"><label>Tipo</label><div class="seg" id="machine"></div></div>
+      <div class="field"><label>Papel</label><select id="paper"></select></div>
+      <div class="field"><label>Tamaño</label><div class="seg" id="size"></div></div>
+      <div class="field" id="customF" style="display:none"><label>Medida (metros)</label>
+        <div class="row2"><input id="cw" type="text" inputmode="decimal" placeholder="Ancho, ej: 0,90"><input id="ch" type="text" inputmode="decimal" placeholder="Alto, ej: 1,20"></div>
+        <div id="customErr" class="err"></div></div>
+      <div class="field" id="fazF"><label>Faz</label><div class="seg" id="faz"></div></div>
+      <div class="field"><label>Cantidad de hojas</label><div id="qty"></div></div>
+      <button class="btn add" id="addBtn">+ Agregar impresión</button>
+    </div>
+    <div id="pSvc" style="display:none">
+      <div class="field"><label>Servicio</label><div class="seg" id="svcSel"></div></div>
+      <div class="field" id="svcOptF"><label id="svcOptL">Tamaño</label><div class="seg" id="svcOpt"></div></div>
+      <div class="field"><label id="svcQtyL">Cantidad</label><div class="stepper" style="justify-content:flex-start"><button id="sMinus">−</button><input type="number" id="sQty" min="0" step="1" value="1"><button id="sPlus">+</button><span class="hint" id="sUnit" style="margin-left:8px"></span></div></div>
+      <button class="btn add" id="addSvc">+ Agregar servicio</button>
+      <p class="hint">Sirve también para un servicio suelto, por ejemplo refilar en el momento un pedido que ya estaba pago.</p>
+    </div>
+    <div id="pLib" style="display:none">
+      <div class="field"><label>Qué es</label><div class="seg" id="libCat"></div></div>
+      <div class="field"><label>Detalle</label><input type="text" id="libDet" placeholder="Ej: 2 lápices HB, cinta de papel"></div>
+      <div class="field"><label>Monto</label><input type="number" id="libMonto" placeholder="Ej: 3500"></div>
+      <button class="btn add" id="addLib">+ Agregar</button>
+    </div>
+  </div>
+
+  <div class="card ticket">
+    <h2>Ticket</h2>
+    <div id="lines"></div>
+    <div class="sum" id="sum"></div>
+    <p class="hint" id="tipoAuto"></p>
+    <div class="field" style="margin-top:12px"><label>Cliente <span class="req" id="cliReq">*</span><span id="cliOpt" style="display:none;text-transform:none;font-weight:600"> (opcional en ventas de librería)</span></label>
+      <div class="row2"><input type="text" id="cn" placeholder="Nombre y apellido"><input type="text" id="cd" inputmode="numeric" placeholder="DNI o CUIT"></div></div>
+    <div class="field"><label>Tipo de cliente <span class="req">*</span></label><div class="seg cli" id="cli"></div></div>
+    <div class="field"><label>Medio de pago <span class="req">*</span></label><div class="seg pay" id="pay"></div></div>
+    <button class="linkbtn" id="senaBtn">El cliente deja una seña y paga el resto al retirar</button>
+    <div class="sena" id="sena" style="display:none">
+      <b>Seña</b>
+      <div class="row2"><input type="number" id="senaMonto" placeholder="Monto de la seña"><span class="hint" id="saldoTxt"></span></div>
+      <p class="hint">Se cobra la seña ahora con el medio elegido. El saldo queda pendiente en <b>Entregar pedidos</b> para cobrarlo cuando retire.</p>
+    </div>
+    <button class="btn main" id="cobrar" disabled>Cobrar</button>
+    <p class="hint" id="why"></p>
+  </div>
+ </div>
+</section>
+
+<!-- ENTREGAR PEDIDOS -->
+<section class="tab" id="t2">
+ <div class="cols">
+  <div class="card">
+    <h2>Entregar pedidos</h2>
+    <div class="sub-tabs seg" id="t2mode"></div>
+    <div class="field"><input type="search" id="q" placeholder="Buscar por N° de pedido, nombre o DNI"></div>
+    <div id="results"></div>
+  </div>
+  <div class="card">
+    <h2>Cómo funciona</h2>
+    <p class="hint" style="font-size:15px"><b>Para entregar:</b> los pedidos web que todavía no se retiraron, y los saldos de señas. Primero aparecen los que están listos.</p>
+    <p class="hint" style="font-size:15px">• Si <b>falta cobrar</b>, elegís el medio de pago y confirmás: queda cobrado y entregado a la vez.<br>• Si <b>ya se pagó</b>, tocás <b>Entregar</b> y confirmás.</p>
+    <p class="hint" style="font-size:15px">En los dos casos el pedido pasa a <b>Retirado</b> en la planilla y sale de la fila del seguidor.</p>
+    <p class="hint" style="font-size:15px"><b>Corregir cotización:</b> si el cliente cotizó mal, cargás el monto correcto y el motivo. Si ya había pagado, la diferencia queda como <b>cobro extra</b> o <b>devolución</b>.</p>
+    <p class="hint" style="font-size:15px"><b>Entregados hoy:</b> lo que se entregó hoy, por si hay que corregir algo.</p>
+  </div>
+ </div>
+</section>
+
+<!-- COBROS DE HOY -->
+<section class="tab" id="t3">
+  <div class="kpis" id="kpis"></div>
+  <div class="card"><h2>Cobros de hoy</h2><table><thead><tr><th>Hora</th><th>Origen</th><th>Detalle</th><th>Cliente</th><th>Medio</th><th>Atendió</th><th class="r">Monto</th></tr></thead><tbody id="tb"></tbody></table>
+  <div class="note">Las devoluciones aparecen en verde con signo menos y se descuentan del total de su medio de pago. Los pedidos pagados online con Mercado Pago entran el día que se entregan.</div></div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+<div class="busy" id="busy">Guardando…</div>
+
+<script src="./src/config.js?v=20261104a"></script>
+<script src="./src/pricing-data.js?v=20260617b"></script>
+<script src="./src/mostrador.js?v=20261104a"></script>
+</body>
+</html>
