@@ -182,6 +182,17 @@
     if (w) return w.detalle + (w.cantidad ? " · " + w.cantidad : "");
     return [p.tipo, p.papel, p.tamano, p.detalle].filter(Boolean).join(" · ");
   }
+  function obsHtml(p) {
+    if (!p.obs) return "";
+    const largo = p.obs.length > 110 || (p.obs.match(/\n/g) || []).length > 1;
+    return `<div class="obs">“${esc(p.obs)}”</div>${largo ? '<button class="linkbtn obsmore">Ver observación completa ▾</button>' : ""}`;
+  }
+  // "Ver observación completa": funciona en Producción y en Entregar pedidos
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".obsmore"); if (!b) return;
+    const o = b.previousElementSibling; const open = o.classList.toggle("open");
+    b.textContent = open ? "Ver menos ▴" : "Ver observación completa ▾";
+  });
   function card(p) {
     const works = p.trabajos || [];
     const multi = works.length > 1;
@@ -194,7 +205,7 @@
         <div class="badges">${p.urgente ? '<span class="bd urg">Urgente</span>' : ""}${machines.size > 1 ? '<span class="bd">Láser + Plotter</span>' : ""}${p.servicios ? `<span class="bd svc">+ ${esc(p.servicios.replace(/\n/g, " · ").slice(0, 120))}</span>` : ""}${["ver email", "pendiente"].includes(e) ? `<span class="bd est">${esc(p.estado)}</span>` : ""}<span class="bd${paidOnline ? " paid" : ""}">${paidOnline ? "Pagado" : esc(p.formaPago || "")}</span>${p.total ? `<span class="bd">${money(p.total)}</span>` : ""}</div>
         ${multi ? `<button class="linkbtn more">Ver los ${works.length} trabajos ▾</button>
         <div class="works" style="display:none">${works.map((w, i) => `<div class="wk"><b>Trabajo ${i + 1}</b> · ${esc(w.detalle)}${w.cantidad ? " · " + esc(w.cantidad) : ""}${w.servicios ? ` <span class="bd svc">+ ${esc(w.servicios)}</span>` : ""}${w.archivo ? `<div class="hint">📎 ${esc(w.archivo)}</div>` : ""}</div>`).join("")}</div>` : ""}
-        ${p.obs ? `<div class="obs" title="${esc(p.obs)}">“${esc(p.obs)}”</div>` : ""}</div>
+        ${obsHtml(p)}</div>
       <div class="steps">${p.link ? `<a class="files" href="${esc(p.link)}" target="_blank" rel="noopener">📎 Archivos</a>` : ""}${FLOW.map(([k, l]) => `<button data-e="${k}" class="${normEstado(p.estado) === normEstado(k) ? "on" : ""}" data-x="${normEstado(k)}">${l}</button>`).join("")}
         <select class="other${OTHER.some((x) => normEstado(x[0]) === e) ? " on" : ""}"><option value="">Otro…</option>${OTHER.map(([k, l]) => `<option value="${k}"${normEstado(k) === e ? " selected" : ""}>${l}</option>`).join("")}</select></div>
     </div>`;
@@ -444,6 +455,8 @@
     const canPay = (o.kind === "saldo") || (o.kind === "web" && !paid && !delivered);
     return `<div class="order" data-n="${esc(o.n)}" data-k="${o.kind}"><div class="top"><b>${o.kind === "saldo" ? "Saldo" : "Pedido web"} ${esc(o.n)} · ${esc(o.cliente)}</b>${pill}</div>
       <p class="hint">${o.kind === "saldo" ? esc(det) : det}<br>${o.kind === "saldo" ? esc(o.info) : esc(o.formaPago || "")} · DNI ${esc(o.dni || "—")} ${estado}</p>
+      ${o.kind === "web" ? obsHtml(o) : ""}
+      ${o.kind === "web" && o.link ? `<a class="files" href="${esc(o.link)}" target="_blank" rel="noopener" style="margin:4px 0 8px">📎 Ver archivos del pedido</a><br>` : ""}
       <b style="font:800 20px Montserrat,Arial,sans-serif">${money(o.total)}</b>
       ${canPay ? `<div class="seg pay" style="margin-top:8px">${PAYOPTS.map(([m, l, c]) => `<button data-a="sel" data-m="${m}" class="${c || ""}">${l}</button>`).join("")}</div><div class="confirm" data-for="pay" style="display:none"></div>` : ""}
       ${o.kind === "web" && paid && !delivered ? `<button class="btn ok" data-a="deliver" style="width:100%;margin-top:8px">Entregar (ya está pagado)</button><div class="confirm" data-for="deliver" style="display:none"></div>` : ""}

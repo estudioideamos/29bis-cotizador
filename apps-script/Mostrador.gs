@@ -328,7 +328,7 @@ function mostDatos_(usuario) {
         tamano: String(f[MOST_OP.tamano - 1] || '').trim(),
         faz: String(f[MOST_OP.faz - 1] || '').trim(),
         detalle: String(f[MOST_OP.detalle - 1] || '').trim(),
-        obs: String(f[MOST_OP.obs - 1] || '').trim().slice(0, 300),
+        obs: String(f[MOST_OP.obs - 1] || '').trim().slice(0, 4000),
         formaPago: String(f[MOST_OP.formaPago - 1] || '').trim(),
         servicios: String(f[MOST_OP.servicios - 1] || '').trim(),
         link: ex.link || '',

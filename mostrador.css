@@ -134,7 +134,9 @@ td.r,th.r{text-align:right}
 .files{border:1.5px solid var(--line);background:#fff;border-radius:8px;padding:6px 9px;font:700 12px "Source Sans 3",Arial,sans-serif;cursor:pointer;margin-right:6px}
 .refresh{background:#ffffff14;color:#fff;border:1px solid #ffffff33;border-radius:8px;padding:5px 10px;font:700 13px "Source Sans 3",Arial,sans-serif;cursor:pointer}
 .busy{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:99px;font-weight:700;display:none;z-index:20}
-.po .obs{white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:help}
+.obs{font-size:13px;color:var(--muted);font-style:italic;margin-top:2px;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.obs.open{display:block;-webkit-line-clamp:unset}
+.linkbtn.obsmore{padding:2px 0 0;font-size:13px}
 .bd.pend{background:#fff3c4;color:#6e4b0f}
 .grp.other{color:var(--muted)}
 .btn:disabled{opacity:.6;cursor:wait}
