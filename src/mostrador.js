@@ -261,17 +261,37 @@
     troquelado: { l: "Troquelado", u: "hoja" },
     empanelado: { l: "Empanelado", u: "m²" }
   };
-  const CONCEPT_LBL = { carton_corrugado: "Cartón corrugado", carton_pluma: "Cartón pluma", trabajo: "", hoja: "" };
+  // Solo estas filas de "servicio" son precios; las demás (dias, descuentos, máximos) son reglas.
+  const PRICE_CONCEPTS = {
+    anillado: { trabajo: "" }, abrochado: { trabajo: "" },
+    empanelado: { carton_corrugado: "Cartón corrugado", carton_pluma: "Cartón pluma" },
+    laminado: { hoja: "" }, troquelado: { hoja: "" },
+    refilado: { hoja: "Por hoja", con_abrochado: "Con abrochado (precio por trabajo)" }
+  };
+  function svcRule(key, concept) {
+    const r = st.rows.find((x) => x.machine === "servicio" && x.paper_key === key && x.coverage_key === concept);
+    return r ? Number(r.price) : null;
+  }
   function svcOptions(key) {
-    const opts = [];
+    const opts = []; const allowed = PRICE_CONCEPTS[key] || {};
     st.rows.forEach((r) => {
       if (r.machine !== "servicio" || r.paper_key !== key) return;
-      const v = [r.size_key, r.coverage_key || "", r.side_key || ""].join("|");
+      const concept = r.coverage_key || "";
+      if (!(concept in allowed)) return;
+      const price = Number(r.price); if (!(price > 0)) return;
+      const v = [r.size_key, concept, r.side_key || ""].join("|");
       if (opts.some((o) => o[0] === v)) return;
-      const parts = [r.size_key !== "todos" ? r.size_key : "", CONCEPT_LBL[r.coverage_key] != null ? CONCEPT_LBL[r.coverage_key] : r.coverage_key, r.side_key === "sf" ? "simple" : r.side_key === "df" ? "doble" : ""].filter(Boolean);
-      opts.push([v, parts.join(" ") || "Único", Number(r.price)]);
+      const parts = [r.size_key && r.size_key !== "todos" ? r.size_key : "", allowed[concept], r.side_key === "sf" ? "simple faz" : r.side_key === "df" ? "doble faz" : ""].filter(Boolean);
+      // unidad de cobro de esta opción
+      const u = concept === "con_abrochado" ? "trabajo" : SVCS[key].u;
+      opts.push([v, parts.join(" ") || "Único", price, u]);
     });
     return opts;
+  }
+  const UNIT_TXT = (u, n) => u === "trabajo" ? (n === 1 ? "trabajo" : "trabajos") : u === "hoja" ? (n === 1 ? "hoja" : "hojas") : "m²";
+  function troqDesc() {
+    const rate = svcRule("troquelado", "descuento_porcentaje"), from = svcRule("troquelado", "descuento_desde_hojas");
+    return rate > 0 && from > 0 ? { rate: rate / 100, from } : null;
   }
   function renderKind() {
     seg($("kind"), [["imp", "Impresión"], ["svc", "Servicio"], ["lib", "Librería / otro"]], st.kind, (v) => { st.kind = v; renderKind(); });
@@ -282,13 +302,15 @@
     const opts = svcOptions(st.svc);
     if (!opts.some((o) => o[0] === st.svcOpt)) st.svcOpt = opts[0] ? opts[0][0] : "";
     $("svcOptF").style.display = opts.length > 1 ? "" : "none";
-    $("svcOptL").textContent = st.svc === "empanelado" ? "Soporte" : "Tamaño";
+    $("svcOptL").textContent = st.svc === "empanelado" ? "Soporte" : st.svc === "refilado" ? "Cómo se cobra" : "Tamaño";
     seg($("svcOpt"), opts.map((o) => [o[0], o[1]]), st.svcOpt, (v) => { st.svcOpt = v; renderKind(); });
-    const d = SVCS[st.svc] || { u: "trabajo" };
-    $("svcQtyL").textContent = d.u === "m²" ? "Metros cuadrados" : d.u === "hoja" ? "Cantidad de hojas" : "Cantidad de trabajos";
-    $("sQty").step = d.u === "m²" ? "0.1" : "1";
     const sel = opts.find((o) => o[0] === st.svcOpt);
-    $("sUnit").textContent = sel ? `${money(sel[2])} por ${d.u}` : "";
+    const u = sel ? sel[3] : (SVCS[st.svc] || { u: "trabajo" }).u;
+    $("svcQtyL").textContent = u === "m²" ? "Metros cuadrados" : u === "hoja" ? "Cantidad de hojas" : "Cantidad de trabajos";
+    $("sQty").step = u === "m²" ? "0.1" : "1";
+    const d = st.svc === "troquelado" ? troqDesc() : null;
+    $("sUnit").textContent = sel ? `${money(sel[2])} por ${u}` + (d ? ` · desde ${d.from} hojas del mismo diseño: ${Math.round(d.rate * 100)}% menos` : "") : "";
+    $("troqF").style.display = d ? "" : "none";
     seg($("libCat"), [["lib", "Librería"], ["otro", "Otro cobro"]], st.libCat, (v) => { st.libCat = v; renderKind(); });
   }
   $("sMinus").onclick = () => { $("sQty").value = Math.max(0, (Number($("sQty").value) || 0) - 1); };
@@ -298,8 +320,11 @@
     const n = Number(String($("sQty").value).replace(",", ".")) || 0;
     if (!sel) { toast("Ese servicio no tiene precio cargado.", true); return; }
     if (n <= 0) { toast("Cargá la cantidad", true); return; }
-    st.lines.push({ kind: "svc", total: Math.round(sel[2] * n), title: d.l + (opts.length > 1 ? " · " + sel[1] : ""), sub: `${n} ${d.u === "trabajo" ? (n === 1 ? "trabajo" : "trabajos") : d.u === "hoja" ? (n === 1 ? "hoja" : "hojas") : "m²"} x ${money(sel[2])}` });
-    $("sQty").value = 1; renderTicket();
+    let total = sel[2] * n, extra = "";
+    const desc = st.svc === "troquelado" ? troqDesc() : null;
+    if (desc && $("troqMismo").checked && n >= desc.from) { total = total * (1 - desc.rate); extra = ` · ${Math.round(desc.rate * 100)}% menos (mismo diseño)`; }
+    st.lines.push({ kind: "svc", total: Math.round(total), title: d.l + (opts.length > 1 ? " · " + sel[1] : ""), sub: `${n} ${UNIT_TXT(sel[3], n)} x ${money(sel[2])}${extra}` });
+    $("sQty").value = 1; $("troqMismo").checked = false; renderTicket();
   };
   $("addLib").onclick = () => {
     const v = Number($("libMonto").value) || 0; const det = $("libDet").value.trim();
