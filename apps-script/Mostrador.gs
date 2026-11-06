@@ -101,7 +101,8 @@ function mostLogin_(body) {
     const activo = String(filas[i][2]).trim().toUpperCase();
     if (nombre && pass && pass === clave && (activo === 'SI' || activo === 'SÍ')) {
       const vence = Date.now() + MOST_HORAS_SESION * 3600 * 1000;
-      const base = nombre + '|' + vence;
+      // El nombre va codificado para que tildes y eñes no rompan la firma (ej: Sofía).
+      const base = encodeURIComponent(nombre) + '|' + vence;
       mostRegistrar_(nombre, '', 'Entró al mostrador', '');
       return { ok: true, usuario: nombre, sesion: Utilities.base64EncodeWebSafe(base + '|' + mostFirma_(base)) };
     }
@@ -117,14 +118,15 @@ function mostValidarSesion_(sesion) {
     const base = partes[0] + '|' + partes[1];
     if (mostFirma_(base) !== partes[2]) return '';
     if (Number(partes[1]) < Date.now()) return '';
+    const nombreSesion = decodeURIComponent(partes[0]);
     // si lo dieron de baja en "equipo", la sesión deja de valer
     const hoja = mostHoja_(MOST_EQUIPO, ['Nombre', 'Contraseña', 'Activo']);
     const filas = hoja.getLastRow() > 1 ? hoja.getRange(2, 1, hoja.getLastRow() - 1, 3).getDisplayValues() : [];
     const sigue = filas.some(function (f) {
       const a = String(f[2]).trim().toUpperCase();
-      return String(f[0]).trim() === partes[0] && (a === 'SI' || a === 'SÍ');
+      return String(f[0]).trim() === nombreSesion && (a === 'SI' || a === 'SÍ');
     });
-    return sigue ? partes[0] : '';
+    return sigue ? nombreSesion : '';
   } catch (x) {
     return '';
   }
