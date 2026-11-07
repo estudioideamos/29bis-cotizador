@@ -108,12 +108,20 @@
     if (!set.size) { const t = (p.tipo || "").toLowerCase(); if (t.includes("laser") || t.includes("láser")) set.add("laser"); if (t.includes("plotter")) set.add("plotter"); }
     return set;
   }
+  // "dd/mm/aaaa hh:mm" → días que pasaron (o null)
+  function diasDesde(txt) {
+    const m = String(txt || "").match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!m) return null;
+    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    return Math.round((hoy - d) / 86400000);
+  }
   function normEstado(e) { return String(e || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim(); }
 
   // ---------- PRODUCCIÓN ----------
   function renderProd() {
     const all = st.data.pedidos || [];
-    const activos = all.filter((p) => !["listo para retirar", "cancelado", "retirado"].includes(normEstado(p.estado)));
+    const activos = all.filter((p) => !["listo para retirar", "cancelado", "retirado", "no retirado"].includes(normEstado(p.estado)));
     $("nprod").textContent = activos.length;
     const cnt = (e) => activos.filter((p) => normEstado(p.estado) === normEstado(e)).length;
     $("pcount").innerHTML = [["En revisión"], ["En preparación"], ["Ver email"], ["Pendiente"]].map(([k]) => `<div>${k}<span>${cnt(k)}</span></div>`).join("") +
@@ -124,7 +132,7 @@
     const q = $("fq").value.trim().toLowerCase();
     const list = all.filter((p) => {
       const e = normEstado(p.estado);
-      if (e === "listo para retirar" || e === "retirado") return false;
+      if (e === "listo para retirar" || e === "retirado" || e === "no retirado") return false;
       if (st.fEst === "Cancelado") { if (e !== "cancelado") return false; } else if (e === "cancelado") return false;
       if (st.fEst !== "pend" && st.fEst !== "Cancelado" && e !== normEstado(st.fEst)) return false;
       if (st.fTipo !== "todos" && !machinesOf(p).has(st.fTipo)) return false;
@@ -430,37 +438,45 @@
   function renderOrders() {
     const peds = st.data.pedidos || [];
     const saldos = (st.data.saldos || []).map((s) => ({ kind: "saldo", n: s.comprobante, cliente: s.cliente, dni: s.dni, detalleTxt: s.detalle, total: s.saldo, info: `Seña ${money(s.sena)} pagada el ${s.fecha} · saldo al retirar` }));
-    const pend = peds.filter((p) => !["retirado", "cancelado"].includes(normEstado(p.estado)));
+    const pend = peds.filter((p) => !["retirado", "cancelado", "no retirado"].includes(normEstado(p.estado)));
+    const noRet = peds.filter((p) => normEstado(p.estado) === "no retirado");
     $("npend").textContent = pend.filter((p) => normEstado(p.estado) === "listo para retirar").length + saldos.length;
-    seg($("t2mode"), [["pend", "Para entregar"], ["done", "Entregados hoy"]], st.t2, (v) => { st.t2 = v; renderOrders(); });
+    seg($("t2mode"), [["pend", "Para entregar"], ["done", "Entregados hoy"], ["no", `No retirados (${noRet.length})`]], st.t2, (v) => { st.t2 = v; renderOrders(); });
     const q = $("q").value.trim().toLowerCase();
     const match = (o) => !q || String(o.n).toLowerCase().includes(q) || String(o.cliente).toLowerCase().includes(q) || String(o.dni || "").includes(q);
     let list;
     if (st.t2 === "pend") {
       list = pend.map((p) => Object.assign({ kind: "web" }, p)).concat(saldos).filter(match);
       list.sort((a, b) => (a.kind === "saldo" ? 0 : normEstado(a.estado) === "listo para retirar" ? 0 : 1) - (b.kind === "saldo" ? 0 : normEstado(b.estado) === "listo para retirar" ? 0 : 1) || Number(b.n) - Number(a.n));
+    } else if (st.t2 === "no") {
+      list = noRet.map((p) => Object.assign({ kind: "web" }, p)).filter(match);
     } else {
       list = peds.filter((p) => normEstado(p.estado) === "retirado").map((p) => Object.assign({ kind: "web" }, p)).filter(match);
     }
-    $("results").innerHTML = list.length ? list.map(orderCard).join("") : '<p class="hint">No hay pedidos con esa búsqueda.</p>';
+    $("results").innerHTML = list.length ? list.map(orderCard).join("") : `<p class="hint">${st.t2 === "no" ? "No hay pedidos marcados como no retirados en los últimos 45 días." : "No hay pedidos con esa búsqueda."}</p>`;
     $("results").querySelectorAll(".order").forEach((cardEl) => bindOrder(cardEl, list.find((x) => String(x.n) === cardEl.dataset.n && x.kind === cardEl.dataset.k)));
   }
   function orderCard(o) {
     const paid = o.kind === "web" && (o.pago || "").toLowerCase() === "pagado";
     const delivered = normEstado(o.estado) === "retirado";
     const ready = normEstado(o.estado) === "listo para retirar";
-    const pill = o.kind === "saldo" ? '<span class="pill">Saldo de seña</span>' : delivered ? '<span class="pill paid">Entregado</span>' : paid ? '<span class="pill paid">Pagado · falta entregar</span>' : '<span class="pill">Falta cobrar</span>';
-    const estado = o.kind === "web" && !delivered ? `<span class="bd${ready ? " paid" : " pend"}">${esc(o.estado)}</span>` : "";
+    const noRet = normEstado(o.estado) === "no retirado";
+    const dias = o.kind === "web" ? diasDesde(o.cambio) : null;
+    const espera = ready && dias != null && dias >= 1 ? `<span class="bd${dias >= 7 ? " old" : ""}">Listo hace ${dias} día${dias > 1 ? "s" : ""}</span>` : "";
+    const pill = o.kind === "saldo" ? '<span class="pill">Saldo de seña</span>' : noRet ? `<span class="pill">No retirado${dias == null ? "" : dias === 0 ? " · marcado hoy" : " · hace " + dias + " día" + (dias === 1 ? "" : "s")}</span>` : delivered ? '<span class="pill paid">Entregado</span>' : paid ? '<span class="pill paid">Pagado · falta entregar</span>' : '<span class="pill">Falta cobrar</span>';
+    const estado = o.kind === "web" && !delivered && !noRet ? `<span class="bd${ready ? " paid" : " pend"}">${esc(o.estado)}</span> ${espera}` : "";
     const det = o.kind === "saldo" ? o.detalleTxt : ((o.trabajos || []).length > 1 ? o.trabajos.map((w, i) => `Trabajo ${i + 1}: ${w.detalle}${w.cantidad ? " · " + w.cantidad : ""}`).join("<br>") : esc(single(o)));
-    const canPay = (o.kind === "saldo") || (o.kind === "web" && !paid && !delivered);
+    const canPay = (o.kind === "saldo") || (o.kind === "web" && !paid && !delivered && !noRet);
     return `<div class="order" data-n="${esc(o.n)}" data-k="${o.kind}"><div class="top"><b>${o.kind === "saldo" ? "Saldo" : "Pedido web"} ${esc(o.n)} · ${esc(o.cliente)}</b>${pill}</div>
       <p class="hint">${o.kind === "saldo" ? esc(det) : det}<br>${o.kind === "saldo" ? esc(o.info) : esc(o.formaPago || "")} · DNI ${esc(o.dni || "—")} ${estado}</p>
       ${o.kind === "web" ? obsHtml(o) : ""}
       ${o.kind === "web" && o.link ? `<a class="files" href="${esc(o.link)}" target="_blank" rel="noopener" style="margin:4px 0 8px">📎 Ver archivos del pedido</a><br>` : ""}
       <b style="font:800 20px Montserrat,Arial,sans-serif">${money(o.total)}</b>
       ${canPay ? `<div class="seg pay" style="margin-top:8px">${PAYOPTS.map(([m, l, c]) => `<button data-a="sel" data-m="${m}" class="${c || ""}">${l}</button>`).join("")}</div><div class="confirm" data-for="pay" style="display:none"></div>` : ""}
+      ${noRet ? `<button class="btn ok" data-a="react" style="width:100%;margin-top:8px">El cliente vino: volver a "Listo para retirar"</button><div class="confirm" data-for="react" style="display:none"></div>` : ""}
       ${o.kind === "web" && paid && !delivered ? `<button class="btn ok" data-a="deliver" style="width:100%;margin-top:8px">Entregar (ya está pagado)</button><div class="confirm" data-for="deliver" style="display:none"></div>` : ""}
-      ${o.kind === "web" ? `<button class="linkbtn" data-a="fix">Corregir cotización</button>
+      ${o.kind === "web" && !delivered && !noRet ? `<button class="linkbtn" data-a="noret">Marcar como no retirado</button><div class="confirm" data-for="noret" style="display:none"></div>` : ""}
+      ${o.kind === "web" && !noRet ? `<button class="linkbtn" data-a="fix">Corregir cotización</button>
       <div class="fix" style="display:none">
         <div class="row2"><input type="number" class="fv" placeholder="Monto correcto"><input type="text" class="fm" placeholder="Motivo (ej: medida en mm)"></div>
         <div class="diff"></div>
@@ -500,6 +516,16 @@
           if (!ok) return;
           await act("corregir", { pedido: o.n, monto: v, motivo: fm.value.trim(), medio: m }, d > 0 ? `✓ Cobro extra de ${money(d)} registrado` : `✓ Devolución de ${money(-d)} registrada`); return;
         }
+        if (a === "noret") {
+          const ok = await askConfirm("noret", b, `¿Marcar el pedido <b>${esc(o.n)}</b> de ${esc(o.cliente)} como <b>no retirado</b>? Sale de la lista para entregar${paid ? " (ojo: figura como pagado)" : ""}. Si después aparece, lo volvés a activar desde "No retirados".`, "Sí, no lo retiró");
+          if (!ok) return;
+          await act("no_retirado", { pedido: o.n }, `✓ Pedido ${o.n} marcado como no retirado`); return;
+        }
+        if (a === "react") {
+          const ok = await askConfirm("react", b, `¿Volver a poner el pedido <b>${esc(o.n)}</b> como listo para retirar? No se le manda aviso al cliente.`, "Sí, volver a activar");
+          if (!ok) return;
+          await act("reactivar", { pedido: o.n }, `✓ Pedido ${o.n} otra vez en "Para entregar"`); return;
+        }
         if (a === "deliver") {
           const ok = await askConfirm("deliver", b, `¿Entregar el pedido <b>${esc(o.n)}</b> a ${esc(o.cliente)}? Ya está pagado.`, "Sí, entregar");
           if (!ok) return;
@@ -525,7 +551,25 @@
     cobros.forEach((c) => { if (by[c.caja] != null) by[c.caja] += c.monto; });
     const tot = cobros.reduce((a, c) => a + c.monto, 0);
     $("kpis").innerHTML = [["Efectivo", by.Efectivo], ["Mercado Pago", by["Mercado Pago"]], ["Banco", by.Banco], ["Total del día · " + cobros.length + " movimientos", tot]].map((k) => `<div class="kpi"><span>${k[0]}</span><b>${money(k[1])}</b></div>`).join("");
-    $("tb").innerHTML = cobros.length ? cobros.map((c) => `<tr><td>${esc(c.hora)}</td><td>${esc(c.origen)}${c.pedido ? " #" + esc(c.pedido) : c.comprobante ? " " + esc(c.comprobante) : ""}</td><td>${esc(c.detalle)}</td><td>${esc(c.cliente)}</td><td>${esc(c.medio)}</td><td>${esc(c.usuario)}</td><td class="r ${c.monto < 0 ? "neg" : ""}"><b>${money(c.monto)}</b></td></tr>`).join("") : '<tr><td colspan="7" class="hint">Todavía no hay cobros hoy</td></tr>';
+    $("tb").innerHTML = cobros.length ? cobros.map((c) => `<tr><td>${esc(c.hora)}</td><td>${esc(c.origen)}${c.pedido ? " #" + esc(c.pedido) : c.comprobante ? " " + esc(c.comprobante) : ""}</td><td>${esc(c.detalle)}</td><td>${esc(c.cliente)}</td><td>${esc(c.medio)}</td><td>${esc(c.usuario)}</td><td class="r ${c.monto < 0 ? "neg" : ""}"><b>${money(c.monto)}</b></td><td>${c.medio === "Mercado Pago web" ? "" : `<button class="linkbtn" data-cm="${c.fila}">Cambiar medio</button>`}</td></tr><tr class="cmrow" data-cmrow="${c.fila}" style="display:none"><td colspan="8"></td></tr>`).join("") : '<tr><td colspan="8" class="hint">Todavía no hay cobros hoy</td></tr>';
+    $("tb").querySelectorAll("[data-cm]").forEach((btn) => {
+      btn.onclick = () => {
+        const c = cobros.find((x) => String(x.fila) === btn.dataset.cm); if (!c) return;
+        const row = $("tb").querySelector(`[data-cmrow="${c.fila}"]`); const cell = row.firstElementChild;
+        if (row.style.display !== "none") { row.style.display = "none"; return; }
+        const opts = PAYOPTS.filter(([m]) => PAYLBL[m] !== c.medio);
+        cell.innerHTML = `<div class="cmbox"><span>Cambiar <b>${money(c.monto)}</b> de <b>${esc(c.medio)}</b> a:</span> <div class="seg pay">${opts.map(([m, l]) => `<button data-nm="${m}">${l}</button>`).join("")}</div> <button class="btn" data-x="1">Cancelar</button></div>`;
+        row.style.display = "";
+        cell.querySelector("[data-x]").onclick = () => { row.style.display = "none"; };
+        cell.querySelectorAll("[data-nm]").forEach((nb) => {
+          nb.onclick = async () => {
+            const m = nb.dataset.nm;
+            cell.querySelectorAll("[data-nm]").forEach((x) => { x.disabled = true; });
+            await act("cambiar_medio", { fila: c.fila, hora: c.hora, ref: c.pedido || c.comprobante, medio: m }, `✓ Cobro de ${money(c.monto)} pasado a ${PAYLBL[m]}`);
+          };
+        });
+      };
+    });
   }
 
   // ---------- pestañas, reloj y arranque ----------

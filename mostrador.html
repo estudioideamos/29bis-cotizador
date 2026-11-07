@@ -7,7 +7,7 @@
   <title>29 BIS · Mostrador</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./mostrador.css?v=20261105b">
+  <link rel="stylesheet" href="./mostrador.css?v=20261107a">
 </head>
 <body>
 <div class="login" id="login"><div class="card">
@@ -114,6 +114,8 @@
     <p class="hint" style="font-size:15px">En los dos casos el pedido pasa a <b>Retirado</b> en la planilla y sale de la fila del seguidor.</p>
     <p class="hint" style="font-size:15px"><b>Corregir cotización:</b> si el cliente cotizó mal, cargás el monto correcto y el motivo. Si ya había pagado, la diferencia queda como <b>cobro extra</b> o <b>devolución</b>.</p>
     <p class="hint" style="font-size:15px"><b>Entregados hoy:</b> lo que se entregó hoy, por si hay que corregir algo.</p>
+    <p class="hint" style="font-size:15px"><b>No retirados:</b> si un cliente nunca vino a buscar su pedido (y no respondió), tocás <b>Marcar como no retirado</b>. Si aparece después, lo volvés a activar desde la pestaña <b>No retirados</b>.</p>
+    <p class="hint" style="font-size:15px"><b>¿Cambió de idea con el pago?</b> En <b>Cobros de hoy</b>, tocás <b>Cambiar medio</b> en ese cobro (solo cobros del día, antes del cierre de caja).</p>
   </div>
  </div>
 </section>
@@ -121,8 +123,8 @@
 <!-- COBROS DE HOY -->
 <section class="tab" id="t3">
   <div class="kpis" id="kpis"></div>
-  <div class="card"><h2>Cobros de hoy</h2><table><thead><tr><th>Hora</th><th>Origen</th><th>Detalle</th><th>Cliente</th><th>Medio</th><th>Atendió</th><th class="r">Monto</th></tr></thead><tbody id="tb"></tbody></table>
-  <div class="note">Las devoluciones aparecen en verde con signo menos y se descuentan del total de su medio de pago. Los pedidos pagados online con Mercado Pago entran el día que se entregan.</div></div>
+  <div class="card"><h2>Cobros de hoy</h2><table><thead><tr><th>Hora</th><th>Origen</th><th>Detalle</th><th>Cliente</th><th>Medio</th><th>Atendió</th><th class="r">Monto</th><th></th></tr></thead><tbody id="tb"></tbody></table>
+  <div class="note">Las devoluciones aparecen en verde con signo menos y se descuentan del total de su medio de pago. Los pedidos pagados online con Mercado Pago entran el día que se entregan. Si el cliente cambió de idea con el medio de pago, tocá <b>Cambiar medio</b> en esa fila.</div></div>
 </section>
 </main>
 <div class="toast" id="toast"></div>
@@ -130,6 +132,6 @@
 
 <script src="./src/config.js?v=20261104a"></script>
 <script src="./src/pricing-data.js?v=20260617b"></script>
-<script src="./src/mostrador.js?v=20261105b"></script>
+<script src="./src/mostrador.js?v=20261107a"></script>
 </body>
 </html>

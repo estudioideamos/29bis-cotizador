@@ -142,3 +142,10 @@ td.r,th.r{text-align:right}
 .btn:disabled{opacity:.6;cursor:wait}
 
 a.files{text-decoration:none;color:var(--ink);display:inline-block}
+
+.bd.old{background:#fde4ee;color:var(--primary-strong)}
+.cmrow td{background:#f7f5f2}
+.cmbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 0}
+.cmbox .seg{margin:0}
+#tb .linkbtn{padding:0;font-size:13px;white-space:nowrap}
+.order .linkbtn{margin-right:18px}

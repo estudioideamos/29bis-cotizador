@@ -9,6 +9,8 @@
 //  - Entregar pedidos: cobrar y entregar pedidos web, o entregar los ya pagados.
 //  - Corregir cotización de pedidos web (con cobro extra o devolución si ya estaba pagado).
 //  - Trabajos presenciales, señas y saldos.
+//  - Cambiar el medio de pago de un cobro de hoy (si el cliente cambió de idea).
+//  - Marcar pedidos como "No retirado" (y volver a activarlos si el cliente aparece).
 //  - Todo cobro queda en la pestaña "cobros"; cada acción queda en "registro".
 //
 // Instalación (una sola vez): ejecutar mostradorPreparar() desde el editor.
@@ -21,6 +23,8 @@ const MOST_COBROS = 'cobros';
 const MOST_SALDOS = 'saldos';
 const MOST_REGISTRO = 'registro';
 const MOST_HORAS_SESION = 14;
+const MOST_NO_RETIRADO = 'No retirado';
+const MOST_DIAS_NO_RETIRADOS = 45; // cuántos días se siguen mostrando en la página
 
 const MOST_COBROS_HEADER = ['Fecha', 'Hora', 'Comprobante', 'Origen', 'Pedido', 'Detalle', 'Tipo trabajo',
   'Tipo cliente', 'Cliente', 'DNI', 'Medio', 'Caja', 'Monto', 'Atendió'];
@@ -64,6 +68,9 @@ function mostradorManejar_(body) {
     else if (accion === 'corregir') r = mostCorregir_(usuario, body);
     else if (accion === 'presencial') r = mostPresencial_(usuario, body);
     else if (accion === 'cobrar_saldo') r = mostCobrarSaldo_(usuario, body);
+    else if (accion === 'cambiar_medio') r = mostCambiarMedio_(usuario, body);
+    else if (accion === 'no_retirado') r = mostNoRetirado_(usuario, body);
+    else if (accion === 'reactivar') r = mostReactivar_(usuario, body);
     else r = { ok: false, message: 'Acción desconocida.' };
     return jsonResponse(r);
   } catch (err) {
@@ -101,7 +108,8 @@ function mostLogin_(body) {
     const activo = String(filas[i][2]).trim().toUpperCase();
     if (nombre && pass && pass === clave && (activo === 'SI' || activo === 'SÍ')) {
       const vence = Date.now() + MOST_HORAS_SESION * 3600 * 1000;
-      const base = nombre + '|' + vence;
+      // El nombre va codificado para que tildes y eñes no rompan la firma (ej: Sofía).
+      const base = encodeURIComponent(nombre) + '|' + vence;
       mostRegistrar_(nombre, '', 'Entró al mostrador', '');
       return { ok: true, usuario: nombre, sesion: Utilities.base64EncodeWebSafe(base + '|' + mostFirma_(base)) };
     }
@@ -117,14 +125,15 @@ function mostValidarSesion_(sesion) {
     const base = partes[0] + '|' + partes[1];
     if (mostFirma_(base) !== partes[2]) return '';
     if (Number(partes[1]) < Date.now()) return '';
+    const nombreSesion = decodeURIComponent(partes[0]);
     // si lo dieron de baja en "equipo", la sesión deja de valer
     const hoja = mostHoja_(MOST_EQUIPO, ['Nombre', 'Contraseña', 'Activo']);
     const filas = hoja.getLastRow() > 1 ? hoja.getRange(2, 1, hoja.getLastRow() - 1, 3).getDisplayValues() : [];
     const sigue = filas.some(function (f) {
       const a = String(f[2]).trim().toUpperCase();
-      return String(f[0]).trim() === partes[0] && (a === 'SI' || a === 'SÍ');
+      return String(f[0]).trim() === nombreSesion && (a === 'SI' || a === 'SÍ');
     });
-    return sigue ? partes[0] : '';
+    return sigue ? nombreSesion : '';
   } catch (x) {
     return '';
   }
@@ -156,6 +165,14 @@ function mostAhora_() {
     hora: Utilities.formatDate(d, MOST_TZ, 'HH:mm'),
     completa: Utilities.formatDate(d, MOST_TZ, 'dd/MM/yyyy HH:mm')
   };
+}
+
+// Días desde una fecha "dd/MM/yyyy HH:mm" (o 0 si no se puede leer).
+function mostDiasDesde_(txt) {
+  const m = String(txt || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return 0;
+  const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
 
 function mostNorm_(v) {
@@ -304,6 +321,8 @@ function mostDatos_(usuario) {
       // Los retirados solo se muestran si se entregaron hoy (para poder corregir algo).
       const exHoy = extras[normalizarIdPedido_(id)] || {};
       if (en === 'retirado' && String(exHoy.cambio).indexOf(mostAhora_().fecha) !== 0) continue;
+      // Los "No retirado" se muestran un tiempo, por si el cliente aparece.
+      if (en === 'no retirado' && mostDiasDesde_(exHoy.cambio) > MOST_DIAS_NO_RETIRADOS) continue;
       const retiroRaw = f[MOST_OP.retiro - 1];
       let retiro = '';
       if (retiroRaw instanceof Date && !isNaN(retiroRaw.getTime())) {
@@ -332,6 +351,7 @@ function mostDatos_(usuario) {
         formaPago: String(f[MOST_OP.formaPago - 1] || '').trim(),
         servicios: String(f[MOST_OP.servicios - 1] || '').trim(),
         link: ex.link || '',
+        cambio: ex.cambio || '',
         trabajos: trabajos
       });
     }
@@ -348,7 +368,7 @@ function mostDatos_(usuario) {
     const montos = hc.getRange(2 + desde, 13, n - desde, 1).getValues();
     filas.forEach(function (f, i) {
       if (f[0] !== hoy) return;
-      cobros.push({ hora: f[1], comprobante: f[2], origen: f[3], pedido: f[4], detalle: f[5], cliente: f[8],
+      cobros.push({ fila: 2 + desde + i, hora: f[1], comprobante: f[2], origen: f[3], pedido: f[4], detalle: f[5], cliente: f[8],
         medio: f[10], caja: f[11], monto: Number(montos[i][0]) || 0, usuario: f[13] });
     });
   }
@@ -539,6 +559,65 @@ function mostCobrarSaldo_(usuario, body) {
       return { ok: true, monto: saldo };
     }
     return { ok: false, message: 'No encontré ese saldo.' };
+  });
+}
+
+// Cambia el medio de pago de un cobro de HOY (antes del cierre de caja).
+function mostCambiarMedio_(usuario, body) {
+  const medio = String(body.medio || '');
+  if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Medio de pago no válido.' };
+  const fila = Number(body.fila) || 0;
+  return mostConLock_(function () {
+    const h = mostHoja_(MOST_COBROS, MOST_COBROS_HEADER);
+    if (fila < 2 || fila > h.getLastRow()) return { ok: false, message: 'No encontré ese cobro. Actualizá la página.' };
+    const f = h.getRange(fila, 1, 1, MOST_COBROS_HEADER.length).getDisplayValues()[0];
+    // controles: que sea el mismo cobro que vio la persona y que sea de hoy
+    if (f[0] !== mostAhora_().fecha) return { ok: false, message: 'Solo se puede cambiar el medio de los cobros de hoy.' };
+    if (f[1] !== String(body.hora || '') || String(f[4] || f[2]) !== String(body.ref || '')) return { ok: false, message: 'La lista cambió. Actualizá la página y probá de nuevo.' };
+    if (f[10] === MOST_MEDIOS.mpweb.label) return { ok: false, message: 'Ese cobro se pagó online con Mercado Pago: no se puede cambiar.' };
+    const nuevo = MOST_MEDIOS[medio];
+    if (f[10] === nuevo.label) return { ok: false, message: 'Ya estaba registrado con ese medio.' };
+    h.getRange(fila, 11, 1, 2).setValues([[nuevo.label, nuevo.caja]]);
+    // si era el saldo de una seña, también en "saldos"
+    if (f[3] === 'Saldo' && f[2]) {
+      const hs = mostHoja_(MOST_SALDOS, MOST_SALDOS_HEADER);
+      if (hs.getLastRow() >= 2) {
+        const comps = hs.getRange(2, 1, hs.getLastRow() - 1, 1).getDisplayValues();
+        for (let i = 0; i < comps.length; i++) {
+          if (comps[i][0] === f[2]) { hs.getRange(i + 2, 11).setValue(nuevo.label); break; }
+        }
+      }
+    }
+    mostRegistrar_(usuario, f[4] || f[2], 'Cambió medio de pago', f[10] + ' → ' + nuevo.label + ' ($ ' + f[12] + ', cobro de las ' + f[1] + ')');
+    return { ok: true };
+  });
+}
+
+// El cliente nunca vino a buscar el pedido.
+function mostNoRetirado_(usuario, body) {
+  return mostConLock_(function () {
+    const b = mostBuscarPedido_(body.pedido);
+    if (!b.opFila) return { ok: false, message: 'No encontré el pedido ' + body.pedido + '.' };
+    const v = b.valores;
+    const antes = String(v[MOST_OP.estado - 1] || '');
+    const en = mostNorm_(antes);
+    if (en === 'retirado' || en === 'cancelado' || en === 'no retirado') return { ok: false, message: 'Ese pedido figura como ' + antes + '. Actualizá la página.' };
+    mostEscribirEstados_(b, MOST_NO_RETIRADO, '', usuario);
+    const pago = String(v[MOST_OP.pago - 1] || '');
+    mostRegistrar_(usuario, body.pedido, 'Marcó no retirado', antes + ' → ' + MOST_NO_RETIRADO + ' · pago: ' + pago + ' · $ ' + (Number(v[MOST_OP.total - 1]) || 0));
+    return { ok: true };
+  });
+}
+
+// El cliente apareció después de marcarlo como no retirado: vuelve a "Listo para retirar" SIN avisarle de nuevo.
+function mostReactivar_(usuario, body) {
+  return mostConLock_(function () {
+    const b = mostBuscarPedido_(body.pedido);
+    if (!b.opFila) return { ok: false, message: 'No encontré el pedido ' + body.pedido + '.' };
+    if (mostNorm_(b.valores[MOST_OP.estado - 1]) !== 'no retirado') return { ok: false, message: 'Ese pedido ya no figura como no retirado. Actualizá la página.' };
+    mostEscribirEstados_(b, 'Listo para retirar', '', usuario);
+    mostRegistrar_(usuario, body.pedido, 'Volvió a activar', MOST_NO_RETIRADO + ' → Listo para retirar');
+    return { ok: true };
   });
 }
 
