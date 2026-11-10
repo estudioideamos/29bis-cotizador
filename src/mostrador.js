@@ -243,7 +243,13 @@
     renderKind(); renderForm(); renderTicket();
   }
   const label = (k) => (PRICING.papers[k] && PRICING.papers[k].label) || k;
-  const sizeLabel = (s) => s === "100x100_personalizado" ? "Personalizado" : ((PRICING.labels.sizes || {})[s] || s);
+  // En algunos papeles láser el SA3 se muestra con otro nombre (igual que en la web).
+  const SIZE_LABEL_OVERRIDES = { vegetal: { SA3: "A3" } };
+  const sizeLabel = (s) => {
+    if (s === "100x100_personalizado") return "Personalizado";
+    const o = st.machine === "laser" && SIZE_LABEL_OVERRIDES[st.paper];
+    return (o && o[s]) || (PRICING.labels.sizes || {})[s] || s;
+  };
   function papersFor(m) {
     const seen = []; st.rows.forEach((r) => { if (r.machine === m && !seen.includes(r.paper_key)) seen.push(r.paper_key); });
     const order = (PRICING.machines && PRICING.machines[m] && PRICING.machines[m].papers) || [];
