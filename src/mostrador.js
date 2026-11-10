@@ -407,6 +407,8 @@
     const disc = Math.round(lsub * rate); const sub = st.lines.reduce((a, l) => a + l.total, 0);
     return { sub, rate, disc, total: Math.round(sub - disc) };
   }
+  // Pago dividido: texto "Efectivo $ x + QR $ y"
+  const partesTxt = (pagos) => pagos.map((p) => `${PAYLBL[p.medio]} ${money(p.monto)}`).join(" + ");
   function senaVal() { return st.sena ? Math.max(0, Number($("senaMonto").value) || 0) : 0; }
   function renderTicket() {
     $("lines").innerHTML = st.lines.length ? st.lines.map((l, i) => `<div class="line"><div class="d"><b>${esc(l.title)}</b><small>${esc(l.sub)}</small></div><strong>${money(l.total)}</strong><button class="x" data-i="${i}" title="Quitar">×</button></div>`).join("") : '<div class="empty">Todavía no hay nada en el ticket</div>';
@@ -415,27 +417,37 @@
     $("tipoAuto").innerHTML = st.lines.length ? "Se registra como: <b>" + TIPO_LBL[tipoTrabajo()] + "</b>" : "";
     $("sum").innerHTML = `<div><span>Subtotal</span><span>${money(t.sub)}</span></div>` + (t.disc ? `<div class="disc"><span>Descuento láser por cantidad (${Math.round(t.rate * 100)}%)</span><span>− ${money(t.disc)}</span></div>` : "") + `<div class="tot"><span>Total</span><span>${money(t.total)}</span></div>`;
     seg($("cli"), [["ARQ", "Arquitectura"], ["DG", "Diseño gráfico"], ["DI", "Diseño industrial"], ["Otros", "Otros"]], st.cli, (v) => { st.cli = v; renderTicket(); });
-    seg($("pay"), PAYOPTS, st.pay, (v) => { st.pay = v; renderTicket(); });
+    seg($("pay"), PAYOPTS, st.pay, (v) => { st.pay = v; if (st.pay2 === v) st.pay2 = ""; renderTicket(); });
     const s = senaVal();
+    const base = st.sena ? s : t.total;
+    $("splitBtn").textContent = st.split ? "Cancelar: paga todo con un solo medio" : "Paga con dos medios (ej: parte efectivo y parte QR)";
+    $("split").style.display = st.split ? "" : "none";
+    seg($("pay2"), PAYOPTS.filter(([m]) => m !== st.pay), st.pay2, (v) => { st.pay2 = v; renderTicket(); });
+    $("split1L").textContent = st.pay ? `Cuánto paga con ${PAYLBL[st.pay]}` : "Primero elegí el primer medio arriba";
+    const a1 = Math.round(Number($("split1").value) || 0);
+    $("split2Txt").innerHTML = st.split && st.pay2 && a1 > 0 && a1 < base ? `Con ${PAYLBL[st.pay2]}: <b>${money(base - a1)}</b>` : "";
     $("sena").style.display = st.sena ? "" : "none";
     $("senaBtn").textContent = st.sena ? "Cancelar seña: el cliente paga todo ahora" : "El cliente deja una seña y paga el resto al retirar";
     $("saldoTxt").innerHTML = st.sena && s > 0 && s < t.total ? `Saldo a cobrar al retirar: <b>${money(t.total - s)}</b>` : "";
     const soloLib = st.lines.length && st.lines.every((l) => l.kind === "lib" || l.kind === "otro");
     $("cliReq").style.display = soloLib ? "none" : ""; $("cliOpt").style.display = soloLib ? "" : "none";
-    const missing = !st.lines.length ? "Agregá algo al ticket" : (!soloLib && !$("cn").value.trim()) ? "Falta el nombre del cliente" : (!soloLib && !$("cd").value.trim()) ? "Falta el DNI o CUIT" : !st.cli ? "Elegí el tipo de cliente" : !st.pay ? "Elegí el medio de pago" : (st.sena && !(s > 0 && s < t.total)) ? "La seña tiene que ser menor al total" : "";
+    const missing = !st.lines.length ? "Agregá algo al ticket" : (!soloLib && !$("cn").value.trim()) ? "Falta el nombre del cliente" : (!soloLib && !$("cd").value.trim()) ? "Falta el DNI o CUIT" : !st.cli ? "Elegí el tipo de cliente" : !st.pay ? "Elegí el medio de pago" : (st.sena && !(s > 0 && s < t.total)) ? "La seña tiene que ser menor al total" : (st.split && !st.pay2) ? "Elegí el segundo medio de pago" : (st.split && !(a1 > 0 && a1 < base)) ? `Cargá cuánto paga con ${PAYLBL[st.pay]} (menos de ${money(base)})` : "";
     $("cobrar").disabled = Boolean(missing); $("why").textContent = missing;
     $("cobrar").textContent = missing ? "Cobrar" : st.sena ? `Cobrar seña de ${money(s)} y registrar` : `Cobrar ${money(t.total)} y registrar`;
   }
-  $("cn").oninput = $("cd").oninput = $("senaMonto").oninput = renderTicket;
+  $("cn").oninput = $("cd").oninput = $("senaMonto").oninput = $("split1").oninput = renderTicket;
+  $("splitBtn").onclick = () => { st.split = !st.split; if (!st.split) { st.pay2 = ""; $("split1").value = ""; } renderTicket(); };
   $("senaBtn").onclick = () => { st.sena = !st.sena; if (!st.sena) $("senaMonto").value = ""; renderTicket(); };
   $("cobrar").onclick = async () => {
     const t = totals(); const s = senaVal();
+    const base = st.sena ? s : t.total; const a1 = Math.round(Number($("split1").value) || 0);
+    const pagos = st.split ? [{ medio: st.pay, monto: a1 }, { medio: st.pay2, monto: base - a1 }] : [{ medio: st.pay, monto: base }];
     const detalle = st.lines.map((l) => l.title + (l.sub ? " (" + l.sub + ")" : "")).join(" + ");
     $("cobrar").disabled = true;
-    const r = await act("presencial", { total: t.total, sena: st.sena ? s : 0, detalle, tipoTrabajo: tipoTrabajo(), tipoCliente: st.cli, cliente: $("cn").value.trim(), dni: $("cd").value.trim(), medio: st.pay },
-      (res) => st.sena ? `✓ Seña registrada ${res.comprobante} · ${money(s)} · saldo ${money(t.total - s)} en "Entregar pedidos"` : `✓ Registrado ${res.comprobante} · ${res.hora} · ${PAYLBL[st.pay]} · ${money(t.total)}`);
+    const r = await act("presencial", { total: t.total, sena: st.sena ? s : 0, detalle, tipoTrabajo: tipoTrabajo(), tipoCliente: st.cli, cliente: $("cn").value.trim(), dni: $("cd").value.trim(), medio: st.pay, pagos },
+      (res) => st.sena ? `✓ Seña registrada ${res.comprobante} · ${partesTxt(pagos)} · saldo ${money(t.total - s)} en "Entregar pedidos"` : `✓ Registrado ${res.comprobante} · ${res.hora} · ${partesTxt(pagos)}`);
     if (r) {
-      st.lines = []; st.cli = ""; st.pay = ""; st.sena = false; $("cn").value = ""; $("cd").value = ""; $("senaMonto").value = "";
+      st.lines = []; st.cli = ""; st.pay = ""; st.sena = false; st.split = false; st.pay2 = ""; $("cn").value = ""; $("cd").value = ""; $("senaMonto").value = ""; $("split1").value = "";
     }
     renderTicket();
   };
@@ -478,7 +490,15 @@
       ${o.kind === "web" ? obsHtml(o) : ""}
       ${o.kind === "web" && o.link ? `<a class="files" href="${esc(o.link)}" target="_blank" rel="noopener" style="margin:4px 0 8px">📎 Ver archivos del pedido</a><br>` : ""}
       <b style="font:800 20px Montserrat,Arial,sans-serif">${money(o.total)}</b>
-      ${canPay ? `<div class="seg pay" style="margin-top:8px">${PAYOPTS.map(([m, l, c]) => `<button data-a="sel" data-m="${m}" class="${c || ""}">${l}</button>`).join("")}</div><div class="confirm" data-for="pay" style="display:none"></div>` : ""}
+      ${canPay ? `<div class="seg pay" style="margin-top:8px">${PAYOPTS.map(([m, l, c]) => `<button data-a="sel" data-m="${m}" class="${c || ""}">${l}</button>`).join("")}</div><div class="confirm" data-for="pay" style="display:none"></div>
+      <button class="linkbtn" data-a="split">Paga con dos medios</button>
+      <div class="splitbox" style="display:none">
+        <div class="field"><label>Primer medio</label><div class="seg pay sp1">${PAYOPTS.map(([m, l, c]) => `<button data-a="sp1" data-m="${m}" class="${c || ""}">${l}</button>`).join("")}</div></div>
+        <div class="field"><label>Cuánto paga con el primer medio</label><input type="number" class="spm" placeholder="Monto"></div>
+        <div class="field"><label>Segundo medio (el resto)</label><div class="seg pay sp2">${PAYOPTS.map(([m, l, c]) => `<button data-a="sp2" data-m="${m}" class="${c || ""}">${l}</button>`).join("")}</div></div>
+        <p class="hint sptxt"></p>
+        <button class="btn ok" data-a="spgo" style="width:100%">Cobrar y entregar</button><div class="confirm" data-for="spgo" style="display:none"></div>
+      </div>` : ""}
       ${noRet ? `<button class="btn ok" data-a="react" style="width:100%;margin-top:8px">El cliente vino: volver a "Listo para retirar"</button><div class="confirm" data-for="react" style="display:none"></div>` : ""}
       ${o.kind === "web" && paid && !delivered ? `<button class="btn ok" data-a="deliver" style="width:100%;margin-top:8px">Entregar (ya está pagado)</button><div class="confirm" data-for="deliver" style="display:none"></div>` : ""}
       ${o.kind === "web" && !delivered && !noRet ? `<button class="linkbtn" data-a="noret">Marcar como no retirado</button><div class="confirm" data-for="noret" style="display:none"></div>` : ""}
@@ -507,9 +527,36 @@
         box.querySelector("[data-c=yes]").onclick = (ev) => { ev.target.disabled = true; resolve(true); };
       });
     }
+    // pago dividido
+    const sp = { m1: "", m2: "" }; const spBox = cardEl.querySelector(".splitbox"), spm = cardEl.querySelector(".spm");
+    function spPagos() {
+      const a1 = Math.round(Number(spm && spm.value) || 0);
+      if (!sp.m1 || !sp.m2 || sp.m1 === sp.m2 || !(a1 > 0 && a1 < o.total)) return null;
+      return [{ medio: sp.m1, monto: a1 }, { medio: sp.m2, monto: o.total - a1 }];
+    }
+    function spRender() {
+      if (!spBox) return;
+      spBox.querySelectorAll(".sp1 button").forEach((x) => x.classList.toggle("on", x.dataset.m === sp.m1));
+      spBox.querySelectorAll(".sp2 button").forEach((x) => { x.classList.toggle("on", x.dataset.m === sp.m2); x.disabled = x.dataset.m === sp.m1; });
+      const pg = spPagos(); const a1 = Math.round(Number(spm.value) || 0);
+      spBox.querySelector(".sptxt").innerHTML = pg ? `${partesTxt(pg)} = <b>${money(o.total)}</b>` : (a1 >= o.total ? `El primer monto tiene que ser menor a ${money(o.total)}` : "Elegí los dos medios y cuánto paga con el primero.");
+    }
+    if (spm) spm.oninput = spRender;
     cardEl.querySelectorAll("button[data-a]").forEach((b) => {
       b.onclick = async () => {
         const a = b.dataset.a, m = b.dataset.m;
+        if (a === "split") { const open = spBox.style.display === "none"; spBox.style.display = open ? "" : "none"; b.textContent = open ? "Cancelar: paga con un solo medio" : "Paga con dos medios"; spRender(); return; }
+        if (a === "sp1") { sp.m1 = m; if (sp.m2 === m) sp.m2 = ""; spRender(); return; }
+        if (a === "sp2") { sp.m2 = m; spRender(); return; }
+        if (a === "spgo") {
+          const pg = spPagos(); if (!pg) { toast("Completá los dos medios y el monto", true); return; }
+          if (o.kind === "web" && o.total > 3000000) { toast("Ese monto parece mal cotizado: corregí la cotización antes de cobrar", true); return; }
+          const ok = await askConfirm("spgo", b, `¿Cobrar a ${esc(o.cliente)} <b>${partesTxt(pg)}</b> (total ${money(o.total)}) y entregar?`, "Sí, cobrar y entregar");
+          if (!ok) return;
+          if (o.kind === "saldo") await act("cobrar_saldo", { comprobante: o.n, pagos: pg }, `✓ Saldo ${o.n} cobrado (${partesTxt(pg)})`);
+          else await act("cobrar_web", { pedido: o.n, pagos: pg }, `✓ Pedido ${o.n} cobrado y entregado (${partesTxt(pg)})`);
+          return;
+        }
         if (a === "fix") { fix.style.display = fix.style.display === "none" ? "" : "none"; return; }
         if (a === "fixok") {
           const v = Number(fv.value) || 0; if (!v || !fm.value.trim()) { toast("Cargá el monto correcto y el motivo", true); return; }

@@ -10,6 +10,7 @@
 //  - Corregir cotización de pedidos web (con cobro extra o devolución si ya estaba pagado).
 //  - Trabajos presenciales, señas y saldos.
 //  - Cambiar el medio de pago de un cobro de hoy (si el cliente cambió de idea).
+//  - Pagar con dos medios (ej: una parte en efectivo y otra con QR).
 //  - Marcar pedidos como "No retirado" (y volver a activarlos si el cliente aparece).
 //  - Todo cobro queda en la pestaña "cobros"; cada acción queda en "registro".
 //
@@ -201,6 +202,39 @@ function mostCobro_(datos) {
   rango.setValues([[ahora.fecha, ahora.hora, datos.comprobante || '', datos.origen || '', String(datos.pedido || ''),
     datos.detalle || '', datos.tipoTrabajo || '', datos.tipoCliente || '', String(datos.cliente || ''), String(datos.dni || ''),
     medio.label, medio.caja, Math.round(Number(datos.monto) || 0), datos.usuario || '']]);
+}
+
+// Marca que llevan los cobros que son la 2ª parte de un pago dividido (no cuentan como trabajo nuevo).
+const MOST_SEGUNDO_MEDIO = ' · 2° medio';
+
+// Arma las partes del pago: un solo medio, o dos medios que suman el total.
+// Devuelve { partes: [{medio, monto}] } o { error: 'mensaje' }.
+function mostPartesPago_(body, total) {
+  const valido = function (m) { return MOST_MEDIOS[m] && m !== 'mpweb'; };
+  if (Array.isArray(body.pagos) && body.pagos.length > 1) {
+    if (body.pagos.length > 2) return { error: 'Se puede dividir en dos medios como máximo.' };
+    const partes = body.pagos.map(function (x) { return { medio: String(x.medio || ''), monto: Math.round(Number(x.monto) || 0) }; });
+    if (!partes.every(function (x) { return valido(x.medio); })) return { error: 'Elegí los dos medios de pago.' };
+    if (partes[0].medio === partes[1].medio) return { error: 'Los dos medios de pago tienen que ser distintos.' };
+    if (!partes.every(function (x) { return x.monto > 0; })) return { error: 'Cargá cuánto se paga con cada medio.' };
+    if (partes[0].monto + partes[1].monto !== Math.round(total)) return { error: 'Los dos montos tienen que sumar $ ' + Math.round(total) + '.' };
+    return { partes: partes };
+  }
+  const medio = String(body.medio || (Array.isArray(body.pagos) && body.pagos[0] ? body.pagos[0].medio : '') || '');
+  if (!valido(medio)) return { error: 'Medio de pago no válido.' };
+  return { partes: [{ medio: medio, monto: Math.round(total) }] };
+}
+
+// Escribe un cobro por cada parte (la 2ª lleva la marca para no contarse como otro trabajo).
+function mostCobroPartes_(datos, partes) {
+  partes.forEach(function (p, i) {
+    mostCobro_(Object.assign({}, datos, { medio: p.medio, monto: p.monto,
+      origen: i === 0 ? datos.origen : datos.origen + MOST_SEGUNDO_MEDIO }));
+  });
+}
+
+function mostTextoPartes_(partes) {
+  return partes.map(function (p) { return MOST_MEDIOS[p.medio].label + ' $ ' + p.monto; }).join(' + ');
 }
 
 function mostTipoTrabajoWeb_(tipoImpresion) {
@@ -432,8 +466,6 @@ function mostCambiarEstado_(usuario, body) {
 }
 
 function mostCobrarWeb_(usuario, body) {
-  const medio = String(body.medio || '');
-  if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Medio de pago no válido.' };
   return mostConLock_(function () {
     const b = mostBuscarPedido_(body.pedido);
     if (!b.opFila) return { ok: false, message: 'No encontré el pedido ' + body.pedido + '.' };
@@ -441,11 +473,13 @@ function mostCobrarWeb_(usuario, body) {
     if (mostNorm_(v[MOST_OP.pago - 1]) === 'pagado') return { ok: false, message: 'Ese pedido ya figura como pagado. Actualizá la lista.' };
     const total = Number(v[MOST_OP.total - 1]) || 0;
     if (!(total > 0) || total > 3000000) return { ok: false, message: 'El total de ese pedido parece mal cotizado. Corregí la cotización antes de cobrar.' };
+    const pp = mostPartesPago_(body, total);
+    if (pp.error) return { ok: false, message: pp.error };
     mostEscribirEstados_(b, 'Retirado', 'Pagado', usuario);
-    mostCobro_({ origen: 'Web', pedido: String(v[0]), detalle: String(v[MOST_OP.detalle - 1] || v[MOST_OP.papel - 1] || ''),
+    mostCobroPartes_({ origen: 'Web', pedido: String(v[0]), detalle: String(v[MOST_OP.detalle - 1] || v[MOST_OP.papel - 1] || ''),
       tipoTrabajo: mostTipoTrabajoWeb_(v[MOST_OP.tipo - 1]), cliente: v[MOST_OP.cliente - 1], dni: v[MOST_OP.dni - 1],
-      medio: medio, monto: total, usuario: usuario });
-    mostRegistrar_(usuario, body.pedido, 'Cobró y entregó', MOST_MEDIOS[medio].label + ' $ ' + total);
+      usuario: usuario }, pp.partes);
+    mostRegistrar_(usuario, body.pedido, 'Cobró y entregó', mostTextoPartes_(pp.partes));
     return { ok: true, monto: total };
   });
 }
@@ -513,34 +547,33 @@ function mostSiguienteComprobante_() {
 }
 
 function mostPresencial_(usuario, body) {
-  const medio = String(body.medio || '');
-  if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Medio de pago no válido.' };
   const total = Math.round(Number(body.total) || 0);
   if (!(total > 0)) return { ok: false, message: 'El ticket está vacío.' };
+  const sena0 = Math.round(Number(body.sena) || 0);
+  const pp = mostPartesPago_(body, sena0 > 0 ? sena0 : total);
+  if (pp.error) return { ok: false, message: pp.error };
   const cliente = String(body.cliente || '').trim() || 'Consumidor final';
   const dni = String(body.dni || '').trim();
   const detalle = String(body.detalle || '').trim().slice(0, 2000);
   const sena = Math.round(Number(body.sena) || 0);
   const comp = mostSiguienteComprobante_();
   const base = { comprobante: comp, detalle: detalle, tipoTrabajo: String(body.tipoTrabajo || ''),
-    tipoCliente: String(body.tipoCliente || ''), cliente: cliente, dni: dni, medio: medio, usuario: usuario };
+    tipoCliente: String(body.tipoCliente || ''), cliente: cliente, dni: dni, usuario: usuario };
   if (sena > 0) {
     if (sena >= total) return { ok: false, message: 'La seña tiene que ser menor al total.' };
-    mostCobro_(Object.assign({}, base, { origen: 'Seña', detalle: 'Seña · ' + detalle, monto: sena }));
+    mostCobroPartes_(Object.assign({}, base, { origen: 'Seña', detalle: 'Seña · ' + detalle }), pp.partes);
     const hs = mostHoja_(MOST_SALDOS, MOST_SALDOS_HEADER);
     hs.appendRow([comp, mostAhora_().completa, cliente, dni, detalle, total, sena, total - sena, 'Pendiente', '', '',
       usuario, '', base.tipoTrabajo, base.tipoCliente]);
-    mostRegistrar_(usuario, comp, 'Seña presencial', '$ ' + sena + ' de $ ' + total);
+    mostRegistrar_(usuario, comp, 'Seña presencial', '$ ' + sena + ' de $ ' + total + ' (' + mostTextoPartes_(pp.partes) + ')');
   } else {
-    mostCobro_(Object.assign({}, base, { origen: 'Presencial', monto: total }));
-    mostRegistrar_(usuario, comp, 'Cobro presencial', MOST_MEDIOS[medio].label + ' $ ' + total);
+    mostCobroPartes_(Object.assign({}, base, { origen: 'Presencial' }), pp.partes);
+    mostRegistrar_(usuario, comp, 'Cobro presencial', mostTextoPartes_(pp.partes));
   }
   return { ok: true, comprobante: comp, hora: mostAhora_().hora };
 }
 
 function mostCobrarSaldo_(usuario, body) {
-  const medio = String(body.medio || '');
-  if (!MOST_MEDIOS[medio] || medio === 'mpweb') return { ok: false, message: 'Medio de pago no válido.' };
   return mostConLock_(function () {
     const hs = mostHoja_(MOST_SALDOS, MOST_SALDOS_HEADER);
     if (hs.getLastRow() < 2) return { ok: false, message: 'No encontré ese saldo.' };
@@ -550,12 +583,14 @@ function mostCobrarSaldo_(usuario, body) {
       if (String(f[0]) !== String(body.comprobante)) continue;
       if (mostNorm_(f[8]) !== 'pendiente') return { ok: false, message: 'Ese saldo ya estaba cobrado.' };
       const saldo = Number(f[7]) || 0;
+      const pp = mostPartesPago_(body, saldo);
+      if (pp.error) return { ok: false, message: pp.error };
       const fila = i + 2;
-      hs.getRange(fila, 9, 1, 3).setValues([['Cobrado', mostAhora_().completa, MOST_MEDIOS[medio].label]]);
+      hs.getRange(fila, 9, 1, 3).setValues([['Cobrado', mostAhora_().completa, pp.partes.map(function (p) { return MOST_MEDIOS[p.medio].label; }).join(' + ')]]);
       hs.getRange(fila, 13).setValue(usuario);
-      mostCobro_({ comprobante: f[0], origen: 'Saldo', detalle: 'Saldo · ' + f[4], tipoTrabajo: f[13], tipoCliente: f[14],
-        cliente: f[2], dni: f[3], medio: medio, monto: saldo, usuario: usuario });
-      mostRegistrar_(usuario, f[0], 'Cobró saldo', MOST_MEDIOS[medio].label + ' $ ' + saldo);
+      mostCobroPartes_({ comprobante: f[0], origen: 'Saldo', detalle: 'Saldo · ' + f[4], tipoTrabajo: f[13], tipoCliente: f[14],
+        cliente: f[2], dni: f[3], usuario: usuario }, pp.partes);
+      mostRegistrar_(usuario, f[0], 'Cobró saldo', mostTextoPartes_(pp.partes));
       return { ok: true, monto: saldo };
     }
     return { ok: false, message: 'No encontré ese saldo.' };

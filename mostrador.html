@@ -7,7 +7,7 @@
   <title>29 BIS · Mostrador</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./mostrador.css?v=20261107a">
+  <link rel="stylesheet" href="./mostrador.css?v=20261110b">
 </head>
 <body>
 <div class="login" id="login"><div class="card">
@@ -86,6 +86,13 @@
       <div class="row2"><input type="text" id="cn" placeholder="Nombre y apellido"><input type="text" id="cd" inputmode="numeric" placeholder="DNI o CUIT"></div></div>
     <div class="field"><label>Tipo de cliente <span class="req">*</span></label><div class="seg cli" id="cli"></div></div>
     <div class="field"><label>Medio de pago <span class="req">*</span></label><div class="seg pay" id="pay"></div></div>
+    <button class="linkbtn" id="splitBtn">Paga con dos medios (ej: parte efectivo y parte QR)</button>
+    <div class="sena" id="split" style="display:none">
+      <b>Dos medios de pago</b>
+      <div class="field"><label id="split1L">Cuánto paga con el primer medio</label><input type="number" id="split1" placeholder="Monto"></div>
+      <div class="field"><label>El resto lo paga con</label><div class="seg pay" id="pay2"></div></div>
+      <p class="hint" id="split2Txt"></p>
+    </div>
     <button class="linkbtn" id="senaBtn">El cliente deja una seña y paga el resto al retirar</button>
     <div class="sena" id="sena" style="display:none">
       <b>Seña</b>
@@ -132,6 +139,6 @@
 
 <script src="./src/config.js?v=20261104a"></script>
 <script src="./src/pricing-data.js?v=20261110a"></script>
-<script src="./src/mostrador.js?v=20261110a"></script>
+<script src="./src/mostrador.js?v=20261110b"></script>
 </body>
 </html>
