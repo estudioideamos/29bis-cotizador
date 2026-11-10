@@ -35,6 +35,13 @@ window.APP_CONFIG = {
   pickupSchedule: {
     // 0=domingo, 1=lunes, ... 6=sábado
     allowedWeekdays: [1, 2, 3, 4, 5],
+    // Días que el local está cerrado (feriados o cierres propios), formato "AAAA-MM-DD".
+    // No cuentan como días hábiles y no se ofrecen horarios de retiro.
+    closedDates: [
+      "2026-11-23", "2026-12-07", "2026-12-08", "2026-12-25", "2026-12-31", "2027-01-01"
+    ],
+    // Pedidos hechos a partir de esta hora (o en un día cerrado) empiezan a contarse desde el día hábil siguiente.
+    cutoffHour: 18,
     // Horarios habilitados (24 hs)
     slots: [
       "07:30", "08:00", "08:30", "09:00", "09:30",

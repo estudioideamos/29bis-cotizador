@@ -1183,16 +1183,33 @@
     return jobs;
   }
 
-  function getEarliestPickupDate(businessDays) {
+  // ¿El local trabaja ese día? (día de la semana habilitado y no feriado/cerrado)
+  function isOpenDay(date) {
     const allowed = new Set((pickupSchedule.allowedWeekdays || []).map((d) => Number(d)));
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    let counted = 0;
+    if (!allowed.has(date.getDay())) {
+      return false;
+    }
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return !(pickupSchedule.closedDates || []).includes(key);
+  }
+
+  // Primer día en que se puede retirar un pedido con N días hábiles de demora.
+  // El día del pedido cuenta como día de trabajo solo si el local abre ese día y es antes de la hora de corte;
+  // si no, se empieza a contar desde el próximo día hábil.
+  function getEarliestPickupDate(businessDays, now) {
+    const ahora = now || new Date();
+    const date = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    const cutoff = Number(pickupSchedule.cutoffHour);
+    const startsToday = isOpenDay(date) && !(Number.isFinite(cutoff) && ahora.getHours() >= cutoff);
     let guard = 0;
+    if (!startsToday) {
+      do { date.setDate(date.getDate() + 1); guard += 1; } while (!isOpenDay(date) && guard < 400);
+    }
+    let counted = 0;
     while (counted < businessDays && guard < 400) {
       date.setDate(date.getDate() + 1);
       guard += 1;
-      if (allowed.has(date.getDay())) {
+      if (isOpenDay(date)) {
         counted += 1;
       }
     }
@@ -1922,15 +1939,13 @@
     }
     const earliest = getEarliestPickupDate(state.leadDays);
 
-    const allowedDays = new Set((pickupSchedule.allowedWeekdays || []).map((d) => Number(d)));
     const slots = Array.isArray(pickupSchedule.slots) ? pickupSchedule.slots : [];
     const daysAhead = Math.max(1, Number(pickupSchedule.daysAhead || 21)) + state.leadDays * 2;
     const now = new Date();
 
     for (let offset = 0; offset <= daysAhead; offset += 1) {
       const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
-      const weekday = currentDate.getDay();
-      if (!allowedDays.has(weekday)) {
+      if (!isOpenDay(currentDate)) {
         continue;
       }
       if (state.leadDays > 0 && currentDate.getTime() < earliest.getTime()) {
