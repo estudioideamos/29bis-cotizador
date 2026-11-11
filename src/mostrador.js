@@ -244,7 +244,7 @@
   }
   const label = (k) => (PRICING.papers[k] && PRICING.papers[k].label) || k;
   // En algunos papeles láser el SA3 se muestra con otro nombre (igual que en la web).
-  const SIZE_LABEL_OVERRIDES = { vegetal: { SA3: "A3" } };
+  const SIZE_LABEL_OVERRIDES = { vegetal: { SA3: "A3" }, reciclado_nat: { SA3: "A3" } };
   const sizeLabel = (s) => {
     if (s === "100x100_personalizado") return "Personalizado";
     const o = st.machine === "laser" && SIZE_LABEL_OVERRIDES[st.paper];

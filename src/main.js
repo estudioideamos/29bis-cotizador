@@ -564,7 +564,8 @@
 
   // En algunos papeles el tamaño SA3 se muestra con otro nombre (solo cambia el texto, no el precio ni el código).
   const SIZE_LABEL_OVERRIDES = {
-    vegetal: { SA3: "A3" }
+    vegetal: { SA3: "A3" },
+    reciclado_nat: { SA3: "A3" }
   };
 
   function getSizeLabel(sizeKey) {
