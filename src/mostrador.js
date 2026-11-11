@@ -336,7 +336,35 @@
     const d = st.svc === "troquelado" ? troqDesc() : null;
     $("sUnit").textContent = sel ? `${money(sel[2])} por ${u}` + (d ? ` · desde ${d.from} hojas del mismo diseño: ${Math.round(d.rate * 100)}% menos` : "") : "";
     $("troqF").style.display = d ? "" : "none";
-    seg($("libCat"), [["lib", "Librería"], ["otro", "Otro cobro"]], st.libCat, (v) => { st.libCat = v; renderKind(); });
+    seg($("libCat"), [["lib", "Librería"], ["hoja", "Hojas sin imprimir"], ["otro", "Otro cobro"]], st.libCat, (v) => { st.libCat = v; renderKind(); });
+    renderHoja();
+  }
+  // ---- Hojas sin imprimir: precios en la hoja "prices" como servicio "hoja_sin_imprimir"
+  //      (tamaño = A4 / SA3, cobertura = código del papel, precio por hoja)
+  const HOJA_KEY = "hoja_sin_imprimir";
+  const hojaRows = () => st.rows.filter((r) => r.machine === "servicio" && r.paper_key === HOJA_KEY && r.coverage_key && Number(r.price) > 0 && r.active !== false);
+  function hojaPapers() {
+    const seen = []; hojaRows().forEach((r) => { if (!seen.includes(r.coverage_key)) seen.push(r.coverage_key); });
+    const order = (PRICING.machines && PRICING.machines.laser && PRICING.machines.laser.papers) || [];
+    return seen.sort((a, b) => (order.indexOf(a) + 1 || 999) - (order.indexOf(b) + 1 || 999));
+  }
+  const hojaSizes = (p) => ["A4", "A3", "SA3"].filter((z) => hojaRows().some((r) => r.coverage_key === p && r.size_key === z));
+  const hojaSizeLbl = (p, z) => (SIZE_LABEL_OVERRIDES[p] && SIZE_LABEL_OVERRIDES[p][z]) || z;
+  const hojaPrice = (p, z) => { const r = hojaRows().find((x) => x.coverage_key === p && x.size_key === z); return r ? Number(r.price) : null; };
+  function renderHoja() {
+    const isHoja = st.libCat === "hoja";
+    $("libFields").style.display = isHoja ? "none" : ""; $("hojaFields").style.display = isHoja ? "" : "none";
+    if (!isHoja) return;
+    const papers = hojaPapers();
+    $("hojaEmpty").style.display = papers.length ? "none" : ""; $("hojaForm").style.display = papers.length ? "" : "none";
+    if (!papers.length) return;
+    if (!papers.includes(st.hPaper)) st.hPaper = papers[0];
+    const sizes = hojaSizes(st.hPaper); if (!sizes.includes(st.hSize)) st.hSize = sizes[0];
+    const sel = $("hPaper");
+    sel.innerHTML = papers.map((p) => `<option value="${esc(p)}"${p === st.hPaper ? " selected" : ""}>${esc(label(p))}</option>`).join("");
+    seg($("hSize"), sizes.map((z) => [z, hojaSizeLbl(st.hPaper, z)]), st.hSize, (v) => { st.hSize = v; renderHoja(); });
+    const pr = hojaPrice(st.hPaper, st.hSize), n = Math.max(0, Math.round(Number($("hQty").value) || 0));
+    $("hUnit").innerHTML = pr ? `${money(pr)} por hoja` + (n > 0 ? ` · <b>${money(pr * n)}</b>` : "") : "";
   }
   $("sMinus").onclick = () => { $("sQty").value = Math.max(0, (Number($("sQty").value) || 0) - 1); };
   $("sPlus").onclick = () => { $("sQty").value = (Number($("sQty").value) || 0) + 1; };
@@ -350,6 +378,17 @@
     if (desc && $("troqMismo").checked && n >= desc.from) { total = total * (1 - desc.rate); extra = ` · ${Math.round(desc.rate * 100)}% menos (mismo diseño)`; }
     st.lines.push({ kind: "svc", total: Math.round(total), title: d.l + (opts.length > 1 ? " · " + sel[1] : ""), sub: `${n} ${UNIT_TXT(sel[3], n)} x ${money(sel[2])}${extra}` });
     $("sQty").value = 1; $("troqMismo").checked = false; renderTicket();
+  };
+  $("hPaper").onchange = () => { st.hPaper = $("hPaper").value; renderHoja(); };
+  $("hQty").oninput = renderHoja;
+  $("hMinus").onclick = () => { $("hQty").value = Math.max(1, (Number($("hQty").value) || 0) - 1); renderHoja(); };
+  $("hPlus").onclick = () => { $("hQty").value = (Number($("hQty").value) || 0) + 1; renderHoja(); };
+  $("addHoja").onclick = () => {
+    const pr = hojaPrice(st.hPaper, st.hSize), n = Math.round(Number($("hQty").value) || 0);
+    if (!pr) { toast("Ese papel no tiene precio cargado", true); return; }
+    if (n <= 0) { toast("Cargá la cantidad de hojas", true); return; }
+    st.lines.push({ kind: "lib", total: pr * n, title: `Hojas sin imprimir · ${label(st.hPaper)} ${hojaSizeLbl(st.hPaper, st.hSize)}`, sub: `${n} ${n === 1 ? "hoja" : "hojas"} x ${money(pr)}` });
+    $("hQty").value = 1; renderTicket(); renderHoja();
   };
   $("addLib").onclick = () => {
     const v = Number($("libMonto").value) || 0; const det = $("libDet").value.trim();

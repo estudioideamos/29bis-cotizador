@@ -71,9 +71,20 @@
     </div>
     <div id="pLib" style="display:none">
       <div class="field"><label>Qué es</label><div class="seg" id="libCat"></div></div>
-      <div class="field"><label>Detalle</label><input type="text" id="libDet" placeholder="Ej: 2 lápices HB, cinta de papel"></div>
-      <div class="field"><label>Monto</label><input type="number" id="libMonto" placeholder="Ej: 3500"></div>
-      <button class="btn add" id="addLib">+ Agregar</button>
+      <div id="libFields">
+        <div class="field"><label>Detalle</label><input type="text" id="libDet" placeholder="Ej: 2 lápices HB, cinta de papel"></div>
+        <div class="field"><label>Monto</label><input type="number" id="libMonto" placeholder="Ej: 3500"></div>
+        <button class="btn add" id="addLib">+ Agregar</button>
+      </div>
+      <div id="hojaFields" style="display:none">
+        <p class="hint" id="hojaEmpty">Todavía no hay precios de hojas sin imprimir cargados en la hoja "prices".</p>
+        <div id="hojaForm">
+        <div class="field"><label>Papel</label><select id="hPaper"></select></div>
+        <div class="field"><label>Tamaño</label><div class="seg" id="hSize"></div></div>
+        <div class="field"><label>Cantidad de hojas</label><div class="stepper" style="justify-content:flex-start"><button id="hMinus">−</button><input type="number" id="hQty" min="1" step="1" value="1"><button id="hPlus">+</button><span class="hint" id="hUnit" style="margin-left:8px"></span></div></div>
+        <button class="btn add" id="addHoja">+ Agregar hojas</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -139,6 +150,6 @@
 
 <script src="./src/config.js?v=20261104a"></script>
 <script src="./src/pricing-data.js?v=20261111b"></script>
-<script src="./src/mostrador.js?v=20261111a"></script>
+<script src="./src/mostrador.js?v=20261111b"></script>
 </body>
 </html>
