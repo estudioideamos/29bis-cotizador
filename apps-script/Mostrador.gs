@@ -657,6 +657,77 @@ function mostReactivar_(usuario, body) {
 }
 
 // ------------------------------------------------------------
+// Archivo automático (todas las noches): saca de "orders" los pedidos terminados
+// y los pasa arriba de todo en "orders_archivo". Así la planilla y el mostrador no se ponen lentos.
+//   - Retirado y Cancelado: después de MOST_ARCHIVO_DIAS días.
+//   - No retirado: después de MOST_DIAS_NO_RETIRADOS días (mientras tanto se pueden reactivar).
+// Primero copia al archivo y recién después borra de "orders": si algo se corta, a lo sumo queda repetido, nunca se pierde.
+// ------------------------------------------------------------
+const MOST_ARCHIVO_DIAS = 2;
+const MOST_ARCHIVO_MAX = 300; // por vez, para no pasarse del tiempo de Google; lo que falte se archiva la noche siguiente
+
+function mostradorArchivarTerminados() {
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  let movidos = 0;
+  try {
+    const ss = mostSS_();
+    const or = ss.getSheetByName(ORDERS_SHEET);
+    if (!or || or.getLastRow() < 2) return 'No hay pedidos.';
+    const ancho = or.getLastColumn();
+    const filas = or.getRange(2, 1, or.getLastRow() - 1, ancho).getValues();
+    const cambios = or.getRange(2, MOST_OR.cambio, or.getLastRow() - 1, 1).getDisplayValues();
+    const creados = or.getRange(2, 1, or.getLastRow() - 1, 1).getDisplayValues();
+    const elegidas = [];
+    for (let i = 0; i < filas.length && elegidas.length < MOST_ARCHIVO_MAX; i++) {
+      const en = mostNorm_(filas[i][MOST_OR.estado - 1]);
+      const limite = (en === 'retirado' || en === 'cancelado') ? MOST_ARCHIVO_DIAS : en === 'no retirado' ? MOST_DIAS_NO_RETIRADOS : -1;
+      if (limite < 0) continue;
+      // fecha del último cambio de estado; si no hay, la fecha del pedido
+      const cuando = String(cambios[i][0] || '').trim() || String(creados[i][0] || '').trim();
+      if (!/^\d{1,2}\/\d{1,2}\/\d{4}/.test(cuando)) continue;
+      if (mostDiasDesde_(cuando) <= limite) continue;
+      elegidas.push(i);
+    }
+    if (!elegidas.length) return 'No hay pedidos para archivar.';
+
+    // 1) copiar al archivo, arriba de todo (los más nuevos primero)
+    const archivo = getOrCreateArchiveFromOrders_(ss, or);
+    const copia = elegidas.map(function (i) { return sanitizeRowForSheet_(filas[i]); }).reverse();
+    archivo.insertRowsBefore(2, copia.length);
+    const destino = archivo.getRange(2, 1, copia.length, ancho);
+    destino.clearFormat();
+    destino.setValues(copia);
+    SpreadsheetApp.flush();
+
+    // 2) borrar de "orders" de abajo hacia arriba, agrupando filas seguidas
+    const nums = elegidas.map(function (i) { return i + 2; }).sort(function (a, b) { return b - a; });
+    let k = 0;
+    while (k < nums.length) {
+      let fin = nums[k], ini = fin;
+      while (k + 1 < nums.length && nums[k + 1] === ini - 1) { k++; ini = nums[k]; }
+      or.deleteRows(ini, fin - ini + 1);
+      k++;
+    }
+    movidos = elegidas.length;
+  } finally {
+    lock.releaseLock();
+  }
+  // 3) rehacer la hoja "operacion" sin esos pedidos
+  try { refreshOperacionEditable(); } catch (err) { console.error('No se pudo actualizar operacion: ' + err); }
+  mostRegistrar_('Automático', '', 'Archivó pedidos', movidos + ' pedido(s) pasados a orders_archivo');
+  return 'Listo: ' + movidos + ' pedido(s) archivados.';
+}
+
+// Ejecutar UNA vez: deja programado el archivo automático todas las noches a las 3.
+function mostradorActivarArchivoAutomatico() {
+  const fn = 'mostradorArchivarTerminados';
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === fn) ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger(fn).timeBased().everyDays(1).atHour(3).inTimezone(MOST_TZ).create();
+  return 'Listo: los pedidos terminados se archivan solos todas las noches a las 3.';
+}
+
+// ------------------------------------------------------------
 // Para ejecutar a mano, UNA sola vez
 // ------------------------------------------------------------
 function mostradorPreparar() {
