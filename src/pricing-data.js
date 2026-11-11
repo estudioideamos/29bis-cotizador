@@ -47,7 +47,7 @@ window.PRICING_DATA = {
     ilustracion_210: { label: "Ilustración 210gr", type: "laser-special" },
     ilustracion_300: { label: "Ilustración 300gr", type: "laser-special" },
     kraft_125: { label: "Kraft 125gr", type: "laser-special" },
-    reciclado_nat: { label: "Papel reciclado NAT", type: "laser-special" },
+    reciclado_nat: { label: "Reciclado NAT", type: "laser-special" },
     autoadhesivo_obra: { label: "Autoadhesivo obra", type: "laser-special" },
     autoadhesivo_brillo: { label: "Autoadhesivo brillo (ilustración)", type: "laser-special" },
     vegetal: { label: "Vegetal", type: "laser-special-plotter-shared" },
