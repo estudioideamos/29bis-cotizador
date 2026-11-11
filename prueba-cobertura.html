@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>29 BIS · Prueba de cobertura</title>
+<style>
+  :root{--bg:#f7f5f2;--card:#fff;--ink:#1c1c1a;--muted:#6a6966;--line:#e4e0da;--primary:#d93d79;--ok:#2e8b74;--warn:#c98a10}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Arial,Helvetica,sans-serif}
+  main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:22px;margin:0 0 4px}
+  .hint{color:var(--muted);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  input[type=number],select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:120px;background:#fff}
+  .drop{border:2px dashed var(--line);border-radius:14px;padding:30px;text-align:center;cursor:pointer;background:#fff}
+  .drop.on{border-color:var(--primary);background:#fdf1f6}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;background:var(--primary);color:#fff;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .kpi{background:var(--bg);border-radius:10px;padding:10px 12px}
+  .kpi b{display:block;font-size:20px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-size:12px;text-transform:uppercase;color:var(--muted)}
+  td.r,th.r{text-align:right}
+  .bar{height:8px;background:var(--line);border-radius:5px;overflow:hidden;min-width:90px}
+  .bar i{display:block;height:100%;background:var(--ink)}
+  .band{font-weight:700;padding:2px 8px;border-radius:999px;font-size:12px;white-space:nowrap}
+  .b-lineas{background:#e6f4ef;color:var(--ok)} .b-mixto{background:#fff3d6;color:var(--warn)} .b-pleno{background:#fde4ee;color:var(--primary)}
+  canvas.th{width:70px;border:1px solid var(--line);background:#fff;display:block}
+  .tbl{overflow-x:auto}
+  .err{color:#b42318;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+  <h1>Prueba de cobertura de tinta</h1>
+  <p class="hint">Página de prueba interna. El PDF se analiza en esta computadora: no se sube a ningún lado.</p>
+
+  <div class="card">
+    <div class="row">
+      <div><label>Líneas: hasta</label><input type="number" id="t1" value="15" min="0" max="100" step="1"> %</div>
+      <div><label>Mixto: hasta</label><input type="number" id="t2" value="45" min="0" max="100" step="1"> %</div>
+      <div><label>Pleno</label><span class="hint">más que eso</span></div>
+      <div><label>Qué cuenta como tinta</label><select id="umbral"><option value="245">Casi cualquier marca</option><option value="230" selected>Normal</option><option value="200">Solo lo bien marcado</option></select></div>
+    </div>
+    <p class="hint" style="margin:10px 0 0">Los límites de cada banda son de prueba: cambialos y el resultado se recalcula solo.</p>
+  </div>
+
+  <div class="card">
+    <div class="drop" id="drop">Arrastrá un PDF acá o tocá para elegirlo<input type="file" id="file" accept="application/pdf" hidden></div>
+    <p class="hint" id="status" style="margin:10px 0 0"></p>
+  </div>
+
+  <div class="card" id="res" style="display:none">
+    <div class="kpis" id="kpis"></div>
+    <div class="tbl" style="margin-top:14px"><table><thead><tr><th>Pág.</th><th>Vista</th><th>Tamaño</th><th>Cobertura</th><th class="r">%</th><th>Banda</th></tr></thead><tbody id="tb"></tbody></table></div>
+  </div>
+
+  <div class="card" id="flat" style="display:none">
+    <h2 style="font-size:17px;margin:0 0 6px">Prueba de aplanado (achicar el archivo antes de subirlo)</h2>
+    <p class="hint" style="margin:0 0 10px">Convierte cada página en imagen y arma un PDF nuevo sin capas. Descargalo y revisá si las líneas finas se ven bien impresas.</p>
+    <div class="row">
+      <div><label>Resolución</label><select id="dpi"><option>100</option><option selected>150</option><option>200</option><option>300</option></select> DPI</div>
+      <div><label>Calidad JPG</label><select id="q"><option value="0.75">Media</option><option value="0.85" selected>Buena</option><option value="0.95">Muy buena</option></select></div>
+      <div><button id="goFlat">Aplanar y comparar peso</button></div>
+    </div>
+    <p id="flatOut" style="margin:12px 0 0"></p>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script type="module">
+import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+(function () {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+  const $ = (id) => document.getElementById(id);
+  const st = { file: null, pdf: null, pages: [] };
+  const MM = 25.4 / 72;
+  const SIZES = [["A4", 210, 297], ["A3", 297, 420], ["SA3", 320, 450], ["A2", 420, 594], ["A1", 594, 841], ["A0", 841, 1189], ["35x50", 350, 500], ["50x70", 500, 700], ["70x100", 700, 1000]];
+  const kb = (b) => b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB";
+
+  function sizeName(wMm, hMm) {
+    const a = Math.min(wMm, hMm), b = Math.max(wMm, hMm);
+    for (const [n, w, h] of SIZES) if (Math.abs(a - w) <= 6 && Math.abs(b - h) <= 6) return n;
+    return `${Math.round(a)}×${Math.round(b)} mm`;
+  }
+  function band(pct) {
+    const t1 = Number($("t1").value) || 0, t2 = Number($("t2").value) || 0;
+    return pct <= t1 ? "lineas" : pct <= t2 ? "mixto" : "pleno";
+  }
+  const BAND_LBL = { lineas: "Líneas", mixto: "Mixto", pleno: "Pleno" };
+
+  // Cobertura: renderiza la página chica (lado largo ~1200 px) sobre blanco y cuenta píxeles que no son blancos.
+  async function analyzePage(page) {
+    const vp1 = page.getViewport({ scale: 1 });
+    const scale = 1200 / Math.max(vp1.width, vp1.height);
+    const vp = page.getViewport({ scale });
+    const c = document.createElement("canvas");
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvas: c, canvasContext: ctx, viewport: vp }).promise;
+    const data = ctx.getImageData(0, 0, c.width, c.height).data;
+    // guardamos el valor mínimo de canal por píxel para recalcular con otro umbral sin volver a renderizar
+    const mins = new Uint8Array(c.width * c.height);
+    for (let i = 0, j = 0; i < data.length; i += 4, j++) mins[j] = Math.min(data[i], data[i + 1], data[i + 2]);
+    const th = document.createElement("canvas"); th.width = 70; th.height = Math.round(70 * c.height / c.width);
+    th.className = "th"; th.getContext("2d").drawImage(c, 0, 0, th.width, th.height);
+    return { wMm: vp1.width * MM, hMm: vp1.height * MM, mins, thumb: th };
+  }
+  function pctOf(p) {
+    const lim = Number($("umbral").value);
+    let n = 0; for (let i = 0; i < p.mins.length; i++) if (p.mins[i] < lim) n++;
+    return 100 * n / p.mins.length;
+  }
+
+  function render() {
+    if (!st.pages.length) return;
+    const rows = st.pages.map((p, i) => ({ i: i + 1, p, pct: pctOf(p), size: sizeName(p.wMm, p.hMm) }));
+    const cnt = { lineas: 0, mixto: 0, pleno: 0 }, bySize = {};
+    rows.forEach((r) => { r.band = band(r.pct); cnt[r.band]++; bySize[r.size] = (bySize[r.size] || 0) + 1; });
+    const avg = rows.reduce((s, r) => s + r.pct, 0) / rows.length;
+    $("kpis").innerHTML = [
+      ["Archivo", kb(st.file.size)], ["Páginas", rows.length], ["Tamaños", Object.entries(bySize).map(([k, v]) => `${k} ×${v}`).join(", ")],
+      ["Cobertura promedio", avg.toFixed(1) + " %"], ["Por banda", `Líneas ${cnt.lineas} · Mixto ${cnt.mixto} · Pleno ${cnt.pleno}`], ["Tiempo de análisis", st.secs.toFixed(1) + " s"]
+    ].map(([a, b]) => `<div class="kpi"><span class="hint">${a}</span><b>${b}</b></div>`).join("");
+    $("tb").innerHTML = "";
+    rows.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${r.i}</td><td></td><td>${r.size}</td><td><div class="bar"><i style="width:${Math.min(100, r.pct).toFixed(1)}%"></i></div></td><td class="r">${r.pct.toFixed(1)}</td><td><span class="band b-${r.band}">${BAND_LBL[r.band]}</span></td>`;
+      tr.children[1].appendChild(r.p.thumb);
+      $("tb").appendChild(tr);
+    });
+  }
+
+  async function load(file) {
+    if (!file || file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) { $("status").innerHTML = '<span class="err">Elegí un archivo PDF.</span>'; return; }
+    st.file = file; st.pages = []; $("res").style.display = "none"; $("flat").style.display = "none"; $("flatOut").textContent = "";
+    const t0 = performance.now();
+    try {
+      $("status").textContent = "Abriendo el PDF…";
+      st.pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      for (let i = 1; i <= st.pdf.numPages; i++) {
+        $("status").textContent = `Analizando página ${i} de ${st.pdf.numPages}…`;
+        const page = await st.pdf.getPage(i);
+        st.pages.push(await analyzePage(page));
+        page.cleanup();
+      }
+      st.secs = (performance.now() - t0) / 1000;
+      $("status").textContent = `Listo: ${file.name}`;
+      $("res").style.display = ""; $("flat").style.display = "";
+      render();
+    } catch (e) {
+      $("status").innerHTML = `<span class="err">No se pudo leer el PDF: ${e.message || e}</span>`;
+    }
+  }
+
+  async function flatten() {
+    if (!st.pdf) return;
+    const dpi = Number($("dpi").value), q = Number($("q").value);
+    $("goFlat").disabled = true;
+    const t0 = performance.now();
+    try {
+      const out = await PDFLib.PDFDocument.create();
+      for (let i = 1; i <= st.pdf.numPages; i++) {
+        $("flatOut").textContent = `Aplanando página ${i} de ${st.pdf.numPages}…`;
+        const page = await st.pdf.getPage(i);
+        const vp1 = page.getViewport({ scale: 1 });
+        let scale = dpi / 72;
+        // tope de seguridad para que el navegador no se quede sin memoria en formatos muy grandes
+        const maxPx = 16000 * 16000 / 4;
+        if (vp1.width * scale * vp1.height * scale > maxPx) scale = Math.sqrt(maxPx / (vp1.width * vp1.height));
+        const vp = page.getViewport({ scale });
+        const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvas: c, canvasContext: ctx, viewport: vp }).promise;
+        const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", q));
+        const img = await out.embedJpg(await blob.arrayBuffer());
+        const pg = out.addPage([vp1.width, vp1.height]);
+        pg.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
+        c.width = c.height = 0; page.cleanup();
+      }
+      const bytes = await out.save();
+      const secs = (performance.now() - t0) / 1000;
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const pct = Math.round(100 * bytes.length / st.file.size);
+      $("flatOut").innerHTML = `Antes: <b>${kb(st.file.size)}</b> → después: <b>${kb(bytes.length)}</b> (${pct}% del original) · tardó ${secs.toFixed(1)} s · <a href="${url}" download="${st.file.name.replace(/\.pdf$/i, "")}_plano_${dpi}dpi.pdf">Descargar el PDF aplanado</a>`;
+    } catch (e) {
+      $("flatOut").innerHTML = `<span class="err">No se pudo aplanar: ${e.message || e}</span>`;
+    } finally { $("goFlat").disabled = false; }
+  }
+
+  const drop = $("drop");
+  drop.onclick = () => $("file").click();
+  $("file").onchange = (e) => load(e.target.files[0]);
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("on"); };
+  drop.ondragleave = () => drop.classList.remove("on");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("on"); load(e.dataTransfer.files[0]); };
+  ["t1", "t2", "umbral"].forEach((id) => { $(id).oninput = render; });
+  $("goFlat").onclick = flatten;
+})();
+</script>
+</body>
+</html>
