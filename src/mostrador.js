@@ -464,14 +464,16 @@
     const match = (o) => !q || String(o.n).toLowerCase().includes(q) || String(o.cliente).toLowerCase().includes(q) || String(o.dni || "").includes(q);
     let list;
     if (st.t2 === "pend") {
-      list = pend.map((p) => Object.assign({ kind: "web" }, p)).concat(saldos).filter(match);
+      // Solo los listos para retirar; los demás aparecen únicamente si los buscás (por si alguien se olvidó de pasarlo a listo).
+      const base = q ? pend : pend.filter((p) => normEstado(p.estado) === "listo para retirar");
+      list = base.map((p) => Object.assign({ kind: "web" }, p)).concat(saldos).filter(match);
       list.sort((a, b) => (a.kind === "saldo" ? 0 : normEstado(a.estado) === "listo para retirar" ? 0 : 1) - (b.kind === "saldo" ? 0 : normEstado(b.estado) === "listo para retirar" ? 0 : 1) || Number(b.n) - Number(a.n));
     } else if (st.t2 === "no") {
       list = noRet.map((p) => Object.assign({ kind: "web" }, p)).filter(match);
     } else {
       list = peds.filter((p) => normEstado(p.estado) === "retirado").map((p) => Object.assign({ kind: "web" }, p)).filter(match);
     }
-    $("results").innerHTML = list.length ? list.map(orderCard).join("") : `<p class="hint">${st.t2 === "no" ? "No hay pedidos marcados como no retirados en los últimos 45 días." : "No hay pedidos con esa búsqueda."}</p>`;
+    $("results").innerHTML = list.length ? list.map(orderCard).join("") : `<p class="hint">${st.t2 === "no" ? "No hay pedidos marcados como no retirados en los últimos 45 días." : st.t2 === "pend" && !q ? "No hay pedidos listos para retirar." : "No hay pedidos con esa búsqueda."}</p>`;
     $("results").querySelectorAll(".order").forEach((cardEl) => bindOrder(cardEl, list.find((x) => String(x.n) === cardEl.dataset.n && x.kind === cardEl.dataset.k)));
   }
   function orderCard(o) {
