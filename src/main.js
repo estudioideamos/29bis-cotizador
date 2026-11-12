@@ -1457,6 +1457,7 @@
       sides: sideKey ? { key: sideKey, label: pricing.labels.sides[sideKey] } : null,
       quantity: usesCoverage(machineKey, paperKey) ? null : Number(els.quantity.value) || 0,
       coverageDistribution: usesCoverage(machineKey, paperKey, sideKey) ? getCoverageDistribution() : [],
+      lectorNota: state.analysis && state.analysis.nota ? state.analysis.nota : "",
       services: servicesSnapshot.list.map((entry) => ({
         key: entry.key,
         label: entry.label,
@@ -2125,6 +2126,14 @@
       notesText = notesText ? `${aviso} ${notesText}` : aviso;
     }
 
+    // Copias distintas por página (lector de PDF): van a las observaciones para que el taller las vea.
+    const notasCopias = orderItems
+      .map((item, i) => (item.lectorNota ? `[${orderItems.length > 1 ? `Trabajo ${i + 1} · ` : ""}${item.lectorNota}]` : ""))
+      .filter(Boolean);
+    if (notasCopias.length) {
+      notesText = notesText ? `${notasCopias.join(" ")} ${notesText}` : notasCopias.join(" ");
+    }
+
     // El detalle de servicios ya viaja en cada trabajo (orderItems[].services) y se ve
     // en la columna "Servicios" de la planilla: no se mezcla con las observaciones del cliente.
 
@@ -2595,7 +2604,7 @@
   // ================================================================
   // Lector de PDF (solo en la página nueva): el analizador le pasa al cotizador
   // el tamaño y la cobertura de cada página, y el cotizador completa el trabajo solo.
-  //   analysis = { sizeKey, custom: {w, h} | null, bands: ["lineas", ...] (una por página), copies, files: [File] }
+  //   analysis = { machine, sizeKey, custom: {w, h} | null, pages: [{ band, copies }], nota, files: [File] }
   // ================================================================
   state.analysis = null;
 
@@ -2616,13 +2625,17 @@
   }
 
   // Hojas por banda según la faz: en doble faz cada hoja junta dos páginas y vale la cobertura mayor.
+  // Cada página tiene su banda y sus copias. En doble faz se juntan de a dos (vale la banda y las copias mayores).
   function analysisSheets(analysis) {
     const rank = { lineas: 0, mixto: 1, pleno: 2 };
     const df = isLaser(els.machine.value) && els.sides.value === "df";
+    const pages = analysis.pages || [];
     const sheets = [];
-    for (let i = 0; i < analysis.bands.length; i += df ? 2 : 1) {
-      const a = analysis.bands[i], b = df ? analysis.bands[i + 1] : null;
-      sheets.push(b && rank[b] > rank[a] ? b : a);
+    for (let i = 0; i < pages.length; i += df ? 2 : 1) {
+      const a = pages[i], b = df ? pages[i + 1] : null;
+      const bandKey = b && rank[b.band] > rank[a.band] ? b.band : a.band;
+      const copies = Math.max(1, Math.round(Number(a.copies) || 1), b ? Math.round(Number(b.copies) || 1) : 0);
+      sheets.push({ band: bandKey, copies });
     }
     return sheets;
   }
@@ -2642,16 +2655,16 @@
       els.customWidth.value = analysis.custom.w.toFixed(2);
       els.customHeight.value = analysis.custom.h.toFixed(2);
     }
-    const copies = Math.max(1, Math.round(Number(analysis.copies) || 1));
     const sheets = analysisSheets(analysis);
     if (usesCoverage(els.machine.value, els.paper.value, els.sides.value)) {
       const count = { lineas: 0, mixto: 0, pleno: 0 };
-      sheets.forEach((band) => { count[band] += 1; });
-      Object.entries(state.coverageInputs).forEach(([band, input]) => { input.value = String((count[band] || 0) * copies); });
+      sheets.forEach((sh) => { count[sh.band] += sh.copies; });
+      Object.entries(state.coverageInputs).forEach(([band, input]) => { input.value = String(count[band] || 0); });
     } else {
-      els.quantity.value = String(sheets.length * copies);
+      els.quantity.value = String(sheets.reduce((acc, sh) => acc + sh.copies, 0));
     }
     updateSummary();
+    document.dispatchEvent(new CustomEvent("cotizador:analisis-aplicado", { detail: { sheets } }));
   }
 
   function apiLoadJob(analysis) {
@@ -2685,11 +2698,23 @@
 
   window.COTIZADOR_API = {
     loadJob: apiLoadJob,
-    setCopies(n) {
+    setPages(pages, nota) {
       if (state.analysis) {
-        state.analysis.copies = n;
+        state.analysis.pages = pages;
+        state.analysis.nota = nota || "";
         applyAnalysisCounts();
       }
+    },
+    sheetsInfo() {
+      if (!state.analysis) {
+        return null;
+      }
+      return {
+        sheets: analysisSheets(state.analysis),
+        coverage: usesCoverage(els.machine.value, els.paper.value, els.sides.value),
+        sizeLabel: getSizeLabel(els.size.value),
+        machine: els.machine.value
+      };
     },
     clear() {
       state.analysis = null;

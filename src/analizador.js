@@ -21,7 +21,33 @@ const BAND_LBL = { lineas: "líneas", mixto: "mixto", pleno: "pleno" };
 
 const $ = (id) => document.getElementById(id);
 const api = () => window.COTIZADOR_API;
-const st = { file: null, groups: [], current: -1, copies: 1, busy: false };
+const st = { file: null, groups: [], current: -1, copies: 1, extra: [], busy: false, numPages: 0 };
+
+// Tamaños para "Imprimir en otro tamaño": [máquina, código, nombre]
+const ALL_SIZES = [["laser", "A4", "A4"], ["laser", "A3", "A3"], ["plotter", "A2", "A2"], ["plotter", "A1", "A1"], ["plotter", "A0", "A0"],
+  ["plotter", "35x50", "35 x 50 cm"], ["plotter", "50x70", "50 x 70 cm"], ["plotter", "70x100", "70 x 100 cm"]];
+
+function setMode(mode) {
+  document.body.classList.remove("modo-espera", "modo-lector", "modo-manual");
+  document.body.classList.add("modo-" + mode);
+}
+
+// copias de una página (número de página del archivo original)
+function copiesOf(n) {
+  const ex = st.extra.filter((x) => Number(x.page) === n && Number(x.copies) > 0).pop();
+  return ex ? Math.round(Number(ex.copies)) : st.copies;
+}
+
+function copiesNote() {
+  const parts = [];
+  if (st.copies > 1) parts.push(`${st.copies} copias de todo el archivo`);
+  st.extra.filter((x) => Number(x.page) >= 1 && Number(x.copies) > 0).forEach((x) => parts.push(`${x.copies} ${Number(x.copies) === 1 ? "copia" : "copias"} de la pág. ${x.page}`));
+  return parts.length ? "Copias: " + parts.join(", ") : "";
+}
+
+function pagesFor(g) {
+  return g.pages.map((p) => ({ band: p.band, copies: copiesOf(p.n) }));
+}
 
 const kb = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB");
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -136,17 +162,56 @@ function loadGroup(i) {
   st.current = i;
   const g = st.groups[i];
   if (!g || !api()) return;
+  const o = g.override;
   api().loadJob({
-    machine: g.machine,
-    sizeKey: g.sizeKey,
-    custom: g.custom || null,
-    bands: g.pages.map((p) => p.band),
-    copies: st.copies,
+    machine: o ? o.machine : g.machine,
+    sizeKey: o ? o.sizeKey : g.sizeKey,
+    custom: o ? null : (g.custom || null),
+    pages: pagesFor(g),
+    nota: copiesNote(),
     files: g.file ? [g.file] : [],
     linkLater: !g.file
   });
+  setMode("lector");
   renderGroups();
-  document.getElementById("quote-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  renderSize();
+  $("lector-config").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function sizeText(g) {
+  if (g.override) return ALL_SIZES.find((x) => x[0] === g.override.machine && x[1] === g.override.sizeKey)[2];
+  return g.custom ? `${g.custom.w.toFixed(2).replace(".", ",")} x ${g.custom.h.toFixed(2).replace(".", ",")} m` : g.sizeKey;
+}
+
+function renderSize() {
+  const g = st.groups[st.current];
+  if (!g) return;
+  $("lector-size").innerHTML = `<b>${esc(sizeText(g))}</b> · ${(g.override ? g.override.machine : g.machine) === "laser" ? "impresión láser" : "plotter"}` +
+    (g.override ? ` <span class="muted">(tu archivo es ${esc(g.custom ? "de tamaño libre" : g.sizeKey)})</span>` : ` <span class="muted">(detectado en tu archivo)</span>`);
+  $("lector-size-other").textContent = g.override ? "Volver al tamaño del archivo" : "Imprimir en otro tamaño";
+  $("lector-size-pick").classList.add("hidden");
+}
+
+function renderSheets(detail) {
+  const info = api() && api().sheetsInfo();
+  if (!info) { $("lector-sheets").textContent = ""; return; }
+  const total = info.sheets.reduce((a, s) => a + s.copies, 0);
+  const n = { lineas: 0, mixto: 0, pleno: 0 };
+  info.sheets.forEach((s) => { n[s.band] += s.copies; });
+  const cob = Object.entries(n).filter(([, v]) => v).map(([k, v]) => `${v} ${BAND_LBL[k]}`).join(" · ");
+  $("lector-sheets").innerHTML = `Vas a imprimir <b>${total} ${total === 1 ? "hoja" : "hojas"}</b>` + (info.coverage ? ` (${cob})` : "") + ".";
+}
+
+function renderExtra() {
+  $("lector-extra").innerHTML = st.extra.map((x, i) => `<div class="lector-extra-row" data-i="${i}">
+      <input type="number" min="1" step="1" value="${esc(x.copies)}" data-k="copies" aria-label="Copias"> <span>copias de la página</span>
+      <input type="number" min="1" max="${st.numPages}" step="1" value="${esc(x.page)}" data-k="page" aria-label="Página">
+      <button type="button" class="lector-x" data-del="${i}" aria-label="Quitar">×</button></div>`).join("");
+}
+
+function copiesChanged() {
+  if (!api() || st.current < 0 || st.current >= st.groups.length) return;
+  api().setPages(pagesFor(st.groups[st.current]), copiesNote());
 }
 
 async function handleFile(file) {
@@ -156,7 +221,8 @@ async function handleFile(file) {
     return;
   }
   if (!api()) { setMsg("El cotizador todavía se está cargando. Probá de nuevo en unos segundos.", "error"); return; }
-  st.busy = true; st.file = file; st.groups = []; st.current = -1;
+  st.busy = true; st.file = file; st.groups = []; st.current = -1; st.extra = []; st.copies = 1;
+  $("lector-copies").value = "1"; renderExtra();
   renderGroups();
   $("lector-drop").classList.add("is-busy");
   try {
@@ -164,6 +230,7 @@ async function handleFile(file) {
     const srcBytes = new Uint8Array(await file.arrayBuffer());
     const pdf = await pdfjsLib.getDocument({ data: srcBytes.slice() }).promise;
     const pages = [];
+    st.numPages = pdf.numPages;
     for (let n = 1; n <= pdf.numPages; n++) {
       setMsg(`Leyendo página ${n} de ${pdf.numPages}…`);
       const page = await pdf.getPage(n);
@@ -221,8 +288,39 @@ function bind() {
   drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("is-over"); handleFile(e.dataTransfer.files[0]); });
   $("lector-copies").addEventListener("input", () => {
     st.copies = Math.max(1, Math.round(Number($("lector-copies").value) || 1));
-    if (api() && st.current >= 0) api().setCopies(st.copies);
+    copiesChanged();
   });
+  $("lector-add-extra").addEventListener("click", () => {
+    st.extra.push({ copies: 2, page: 1 });
+    renderExtra(); copiesChanged();
+  });
+  $("lector-extra").addEventListener("input", (e) => {
+    const row = e.target.closest(".lector-extra-row"); if (!row) return;
+    st.extra[Number(row.dataset.i)][e.target.dataset.k] = Math.max(1, Math.round(Number(e.target.value) || 1));
+    copiesChanged();
+  });
+  $("lector-extra").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-del]"); if (!b) return;
+    st.extra.splice(Number(b.dataset.del), 1); renderExtra(); copiesChanged();
+  });
+  $("lector-size-other").addEventListener("click", () => {
+    const g = st.groups[st.current]; if (!g) return;
+    if (g.override) { g.override = null; loadGroup(st.current); return; }
+    const pick = $("lector-size-pick");
+    pick.innerHTML = ALL_SIZES.map(([m, k, l]) => `<button type="button" data-m="${m}" data-k="${k}">${l}</button>`).join("");
+    pick.classList.toggle("hidden");
+  });
+  $("lector-size-pick").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]"); const g = st.groups[st.current]; if (!b || !g) return;
+    g.override = (b.dataset.k === g.sizeKey && b.dataset.m === g.machine) ? null : { machine: b.dataset.m, sizeKey: b.dataset.k };
+    loadGroup(st.current);
+  });
+  document.querySelectorAll("[data-manual]").forEach((b) => b.addEventListener("click", () => {
+    if (api()) api().clear();
+    setMode("manual");
+    document.getElementById("quote-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  document.addEventListener("cotizador:analisis-aplicado", renderSheets);
   document.addEventListener("cotizador:trabajo-agregado", () => {
     if (st.current >= 0 && st.current < st.groups.length - 1) {
       loadGroup(st.current + 1);
@@ -234,4 +332,5 @@ function bind() {
   });
 }
 
+setMode("espera");
 bind();

@@ -32,13 +32,30 @@
     .lector-gtext small{color:var(--muted)}
     .lector-badge{font-size:.75rem;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--bg);white-space:nowrap}
     .lector-group.is-now .lector-badge{background:var(--primary);color:#fff}
-    .lector-copies{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
-    .lector-copies input{width:90px}
+    
+    
     .lector-next{margin:10px 0 0;font-size:.95rem}
     .lector-manual{font-size:.85rem;color:var(--muted);margin:8px 0 0}
+    .lector-config{margin-top:12px;padding:12px;border-radius:12px;background:var(--bg)}
+    .lector-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0}
+    .lector-k{font-weight:700;min-width:64px}
+    .lector-row input,.lector-extra-row input{width:76px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit}
+    .lector-extra-row{display:flex;align-items:center;gap:8px;margin:6px 0 0 72px;flex-wrap:wrap}
+    .lector-link{background:none;border:0;padding:0;color:var(--primary-strong);font:inherit;font-weight:700;cursor:pointer;text-decoration:underline}
+    .lector-x{background:none;border:0;font-size:1.3rem;line-height:1;color:var(--muted);cursor:pointer}
+    .lector-pick{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 6px 72px}
+    .lector-pick button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font:inherit;cursor:pointer}
+    .lector-pick button:hover{border-color:var(--primary)}
+    .lector-sheets{margin:10px 0 0}
+    #lector-add-extra{margin:6px 0 0 72px;display:inline-block}
+    /* modos: esperando el PDF / completado por el lector / manual */
+    body.modo-espera #quote-form > :not(.lector){display:none !important}
+    body.modo-lector .premium-steps,body.modo-lector .field--machine,body.modo-lector .field--size,
+    body.modo-lector #coverage-wrap,body.modo-lector #quantity-grid,body.modo-lector #custom-size-panel{display:none !important}
+    @media (max-width:560px){.lector-extra-row,.lector-pick,#lector-add-extra{margin-left:0}}
   </style>
 </head>
-<body>
+<body class="modo-espera">
   <div class="bg-orb bg-orb-a"></div>
   <div class="bg-orb bg-orb-b"></div>
 
@@ -87,10 +104,19 @@
           <p class="lector-msg" id="lector-msg"></p>
           <div class="lector-result hidden" id="lector-result">
             <div id="lector-groups"></div>
-            <label class="lector-copies"><span><b>Copias de cada página</b></span><input type="number" id="lector-copies" min="1" step="1" value="1"><span class="muted">Si necesitás el mismo archivo varias veces.</span></label>
+            <div class="lector-config" id="lector-config">
+              <div class="lector-row"><span class="lector-k">Tamaño</span><span id="lector-size"></span>
+                <button type="button" class="lector-link" id="lector-size-other">Imprimir en otro tamaño</button></div>
+              <div class="lector-pick hidden" id="lector-size-pick"></div>
+              <div class="lector-row"><span class="lector-k">Copias</span>
+                <input type="number" id="lector-copies" min="1" step="1" value="1" aria-label="Copias de todo el archivo"> <span>de todo el archivo</span></div>
+              <div id="lector-extra"></div>
+              <button type="button" class="lector-link" id="lector-add-extra">+ Otra cantidad para una página</button>
+              <p class="lector-sheets" id="lector-sheets"></p>
+            </div>
             <p class="lector-next" id="lector-next"></p>
           </div>
-          <p class="lector-manual">¿Tu archivo no es PDF o preferís hacerlo vos? Completá el trabajo a mano acá abajo, como siempre.</p>
+          <p class="lector-manual">¿Tu archivo no es PDF o preferís cargarlo vos? <button type="button" class="lector-link" data-manual>Cotizar manualmente</button></p>
         </div>
         <div class="premium-steps" aria-hidden="true">
           <span class="premium-step is-active" data-step="1">1. Configurá</span>
@@ -346,8 +372,8 @@
   <script src="./src/config.js?v=20261110a"></script>
   <script src="./src/pricing-data.js?v=20261111b"></script>
   <script src="./src/services-data.js?v=20261030a"></script>
-  <script src="./src/main.js?v=20261112a"></script>
+  <script src="./src/main.js?v=20261112b"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-  <script type="module" src="./src/analizador.js?v=20261112a"></script>
+  <script type="module" src="./src/analizador.js?v=20261112b"></script>
 </body>
 </html>
