@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,600;1,9..144,800&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css?v=20261103a">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="stylesheet" href="./cotizar-pdf.css?v=20261112c">
+  <link rel="stylesheet" href="./cotizar-pdf.css?v=20261112d">
   <style>
     .lector{border:2px solid var(--primary);border-radius:18px;padding:16px;margin:0 0 18px;background:#fff}
     .lector h3{margin:0 0 4px;font-family:var(--display-font);font-size:1.15rem}
@@ -115,20 +115,23 @@
           <p class="lector-msg" id="lector-msg"></p>
           <div class="lector-result hidden" id="lector-result">
             <div id="lector-groups"></div>
-            <div class="lector-config" id="lector-config">
-              <div class="lector-row"><span class="lector-k">Tamaño</span><span id="lector-size"></span>
-                <button type="button" class="lector-link" id="lector-size-other">Imprimir en otro tamaño</button></div>
-              <div class="lector-pick hidden" id="lector-size-pick"></div>
-              <div class="lector-row"><span class="lector-k">Copias</span>
-                <input type="number" id="lector-copies" min="1" step="1" value="1" aria-label="Copias de todo el archivo"> <span>de todo el archivo</span></div>
-              <div id="lector-extra"></div>
-              <button type="button" class="lector-link" id="lector-add-extra">+ Otra cantidad para una página</button>
-              <p class="lector-sheets" id="lector-sheets"></p>
-            </div>
-            <p class="lector-next" id="lector-next"></p>
           </div>
           <p class="lector-manual">¿Tu archivo no es PDF o preferís cargarlo vos? <button type="button" class="lector-link" data-manual>Cotizar manualmente</button></p>
         </div>
+        <div class="job-box" id="job-box">
+          <div class="job-sec job-sec--lector" id="lector-config">
+          <div class="lector-config">
+            <div class="lector-row"><span class="lector-k">Tamaño</span><span id="lector-size"></span>
+              <button type="button" class="lector-link" id="lector-size-other">Imprimir en otro tamaño</button></div>
+            <div class="lector-pick hidden" id="lector-size-pick"></div>
+            <div class="lector-row"><span class="lector-k">Copias</span>
+              <input type="number" id="lector-copies" min="1" step="1" value="1" aria-label="Copias de todo el archivo"> <span>de todo el archivo</span></div>
+            <div id="lector-extra"></div>
+            <button type="button" class="lector-link" id="lector-add-extra">+ Otra cantidad para una página</button>
+            <p class="lector-sheets" id="lector-sheets"></p>
+          </div>
+            <p class="lector-next" id="lector-next"></p>
+          </div>
         <div class="premium-steps" aria-hidden="true">
           <span class="premium-step is-active" data-step="1">1. Configurá</span>
           <span class="premium-step" data-step="2">2. Adjuntá archivos</span>
@@ -193,7 +196,7 @@
 
         <div id="custom-size-panel" class="custom-size-panel hidden">
           <h3>Tamaño personalizado (plotter)</h3>
-          <p class="muted">Ingresá ancho y alto <strong>en metros</strong> (por ejemplo, 0,90 x 1,20). Mínimo 0,35 m y máximo 3 m por lado.</p>
+          <p class="muted">Ingresá ancho y alto <strong>en metros</strong> (por ejemplo, 0,90 x 1,20). Mínimo 0,30 m y máximo 3 m por lado.</p>
           <div class="grid">
             <label class="field">
               <span>Ancho (m)</span>
@@ -274,6 +277,7 @@
             <p class="items-title">Trabajos ya agregados a tu pedido</p>
             <div id="items-list" class="items-list"></div>
           </div>
+        </div>
         </div>
 
         <label class="field">
@@ -381,11 +385,11 @@
     <p>©2026 29 BIS. Creado con ❤️ por <a href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer">Estudio Ideamos</a></p>
   </footer>
 
-  <script src="./src/config.js?v=20261110a"></script>
+  <script src="./src/config.js?v=20261112a"></script>
   <script src="./src/pricing-data.js?v=20261111b"></script>
   <script src="./src/services-data.js?v=20261030a"></script>
-  <script src="./src/main.js?v=20261112d"></script>
+  <script src="./src/main.js?v=20261112e"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-  <script type="module" src="./src/analizador.js?v=20261112c"></script>
+  <script type="module" src="./src/analizador.js?v=20261112d"></script>
 </body>
 </html>

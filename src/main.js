@@ -473,7 +473,7 @@
   function getCustomSizeLimits() {
     const limits = config.customSizeLimits || {};
     return {
-      minM: Number(limits.minM) > 0 ? Number(limits.minM) : 0.35,
+      minM: Number(limits.minM) > 0 ? Number(limits.minM) : 0.30,
       maxM: Number(limits.maxM) > 0 ? Number(limits.maxM) : 3
     };
   }

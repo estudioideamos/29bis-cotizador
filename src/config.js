@@ -29,7 +29,7 @@ window.APP_CONFIG = {
   paperLeadDays: { plotter_fotografico_180: 1 },
 
   // Medidas permitidas para el tamaño personalizado de plotter (en metros, por lado).
-  customSizeLimits: { minM: 0.35, maxM: 3 },
+  customSizeLimits: { minM: 0.30, maxM: 3 },
 
   // Configuración de retiro (opciones cerradas en el front)
   pickupSchedule: {

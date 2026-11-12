@@ -376,3 +376,42 @@ body.v2.modo-espera #summary { display: none; }
   body.v2 .store-info { grid-template-columns: auto minmax(0, 1fr); }
   body.v2 .store-info-note { grid-column: 1 / -1; padding: 10px 0 0; border-left: 0; border-top: 2px solid var(--line-soft); }
 }
+
+/* ---------- configuración del trabajo: una sola caja gris con divisiones gruesas ---------- */
+body.v2 .job-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;                       /* el espacio entre secciones deja ver el negro: hace de línea gruesa */
+  background: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 4px;
+}
+body.v2 .job-box > * {
+  background: #eeece9;
+  margin: 0 !important;
+  padding: 16px 18px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+body.v2 .job-box .lector-config { background: none; border: 0; padding: 0; border-radius: 0; }
+body.v2 .job-box .lector-next { margin: 10px 0 0; color: var(--ink-2); font-size: .95rem; }
+body.v2 .job-box .lector-sheets { background: #fff; }
+body.v2 .job-box .grid { gap: 14px; }
+body.v2 .job-box .upload-panel,
+body.v2 .job-box .services-panel,
+body.v2 .job-box .multi-order-box { background: #eeece9; }
+body.v2 .job-box .upload-alternative,
+body.v2 .job-box .service-item,
+body.v2 .job-box .item-row { background: #fff; }
+body.v2 .job-box .upload-panel .field span,
+body.v2 .job-box .services-head h3,
+body.v2 .job-box .services-head strong { color: var(--ink); }
+body:not(.modo-lector) .job-sec--lector { display: none !important; }
+body.v2 .job-box .service-card { border-color: #d9d4ce; }
+body.v2 .job-box .service-card.is-checked { border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+body.v2 .job-box .services-head,
+body.v2 .job-box .services-sub { color: var(--ink); }
+body.v2 .job-box .services-lead { background: #fff; color: var(--ink); }

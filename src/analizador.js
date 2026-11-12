@@ -22,7 +22,9 @@ const BAND_LBL = { lineas: "líneas", mixto: "mixto", pleno: "pleno" };
 
 const $ = (id) => document.getElementById(id);
 const api = () => window.COTIZADOR_API;
-const st = { file: null, groups: [], current: -1, copies: 1, extra: [], busy: false, numPages: 0 };
+const st = { file: null, groups: [], current: -1, copies: 1, extra: [], busy: false, numPages: 0, offset: 0 };
+// número de trabajo dentro del pedido (sigue la cuenta de los que ya estaban agregados)
+const jobNum = (i) => st.offset + i + 1;
 
 // Tamaños para "Imprimir en otro tamaño": [máquina, código, nombre]
 const ALL_SIZES = [["laser", "A4", "A4"], ["laser", "A3", "A3"], ["plotter", "A2", "A2"], ["plotter", "A1", "A1"], ["plotter", "A0", "A0"],
@@ -57,8 +59,12 @@ function classify(wMm, hMm) {
   const a = Math.min(wMm, hMm), b = Math.max(wMm, hMm);
   for (const [key, w, h] of LASER_SIZES) if (Math.abs(a - w) <= 6 && Math.abs(b - h) <= 6) return { machine: "laser", sizeKey: key };
   for (const [key, w, h] of PLOTTER_SIZES) if (Math.abs(a - w) <= 6 && Math.abs(b - h) <= 6) return { machine: "plotter", sizeKey: key };
-  // tamaño libre: plotter personalizado (en metros, redondeado al cm)
-  const w = Math.round(a / 10) / 100, h = Math.round(b / 10) / 100;
+  // tamaño libre: si entra en una hoja de láser (hasta SA3), va a láser en la hoja que le alcanza
+  if (a <= 210 + 3 && b <= 297 + 3) return { machine: "laser", sizeKey: "A4" };
+  if (a <= 320 + 3 && b <= 450 + 3) return { machine: "laser", sizeKey: "A3" };
+  // si no, plotter personalizado (en metros, redondeado al cm, con el mínimo del plotter)
+  const minM = (window.APP_CONFIG && window.APP_CONFIG.customSizeLimits && Number(window.APP_CONFIG.customSizeLimits.minM)) || 0.3;
+  const w = Math.max(minM, Math.round(a / 10) / 100), h = Math.max(minM, Math.round(b / 10) / 100);
   return { machine: "plotter", sizeKey: `${w}x${h}`, custom: { w, h } };
 }
 
@@ -149,13 +155,14 @@ function renderGroups() {
     const cls = i < st.current ? "done" : i === st.current ? "now" : "next";
     return `<div class="lector-group is-${cls}">
       <div class="lector-thumbs">${g.pages.slice(0, 6).map((p) => `<img src="${p.thumb}" alt="">`).join("")}${g.pages.length > 6 ? `<span>+${g.pages.length - 6}</span>` : ""}</div>
-      <div class="lector-gtext">${multi ? `<b>Trabajo ${i + 1}:</b> ` : ""}${esc(groupLabel(g))}<br><small>Cobertura: ${bandText(g)}${g.note ? " · " + esc(g.note) : ""}</small></div>
+      <div class="lector-gtext">${multi || st.offset ? `<b>Trabajo ${jobNum(i)}:</b> ` : ""}${esc(groupLabel(g))}<br><small>Cobertura: ${bandText(g)}${g.note ? " · " + esc(g.note) : ""}</small></div>
       ${multi ? `<span class="lector-badge">${estado}</span>` : ""}
     </div>`;
   }).join("");
+  $("lector-config").classList.toggle("hidden", st.current < 0 || st.current >= st.groups.length);
   const pend = st.groups.length - 1 - st.current;
   $("lector-next").textContent = multi && pend > 0
-    ? `Tu archivo tiene ${st.groups.length} tamaños distintos, así que lo separamos en ${st.groups.length} trabajos. Elegí abajo el papel y la faz del Trabajo ${st.current + 1}, tocá “+ Agregar este trabajo” y cargamos el siguiente solo.`
+    ? `Tu archivo tiene ${st.groups.length} tamaños distintos, así que lo separamos en ${st.groups.length} trabajos. Elegí abajo el papel y la faz del Trabajo ${jobNum(st.current)}, tocá “+ Agregar este trabajo” y cargamos el siguiente solo.`
     : multi ? "Este es el último trabajo del archivo. Elegí el papel y la faz, y seguí con tus datos." : "Elegí abajo el papel y la faz. La cantidad de hojas y la cobertura ya están cargadas: si algo no coincide, podés corregirlo.";
 }
 
@@ -223,6 +230,7 @@ async function handleFile(file) {
   }
   if (!api()) { setMsg("El cotizador todavía se está cargando. Probá de nuevo en unos segundos.", "error"); return; }
   st.busy = true; st.file = file; st.groups = []; st.current = -1; st.extra = []; st.copies = 1;
+  st.offset = api().jobCount();
   $("lector-copies").value = "1"; renderExtra();
   renderGroups();
   $("lector-drop").classList.add("is-busy");
@@ -255,7 +263,7 @@ async function handleFile(file) {
       const g = groups[i];
       const nums = g.pages.map((p) => p.n);
       if (groups.length === 1 && !flatten) { g.file = file; continue; }
-      const name = groups.length > 1 ? `${base} - ${g.custom ? "personalizado" : g.sizeKey}.pdf` : `${base}.pdf`;
+      const name = groups.length > 1 ? `${base} - ${g.custom ? "personalizado" : g.sizeKey}.pdf` : `${base}.pdf`; // eslint-disable-line
       try {
         g.file = await buildFile(pdf, srcBytes, nums, name, flatten, (k, t) => setMsg(`Preparando el archivo para imprimir${groups.length > 1 ? ` (trabajo ${i + 1})` : ""}: página ${k} de ${t}…`));
         // si aplanarlo lo dejó más pesado que el límite pero el original entraba, se sube el original
