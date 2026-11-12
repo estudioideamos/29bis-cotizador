@@ -1623,14 +1623,18 @@
     const aggregated = getAggregatedPricing(orderItemsForSummary);
 
     const frag = document.createDocumentFragment();
-    const rows = [
+    // Página nueva: el resumen muestra cada trabajo con su detalle y sus servicios.
+    if (document.body.classList.contains("v2")) {
+      renderJobsSummary(frag, orderItemsForSummary, Boolean(currentWork));
+    }
+    const rows = document.body.classList.contains("v2") ? [] : [
       ["Tipo de impresión", getMachineLabel(els.machine.value)],
       ["Papel", getPaperLabel(els.paper.value)],
       ["Tamaño", getSizeLabel(els.size.value)],
       ["Faz", sideText],
       ["Hojas totales (pedido)", String(aggregated.totalSheets)]
     ];
-    if (isCustomPlotterSize()) {
+    if (rows.length && isCustomPlotterSize()) {
       const custom = getCustomDimensions();
       rows.splice(3, 0, ["Medida personalizada", `${custom.widthM.toFixed(2)} m x ${custom.heightM.toFixed(2)} m`]);
     }
@@ -1642,14 +1646,14 @@
       frag.appendChild(row);
     });
 
-    totals.detailLines.forEach((item) => {
+    (rows.length ? totals.detailLines : []).forEach((item) => {
       const row = document.createElement("div");
       row.className = "row";
       row.innerHTML = `<span>${item.name}</span><strong>${currency.format(item.amount)}</strong>`;
       frag.appendChild(row);
     });
 
-    const currentServices = servicesData ? getServicesState().list.filter((entry) => !entry.error) : [];
+    const currentServices = rows.length && servicesData ? getServicesState().list.filter((entry) => !entry.error) : [];
     currentServices.forEach((entry) => {
       const row = document.createElement("div");
       row.className = "row";
@@ -1694,7 +1698,7 @@
     totalRow.innerHTML = `<span>Total</span><strong>${currency.format(aggregated.total + urgentSurcharge)}</strong>`;
     frag.appendChild(totalRow);
 
-    if (state.savedItems.length > 0) {
+    if (rows.length && state.savedItems.length > 0) {
       const infoRow = document.createElement("div");
       infoRow.className = "row";
       infoRow.innerHTML = `<span>Trabajos agregados</span><strong>${state.savedItems.length}</strong>`;
@@ -1719,6 +1723,26 @@
 
     els.summary.innerHTML = "";
     els.summary.appendChild(frag);
+  }
+
+  function renderJobsSummary(frag, items, lastIsCurrent) {
+    items.forEach((item, i) => {
+      const box = document.createElement("div");
+      box.className = "job-sum";
+      const title = [item.machine.label, item.size.label, item.paper.label].filter(Boolean).join(" · ");
+      const custom = item.customSize ? ` (${item.customSize.widthM.toFixed(2)} x ${item.customSize.heightM.toFixed(2)} m)` : "";
+      const cov = (item.coverageDistribution || []).map((c) => `${c.sheets} ${c.label.toLowerCase()}`).join(" · ");
+      const hojas = `${item.pricing.totalSheets} ${item.pricing.totalSheets === 1 ? "hoja" : "hojas"}`;
+      const faz = item.sides ? item.sides.label.toLowerCase() : "";
+      const lines = [[hojas + (faz ? ` · ${faz}` : "") + (cov ? ` (${cov})` : ""), item.pricing.subtotal]];
+      (item.services || []).forEach((sv) => lines.push([sv.detail || sv.label, sv.total]));
+      const enArmado = lastIsCurrent && i === items.length - 1 && items.length > 1;
+      box.innerHTML = `<div class="job-sum-head"><b>${items.length > 1 ? `Trabajo ${i + 1}${enArmado ? " <em>(armándose)</em>" : ""}` : "Tu trabajo"}</b><strong>${currency.format(item.pricing.total)}</strong></div>
+        <div class="job-sum-title">${escapeHtml(title + custom)}</div>
+        ${lines.map(([t, v]) => `<div class="job-sum-line"><span>${escapeHtml(t)}</span><span>${currency.format(v || 0)}</span></div>`).join("")}
+        ${item.lectorNota ? `<div class="job-sum-note">${escapeHtml(item.lectorNota)}</div>` : ""}`;
+      frag.appendChild(box);
+    });
   }
 
   function getCoverageDistribution() {

@@ -10,6 +10,7 @@ const CFG = Object.assign({
   mixtoHasta: 50,
   umbralTinta: 230,     // "normal": un píxel cuenta como tinta si algún canal baja de esto
   maxBytes: 20 * 1024 * 1024,
+  lentoSegundos: 8,     // si el archivo tarda más que esto en leerse, es "pesado" para imprimir: se aplana
   aplanadoDpi: 300,
   aplanadoCalidad: 0.85
 }, (window.APP_CONFIG && window.APP_CONFIG.lectorPdf) || {});
@@ -227,6 +228,7 @@ async function handleFile(file) {
   $("lector-drop").classList.add("is-busy");
   try {
     setMsg("Abriendo el archivo…");
+    const t0 = performance.now();
     const srcBytes = new Uint8Array(await file.arrayBuffer());
     const pdf = await pdfjsLib.getDocument({ data: srcBytes.slice() }).promise;
     const pages = [];
@@ -244,15 +246,22 @@ async function handleFile(file) {
       if (!g) { g = { machine: p.machine, sizeKey: p.sizeKey, custom: p.custom, pages: [] }; groups.push(g); }
       g.pages.push(p);
     });
+    const segundos = (performance.now() - t0) / 1000;
     const heavy = file.size > CFG.maxBytes;
+    const slow = segundos > CFG.lentoSegundos; // archivo "difícil": muchos vectores, capas o transparencias
+    const flatten = heavy || slow;
     const base = file.name.replace(/\.pdf$/i, "");
     for (let i = 0; i < groups.length; i++) {
       const g = groups[i];
       const nums = g.pages.map((p) => p.n);
-      if (groups.length === 1 && !heavy) { g.file = file; continue; }
+      if (groups.length === 1 && !flatten) { g.file = file; continue; }
       const name = groups.length > 1 ? `${base} - ${g.custom ? "personalizado" : g.sizeKey}.pdf` : `${base}.pdf`;
       try {
-        g.file = await buildFile(pdf, srcBytes, nums, name, heavy, (k, t) => setMsg(`Achicando el archivo${groups.length > 1 ? ` (trabajo ${i + 1})` : ""}: página ${k} de ${t}…`));
+        g.file = await buildFile(pdf, srcBytes, nums, name, flatten, (k, t) => setMsg(`Preparando el archivo para imprimir${groups.length > 1 ? ` (trabajo ${i + 1})` : ""}: página ${k} de ${t}…`));
+        // si aplanarlo lo dejó más pesado que el límite pero el original entraba, se sube el original
+        if (!heavy && g.file.size > CFG.maxBytes) {
+          g.file = groups.length === 1 ? file : await buildFile(pdf, srcBytes, nums, name, false, () => {});
+        }
       } catch (err) {
         // si no se pudo separar sin aplanar (PDF raro), se aplana
         g.file = heavy ? null : await buildFile(pdf, srcBytes, nums, name, true, (k, t) => setMsg(`Preparando el archivo: página ${k} de ${t}…`));
@@ -266,7 +275,7 @@ async function handleFile(file) {
     const total = pages.length;
     const anyLink = groups.some((g) => !g.file);
     setMsg(`Listo: <b>${esc(file.name)}</b> · ${total} ${total === 1 ? "página" : "páginas"} · ${kb(file.size)}` +
-      (heavy && !anyLink ? ` → lo achicamos para que se suba rápido (${kb(groups.reduce((s, g) => s + g.file.size, 0))}).` : "") +
+      (flatten && !anyLink ? ` → lo dejamos listo para imprimir sin trabas (${kb(groups.reduce((s, g) => s + g.file.size, 0))}).` : "") +
       (anyLink ? " · <b>Algún archivo sigue siendo muy pesado:</b> completá el pedido y mandalo por Drive o WeTransfer a pedidos@29bis.com.ar." : ""), anyLink ? "warn" : "ok");
     loadGroup(0);
   } catch (err) {
