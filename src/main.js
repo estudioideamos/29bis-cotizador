@@ -2280,6 +2280,7 @@
       buildSizeOptions();
       buildSidesOptions();
       toggleConditionalFields();
+      applyAnalysisCounts();
       updateSummary();
     });
 
@@ -2287,6 +2288,7 @@
       buildSizeOptions();
       buildSidesOptions();
       toggleConditionalFields();
+      applyAnalysisCounts();
       updateSummary();
     });
 
@@ -2298,6 +2300,7 @@
 
     els.sides.addEventListener("change", () => {
       toggleConditionalFields();
+      applyAnalysisCounts();
       updateSummary();
     });
     els.quantity.addEventListener("input", updateSummary);
@@ -2393,6 +2396,8 @@
       clearWorkInputsForNextItem();
       updateFileMeta();
       setStatus(`Trabajo ${jobNumber} agregado con sus archivos. Ahora cargá el Trabajo ${jobNumber + 1} y sus archivos.`, "ok");
+      state.analysis = null;
+      document.dispatchEvent(new CustomEvent("cotizador:trabajo-agregado", { detail: { jobNumber } }));
     });
 
     els.toggleItemsBtn.addEventListener("click", () => {
@@ -2585,6 +2590,113 @@
       }
     });
   }
+
+
+  // ================================================================
+  // Lector de PDF (solo en la página nueva): el analizador le pasa al cotizador
+  // el tamaño y la cobertura de cada página, y el cotizador completa el trabajo solo.
+  //   analysis = { sizeKey, custom: {w, h} | null, bands: ["lineas", ...] (una por página), copies, files: [File] }
+  // ================================================================
+  state.analysis = null;
+
+  function mapAnalysisSize(analysis) {
+    const machineKey = els.machine.value;
+    const allowed = getAllowedSizes(machineKey, els.paper.value);
+    if (analysis.custom) {
+      return allowed.includes("100x100_personalizado") ? "100x100_personalizado" : null;
+    }
+    if (allowed.includes(analysis.sizeKey)) {
+      return analysis.sizeKey;
+    }
+    // A3 en papeles especiales de láser = SA3
+    if (analysis.sizeKey === "A3" && allowed.includes("SA3")) {
+      return "SA3";
+    }
+    return null;
+  }
+
+  // Hojas por banda según la faz: en doble faz cada hoja junta dos páginas y vale la cobertura mayor.
+  function analysisSheets(analysis) {
+    const rank = { lineas: 0, mixto: 1, pleno: 2 };
+    const df = isLaser(els.machine.value) && els.sides.value === "df";
+    const sheets = [];
+    for (let i = 0; i < analysis.bands.length; i += df ? 2 : 1) {
+      const a = analysis.bands[i], b = df ? analysis.bands[i + 1] : null;
+      sheets.push(b && rank[b] > rank[a] ? b : a);
+    }
+    return sheets;
+  }
+
+  function applyAnalysisCounts() {
+    const analysis = state.analysis;
+    if (!analysis) {
+      return;
+    }
+    const sizeKey = mapAnalysisSize(analysis);
+    if (sizeKey && els.size.value !== sizeKey) {
+      els.size.value = sizeKey;
+      buildSidesOptions();
+      toggleConditionalFields();
+    }
+    if (analysis.custom && els.size.value === "100x100_personalizado") {
+      els.customWidth.value = analysis.custom.w.toFixed(2);
+      els.customHeight.value = analysis.custom.h.toFixed(2);
+    }
+    const copies = Math.max(1, Math.round(Number(analysis.copies) || 1));
+    const sheets = analysisSheets(analysis);
+    if (usesCoverage(els.machine.value, els.paper.value, els.sides.value)) {
+      const count = { lineas: 0, mixto: 0, pleno: 0 };
+      sheets.forEach((band) => { count[band] += 1; });
+      Object.entries(state.coverageInputs).forEach(([band, input]) => { input.value = String((count[band] || 0) * copies); });
+    } else {
+      els.quantity.value = String(sheets.length * copies);
+    }
+    updateSummary();
+  }
+
+  function apiLoadJob(analysis) {
+    state.analysis = analysis;
+    const machineKey = analysis.machine;
+    if (machineKey && els.machine.value !== machineKey && pricing.machines[machineKey]) {
+      els.machine.value = machineKey;
+      buildPaperOptions();
+      buildSizeOptions();
+      buildSidesOptions();
+      toggleConditionalFields();
+    }
+    applyAnalysisCounts();
+    // archivo del trabajo
+    if (analysis.files && analysis.files.length && typeof DataTransfer !== "undefined") {
+      const dt = new DataTransfer();
+      analysis.files.forEach((file) => dt.items.add(file));
+      els.fileInput.files = dt.files;
+      if (els.sendLinkLater) {
+        els.sendLinkLater.checked = false;
+      }
+    } else if (analysis.linkLater) {
+      els.fileInput.value = "";
+      if (els.sendLinkLater) {
+        els.sendLinkLater.checked = true;
+      }
+    }
+    updateFileMeta();
+    updateSummary();
+  }
+
+  window.COTIZADOR_API = {
+    loadJob: apiLoadJob,
+    setCopies(n) {
+      if (state.analysis) {
+        state.analysis.copies = n;
+        applyAnalysisCounts();
+      }
+    },
+    clear() {
+      state.analysis = null;
+    },
+    jobCount: () => state.savedItems.length,
+    sizeLabel: (key) => getSizeLabel(key)
+  };
 
   async function init() {
     if (config.mercadoPagoEnabled === false) {

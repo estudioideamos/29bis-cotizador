@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>29 BIS | Cotizador de Impresión</title>
+  <meta name="description" content="Cotizador y toma de pedidos para imprenta 29 BIS.">
+  <link rel="icon" type="image/png" href="./assets/avatar-29.png">
+  <link rel="apple-touch-icon" href="./assets/avatar-29.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=20261103a">
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    .lector{border:2px solid var(--primary);border-radius:18px;padding:16px;margin:0 0 18px;background:#fff}
+    .lector h3{margin:0 0 4px;font-family:var(--display-font);font-size:1.15rem}
+    .lector-drop{margin-top:10px;border:2px dashed var(--line);border-radius:14px;padding:22px 14px;text-align:center;cursor:pointer;background:#fdf6f9;transition:border-color .15s,background .15s}
+    .lector-drop:hover,.lector-drop.is-over{border-color:var(--primary);background:#fdeef4}
+    .lector-drop.is-busy{opacity:.6;pointer-events:none}
+    .lector-drop b{display:block;font-size:1.05rem;color:var(--primary-strong)}
+    .lector-msg{margin:10px 0 0;font-size:.95rem;color:var(--muted)}
+    .lector-msg.is-ok{color:var(--ok)} .lector-msg.is-error{color:var(--danger);font-weight:600} .lector-msg.is-warn{color:#9a6a00}
+    .lector-result{margin-top:12px}
+    .lector-group{display:flex;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;margin-top:8px}
+    .lector-group.is-now{border-color:var(--primary);background:#fff8fb}
+    .lector-group.is-done{opacity:.65}
+    .lector-thumbs{display:flex;gap:3px;align-items:flex-end;flex:0 0 auto;max-width:45%;overflow:hidden}
+    .lector-thumbs img{height:44px;border:1px solid var(--line);background:#fff}
+    .lector-thumbs span{font-size:.8rem;color:var(--muted);align-self:center}
+    .lector-gtext{flex:1;min-width:0;font-size:.95rem}
+    .lector-gtext small{color:var(--muted)}
+    .lector-badge{font-size:.75rem;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--bg);white-space:nowrap}
+    .lector-group.is-now .lector-badge{background:var(--primary);color:#fff}
+    .lector-copies{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .lector-copies input{width:90px}
+    .lector-next{margin:10px 0 0;font-size:.95rem}
+    .lector-manual{font-size:.85rem;color:var(--muted);margin:8px 0 0}
+  </style>
+</head>
+<body>
+  <div class="bg-orb bg-orb-a"></div>
+  <div class="bg-orb bg-orb-b"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <a href="https://29bis.com.ar/" aria-label="Ir a 29 BIS">
+        <img
+          class="brand-logo"
+          src="./assets/logo-29bis-dark.png"
+          alt="Logo 29 BIS"
+          loading="lazy"
+        >
+      </a>
+    </div>
+    <p class="topbar-title">Cotizador de impresiones</p>
+  </header>
+  <section class="store-info" aria-label="Información del local">
+    <div class="store-info-item">
+      <strong>Horario de atención</strong>
+      <span>Lunes a viernes de 7:30 a 19:30</span>
+    </div>
+    <div class="store-info-item">
+      <strong>Dirección</strong>
+      <span>Riobamba 162 bis, Rosario, Santa Fe, Argentina</span>
+    </div>
+    <div class="store-info-item store-info-note">
+      <strong>Cancelaci&oacute;n de pedido</strong>
+      <span>Pod&eacute;s cancelar tu pedido desde el link <b>&ldquo;Cancelar pedido&rdquo;</b> del mail de confirmaci&oacute;n, mientras siga en revisi&oacute;n. Si ya est&aacute; en preparaci&oacute;n, escribinos a <a href="mailto:pedidos@29bis.com.ar">pedidos@29bis.com.ar</a> con el asunto <b>CANCELACI&Oacute;N</b> y el n&uacute;mero de pedido.</span>
+    </div>
+  </section>
+
+  <main class="layout">
+    <section class="card">
+      <h2>Detalle del pedido</h2>
+      <p class="muted">Completá los datos y el sistema calcula automáticamente el precio.</p>
+
+      <form id="quote-form" novalidate>
+        <div class="lector" id="lector">
+          <h3>Subí tu PDF y calculamos todo solo</h3>
+          <p class="muted" style="margin:0">Leemos el tamaño, la cantidad de hojas y la cobertura de tinta de cada página. Tu archivo se analiza en tu computadora, y si es muy pesado lo achicamos antes de subirlo.</p>
+          <div class="lector-drop" id="lector-drop" role="button" tabindex="0">
+            <b>Elegí o arrastrá tu PDF acá</b>
+            <span class="muted">Solo archivos PDF</span>
+            <input id="lector-input" type="file" accept="application/pdf,.pdf" hidden>
+          </div>
+          <p class="lector-msg" id="lector-msg"></p>
+          <div class="lector-result hidden" id="lector-result">
+            <div id="lector-groups"></div>
+            <label class="lector-copies"><span><b>Copias de cada página</b></span><input type="number" id="lector-copies" min="1" step="1" value="1"><span class="muted">Si necesitás el mismo archivo varias veces.</span></label>
+            <p class="lector-next" id="lector-next"></p>
+          </div>
+          <p class="lector-manual">¿Tu archivo no es PDF o preferís hacerlo vos? Completá el trabajo a mano acá abajo, como siempre.</p>
+        </div>
+        <div class="premium-steps" aria-hidden="true">
+          <span class="premium-step is-active" data-step="1">1. Configurá</span>
+          <span class="premium-step" data-step="2">2. Adjuntá archivos</span>
+          <span class="premium-step" data-step="3">3. Confirmá pedido</span>
+        </div>
+        <div class="grid">
+          <label class="field field--machine">
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="6" y="3" width="12" height="6" rx="1"></rect>
+                  <rect x="4" y="9" width="16" height="8" rx="2"></rect>
+                  <rect x="7" y="14" width="10" height="7" rx="1"></rect>
+                </svg>
+              </span>
+              Tipo de impresión
+            </span>
+            <select id="machine" required></select>
+          </label>
+
+          <label class="field field--paper">
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 3h7l4 4v14H7z"></path>
+                  <path d="M14 3v5h5"></path>
+                </svg>
+              </span>
+              Tipo de papel
+            </span>
+            <select id="paper" required></select>
+          </label>
+
+          <label class="field field--size">
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="6" width="16" height="12" rx="1"></rect>
+                  <path d="M4 10h16"></path>
+                </svg>
+              </span>
+              Tamaño
+            </span>
+            <select id="size" required></select>
+          </label>
+
+          <label class="field field--sides" id="sides-field">
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 8h10"></path>
+                  <path d="M13 4l4 4-4 4"></path>
+                  <path d="M17 16H7"></path>
+                  <path d="M11 12l-4 4 4 4"></path>
+                </svg>
+              </span>
+              Faz
+            </span>
+            <select id="sides"></select>
+          </label>
+        </div>
+
+        <div id="custom-size-panel" class="custom-size-panel hidden">
+          <h3>Tamaño personalizado (plotter)</h3>
+          <p class="muted">Ingresá ancho y alto <strong>en metros</strong> (por ejemplo, 0,90 x 1,20). Mínimo 0,35 m y máximo 3 m por lado.</p>
+          <div class="grid">
+            <label class="field">
+              <span>Ancho (m)</span>
+              <input id="custom-width" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Ej: 0,90">
+            </label>
+            <label class="field">
+              <span>Alto (m)</span>
+              <input id="custom-height" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Ej: 1,20">
+            </label>
+          </div>
+          <p id="custom-area-preview" class="custom-area-preview">Área: 0.00 m²</p>
+          <a id="custom-whatsapp-link" class="custom-whatsapp-link hidden" href="#" target="_blank" rel="noopener noreferrer">
+            Cotizá este pedido
+          </a>
+        </div>
+
+        <div class="coverage-wrap hidden" id="coverage-wrap">
+          <h3>Cobertura y cantidad</h3>
+          <p class="muted">Podés dividir una misma orden por tipo de cobertura.</p>
+          <div class="coverage-guide">
+            <p><strong>Seleccioná el tipo de cobertura de impresión según el contenido de tu archivo:</strong></p>
+            <p><strong>Líneas:</strong> sólo texto o líneas, y como máximo algunos plenos muy chicos (5% máximo).</p>
+            <p><strong>Medio:</strong> plenos que van del 5% al 50% de la superficie de la hoja.</p>
+            <p><strong>Plenos:</strong> plenos que superan el 50% de la superficie de la hoja.</p>
+          </div>
+          <div class="coverage-grid" id="coverage-grid"></div>
+        </div>
+
+        <div class="grid" id="quantity-grid">
+          <label class="field field--quantity">
+            <span>
+              <span class="label-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 4v16"></path>
+                  <path d="M15 4v16"></path>
+                  <path d="M5 9h14"></path>
+                  <path d="M5 15h14"></path>
+                </svg>
+              </span>
+              Cantidad de hojas
+            </span>
+            <input id="quantity" type="number" min="1" step="1" value="1">
+          </label>
+        </div>
+
+        <div class="upload-panel">
+          <label class="field">
+            <span><em id="upload-job-badge" class="item-badge hidden">Trabajo 1</em> <b id="upload-title">Archivo(s) para impresión</b></span>
+            <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.ai,.psd,.cdr,.zip" multiple>
+          </label>
+          <p id="file-meta" class="upload-meta">Aún no seleccionaste archivos.</p>
+          <p class="upload-note">Podés subir archivos de hasta 20 MB por archivo. Si pesan más, completá el pedido y enviá el link de Google Drive o WeTransfer a <a href="mailto:pedidos@29bis.com.ar">pedidos@29bis.com.ar</a> indicando tu número de pedido.</p>
+          <label class="upload-alternative">
+            <input id="send-link-later" type="checkbox">
+            <span>Voy a enviar el link de Drive o WeTransfer por mail después de hacer el pedido.</span>
+          </label>
+        </div>
+
+        <div id="services-panel" class="services-panel hidden">
+          <div class="services-head">
+            <strong>Servicios adicionales <small>(opcional)</small></strong>
+            <em id="services-badge" class="item-badge hidden">Trabajo 1</em>
+          </div>
+          <p class="services-sub">Se aplican a este trabajo. Solo ves los servicios que se pueden hacer con lo que elegiste arriba.</p>
+          <div id="services-list" class="services-list"></div>
+          <p id="services-lead" class="services-lead hidden"></p>
+        </div>
+
+        <div class="multi-order-box">
+          <div class="multi-order-head">
+            <p>¿Necesitás más de un trabajo en el mismo pedido? Cargá los datos y el archivo de este trabajo, y después tocá “Agregar”. Cada trabajo guarda sus propios archivos.</p>
+            <button type="button" id="add-item-btn" class="btn btn-quiet">+ Agregar este trabajo</button>
+          </div>
+          <button type="button" id="toggle-items-btn" class="multi-toggle hidden" aria-expanded="false">
+            Ver trabajos agregados (0)
+          </button>
+          <div id="items-panel" class="items-panel hidden">
+            <p class="items-title">Trabajos ya agregados a tu pedido</p>
+            <div id="items-list" class="items-list"></div>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Observaciones</span>
+          <textarea id="notes" rows="3" placeholder="Aclaraciones sobre archivo, terminación, etc."></textarea>
+        </label>
+
+      </form>
+    </section>
+
+    <aside class="card sticky">
+      <h2>Resumen</h2>
+      <div id="summary" class="summary"></div>
+
+      <section class="payment-panel">
+        <h3>Forma de pago</h3>
+        <label class="payment-option">
+          <input type="radio" name="payment-method" value="transferencia" required>
+          <span>Transferencia bancaria</span>
+        </label>
+        <label class="payment-option" id="payment-mp-option">
+          <input type="radio" name="payment-method" value="mercadopago">
+          <span>Pagar online con Mercado Pago</span>
+        </label>
+        <label class="payment-option">
+          <input type="radio" name="payment-method" value="local">
+          <span>Pagar en el local</span>
+        </label>
+
+        <div id="payment-transfer-info" class="payment-transfer-info hidden">
+          <p><strong>ALIAS: 29bis.ploteos</strong></p>
+          <p class="payment-note">Para impactar el pago, enviar el comprobante de transferencia a <strong>pedidos@29bis.com.ar</strong> con el número de pedido.</p>
+        </div>
+
+        <div id="payment-mp-info" class="payment-local-info hidden">
+          <p>Al confirmar el pedido te mostramos el botón para pagar con tarjeta (1 pago), dinero en cuenta de Mercado Pago o QR. Sin recargo.</p>
+        </div>
+
+        <div id="payment-local-info" class="payment-local-info hidden">
+          <p>Podés abonar personalmente al retirar tu pedido en el local.</p>
+        </div>
+      </section>
+
+      <section class="customer-panel">
+        <h3>Datos de contacto</h3>
+        <label class="field">
+          <span>Nombre y apellido</span>
+          <input id="customer-name" type="text" form="quote-form" required>
+        </label>
+        <div class="grid customer-grid-right">
+          <label class="field">
+            <span>Teléfono</span>
+            <input id="customer-phone" type="tel" form="quote-form" required>
+          </label>
+          <label class="field">
+            <span>DNI</span>
+            <input id="customer-dni" type="text" form="quote-form" required>
+          </label>
+        </div>
+            <p id="whatsapp-consent" style="margin:0;padding:0.65rem 0.8rem;font-size:0.95rem;line-height:1.5;color:#1f4d33;background:#eefaf1;border:1px solid #bfe5c9;border-radius:10px;">
+          Al hacer el pedido aceptás recibir avisos por WhatsApp sobre el estado de este pedido.
+        </p>
+        <label class="field">
+          <span>Email</span>
+          <input id="customer-email" type="email" form="quote-form" required>
+        </label>
+        <label class="field">
+          <span id="pickup-label-text">Fecha y hora de retiro</span>
+          <select id="pickup-datetime" form="quote-form">
+            <option value="" disabled selected>Elegí cuándo lo necesitás</option>
+          </select>
+        </label>
+        <p class="disclaimer" id="pickup-disclaimer">
+          Elegí <strong>Urgente</strong>, <strong>Sin apuro</strong> o una fecha y hora de retiro.
+          La entrega según lo solicitado queda atada al caudal de trabajo.
+        </p>
+      </section>
+
+      <div class="actions summary-actions">
+        <button type="submit" id="submit-order-btn" form="quote-form" class="btn btn-primary">Enviar pedido</button>
+      </div>
+
+      <p id="status" class="status" aria-live="polite"></p>
+      <div id="upload-progress" class="upload-progress hidden" aria-live="polite">
+        <div class="upload-progress-head">
+          <strong id="upload-progress-label">Subiendo archivos...</strong>
+          <span id="upload-progress-percent">0%</span>
+        </div>
+        <div class="upload-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="upload-progress-fill"></span>
+        </div>
+      </div>
+      <div class="mascot-card">
+        <img
+          src="./assets/avatar-29.png"
+          alt="Mascota 29 BIS"
+          loading="lazy"
+        >
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <p>©2026 29 BIS. Creado con ❤️ por <a href="https://ideamos.com.ar" target="_blank" rel="noopener noreferrer">Estudio Ideamos</a></p>
+  </footer>
+
+  <script src="./src/config.js?v=20261110a"></script>
+  <script src="./src/pricing-data.js?v=20261111b"></script>
+  <script src="./src/services-data.js?v=20261030a"></script>
+  <script src="./src/main.js?v=20261112a"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script type="module" src="./src/analizador.js?v=20261112a"></script>
+</body>
+</html>
