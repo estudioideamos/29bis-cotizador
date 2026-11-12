@@ -314,6 +314,9 @@ function mostConLock_(fn) {
   try {
     return fn();
   } finally {
+    // Guardar los cambios ANTES de soltar el candado: si no, un segundo clic
+    // (o una PC que se tildó y reintenta) puede leer el pedido todavía sin pagar y cobrarlo dos veces.
+    SpreadsheetApp.flush();
     lock.releaseLock();
   }
 }
