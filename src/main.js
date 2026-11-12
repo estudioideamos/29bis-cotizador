@@ -1624,9 +1624,9 @@
 
     const frag = document.createDocumentFragment();
     const rows = [
-      ["Tipo de impresion", getMachineLabel(els.machine.value)],
+      ["Tipo de impresión", getMachineLabel(els.machine.value)],
       ["Papel", getPaperLabel(els.paper.value)],
-      ["Tamano", getSizeLabel(els.size.value)],
+      ["Tamaño", getSizeLabel(els.size.value)],
       ["Faz", sideText],
       ["Hojas totales (pedido)", String(aggregated.totalSheets)]
     ];

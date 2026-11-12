@@ -9,9 +9,10 @@
   <link rel="apple-touch-icon" href="./assets/avatar-29.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,600;1,9..144,800&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css?v=20261103a">
   <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="./cotizar-pdf.css?v=20261112b">
   <style>
     .lector{border:2px solid var(--primary);border-radius:18px;padding:16px;margin:0 0 18px;background:#fff}
     .lector h3{margin:0 0 4px;font-family:var(--display-font);font-size:1.15rem}
@@ -53,9 +54,10 @@
     body.modo-lector .premium-steps,body.modo-lector .field--machine,body.modo-lector .field--size,
     body.modo-lector #coverage-wrap,body.modo-lector #quantity-grid,body.modo-lector #custom-size-panel{display:none !important}
     @media (max-width:560px){.lector-extra-row,.lector-pick,#lector-add-extra{margin-left:0}}
+    .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   </style>
 </head>
-<body class="modo-espera">
+<body class="v2 modo-espera">
   <div class="bg-orb bg-orb-a"></div>
   <div class="bg-orb bg-orb-b"></div>
 
@@ -70,8 +72,17 @@
         >
       </a>
     </div>
-    <p class="topbar-title">Cotizador de impresiones</p>
+    <p class="topbar-title">tu plotter amigo</p>
   </header>
+  <section class="v2-hero">
+    <div class="v2-hero-in">
+      <div>
+        <h1><span class="star">✦</span> Enviá tus archivos, <span>nosotros lo imprimimos.</span></h1>
+        <p>Subí tu PDF: leemos el tamaño, las hojas y la cobertura de tinta, y te damos el precio al toque. Vos solo elegís el papel.</p>
+      </div>
+      <div class="v2-tiles" aria-hidden="true"><b>B</b><b>I</b><b>S</b></div>
+    </div>
+  </section>
   <section class="store-info" aria-label="Información del local">
     <div class="store-info-item">
       <strong>Horario de atención</strong>
@@ -89,16 +100,16 @@
 
   <main class="layout">
     <section class="card">
-      <h2>Detalle del pedido</h2>
-      <p class="muted">Completá los datos y el sistema calcula automáticamente el precio.</p>
+      <h2 class="sr-only">Detalle del pedido</h2>
 
       <form id="quote-form" novalidate>
         <div class="lector" id="lector">
-          <h3>Subí tu PDF y calculamos todo solo</h3>
+          <h3>1 · Tu archivo</h3>
           <p class="muted" style="margin:0">Leemos el tamaño, la cantidad de hojas y la cobertura de tinta de cada página. Tu archivo se analiza en tu computadora, y si es muy pesado lo achicamos antes de subirlo.</p>
           <div class="lector-drop" id="lector-drop" role="button" tabindex="0">
-            <b>Elegí o arrastrá tu PDF acá</b>
-            <span class="muted">Solo archivos PDF</span>
+            <b>Arrastrá tu PDF acá</b>
+            <span class="muted">o</span><br>
+            <span class="lector-cta">Elegir archivo</span>
             <input id="lector-input" type="file" accept="application/pdf,.pdf" hidden>
           </div>
           <p class="lector-msg" id="lector-msg"></p>
@@ -274,7 +285,8 @@
     </section>
 
     <aside class="card sticky">
-      <h2>Resumen</h2>
+      <h2>Tu pedido</h2>
+      <p class="v2-empty">Subí tu PDF y acá vas a ver el precio, hoja por hoja.</p>
       <div id="summary" class="summary"></div>
 
       <section class="payment-panel">
@@ -372,7 +384,7 @@
   <script src="./src/config.js?v=20261110a"></script>
   <script src="./src/pricing-data.js?v=20261111b"></script>
   <script src="./src/services-data.js?v=20261030a"></script>
-  <script src="./src/main.js?v=20261112b"></script>
+  <script src="./src/main.js?v=20261112c"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
   <script type="module" src="./src/analizador.js?v=20261112b"></script>
 </body>
