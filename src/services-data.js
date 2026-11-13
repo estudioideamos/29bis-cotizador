@@ -8,11 +8,11 @@ window.SERVICES_DATA = {
     anillado: {
       label: "Anillado",
       machine: "laser",
-      sizes: ["A4", "SA3"],
+      sizes: ["A4", "A3", "SA3"],
       price: 5000,            // por trabajo
       days: 1,
       priceHint: "$5.000 por trabajo",
-      info: "Incluye anillo doble alambre y tapas plásticas. Si querés tapas en papel grueso, imprimilas en tu archivo y podés laminarlas."
+      info: "Incluye anillo doble alambre y tapas plásticas. Si querés tapas en papel grueso, imprimilas en tu archivo y podés laminarlas. En A3 el anillado va del lado corto."
     },
     empanelado: {
       label: "Empanelado",
