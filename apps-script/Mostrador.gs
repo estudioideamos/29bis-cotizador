@@ -338,10 +338,13 @@ function mostDatos_(usuario) {
     const links = or.getRange(2, MOST_OR.links, n, 1).getValues();
     const payloads = or.getRange(2, MOST_OR.payload, n, 1).getValues();
     const cambios = or.getRange(2, MOST_OR.cambio, n, 1).getDisplayValues();
+    const creados = or.getRange(2, 1, n, 1).getValues(); // columna A: cuándo entró el pedido
     for (let i = 0; i < n; i++) {
       const id = normalizarIdPedido_(String(ids[i][0]).replace(/^29BIS-/i, ''));
       if (!id) continue;
-      extras[id] = { link: buildAdjuntosUrl_(links[i][0]), payload: payloads[i][0], cambio: String(cambios[i][0] || '') };
+      const c = creados[i][0];
+      const creado = c instanceof Date ? Utilities.formatDate(c, MOST_TZ, "yyyy-MM-dd'T'HH:mm") : '';
+      extras[id] = { link: buildAdjuntosUrl_(links[i][0]), payload: payloads[i][0], cambio: String(cambios[i][0] || ''), creado: creado };
     }
   }
 
@@ -389,6 +392,7 @@ function mostDatos_(usuario) {
         servicios: String(f[MOST_OP.servicios - 1] || '').trim(),
         link: ex.link || '',
         cambio: ex.cambio || '',
+        creado: ex.creado || '',
         trabajos: trabajos
       });
     }

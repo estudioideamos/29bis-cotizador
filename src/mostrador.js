@@ -185,6 +185,14 @@
     const dd = new Date(d + "T12:00");
     return dd.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }) + " " + h;
   }
+  // Cuándo entró el pedido: hoy → "14:32"; otro día → "12/11 14:32"
+  function creadoLabel(p) {
+    if (!p.creado) return "";
+    const [d, h] = p.creado.split("T");
+    if (d === todayKey()) return h;
+    const [y, m, dd] = d.split("-");
+    return `${dd}/${m} ${h}`;
+  }
   function single(p) {
     const w = (p.trabajos || [])[0];
     if (w) return w.detalle + (w.cantidad ? " · " + w.cantidad : "");
@@ -208,9 +216,9 @@
     const machines = machinesOf(p);
     const paidOnline = (p.pago || "").toLowerCase() === "pagado";
     return `<div class="po${p.urgente ? " urg" : ""}${p.servicios ? " svc" : ""}${e === "cancelado" ? " canc" : ""}" data-n="${esc(p.n)}">
-      <div class="num">${esc(p.n)}<small>${esc(horaLabel(p))}</small></div>
-      <div class="info"><b>${esc(p.cliente)}</b> <span class="det">· ${esc(multi ? works.length + " trabajos" : single(p))}</span>
-        <div class="badges">${p.urgente ? '<span class="bd urg">Urgente</span>' : ""}${machines.size > 1 ? '<span class="bd">Láser + Plotter</span>' : ""}${p.servicios ? `<span class="bd svc">+ ${esc(p.servicios.replace(/\n/g, " · ").slice(0, 120))}</span>` : ""}${["ver email", "pendiente"].includes(e) ? `<span class="bd est">${esc(p.estado)}</span>` : ""}<span class="bd${paidOnline ? " paid" : ""}">${paidOnline ? "Pagado" : esc(p.formaPago || "")}</span>${p.total ? `<span class="bd">${money(p.total)}</span>` : ""}</div>
+      <div class="num">${p.creado ? `<span class="hecho" title="Hora en que se hizo el pedido">hecho ${esc(creadoLabel(p))}</span>` : ""}${esc(p.n)}<small>${horaLabel(p) && !p.urgente && p.retiro !== "sin_apuro" ? "retira " : ""}${esc(horaLabel(p))}</small></div>
+      <div class="info">${p.total ? `<span class="po-total">${money(p.total)}</span>` : ""}<b>${esc(p.cliente)}</b> <span class="det">· ${esc(multi ? works.length + " trabajos" : single(p))}</span>
+        <div class="badges">${p.urgente ? '<span class="bd urg">Urgente</span>' : ""}${machines.size > 1 ? '<span class="bd">Láser + Plotter</span>' : ""}${p.servicios ? `<span class="bd svc">+ ${esc(p.servicios.replace(/\n/g, " · ").slice(0, 120))}</span>` : ""}${["ver email", "pendiente"].includes(e) ? `<span class="bd est">${esc(p.estado)}</span>` : ""}<span class="bd${paidOnline ? " paid" : ""}">${paidOnline ? "Pagado" : esc(p.formaPago || "")}</span></div>
         ${multi ? `<button class="linkbtn more">Ver los ${works.length} trabajos ▾</button>
         <div class="works" style="display:none">${works.map((w, i) => `<div class="wk"><b>Trabajo ${i + 1}</b> · ${esc(w.detalle)}${w.cantidad ? " · " + esc(w.cantidad) : ""}${w.servicios ? ` <span class="bd svc">+ ${esc(w.servicios)}</span>` : ""}${w.archivo ? `<div class="hint">📎 ${esc(w.archivo)}</div>` : ""}</div>`).join("")}</div>` : ""}
         ${obsHtml(p)}</div>

@@ -150,3 +150,8 @@ a.files{text-decoration:none;color:var(--ink);display:inline-block}
 #tb .linkbtn{padding:0;font-size:13px;white-space:nowrap}
 .order .linkbtn{margin-right:18px}
 .splitbox{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-top:6px;background:var(--soft)}
+.po .num .hecho{display:block;font:600 11px "Source Sans 3",Arial,sans-serif;color:var(--muted);margin-bottom:2px;white-space:nowrap}
+.po .po-total{float:right;font:800 20px Montserrat,Arial,sans-serif;margin-left:12px}
+.po{grid-template-columns:86px 1fr auto}
+.po .num .hecho{white-space:normal;line-height:1.15}
+@media (max-width:700px){.po{grid-template-columns:70px 1fr}}
