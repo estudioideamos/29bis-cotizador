@@ -88,6 +88,7 @@ window.SERVICES_DATA = {
   // Servicios que se pueden pedir juntos en un mismo trabajo (el resto no se combina).
   compat: [
     ["anillado", "laminado"],
+    ["anillado", "refilado"],
     ["abrochado", "laminado"],
     ["abrochado", "refilado"],
     ["refilado", "laminado"],
