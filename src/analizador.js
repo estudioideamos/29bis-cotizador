@@ -114,7 +114,9 @@ async function buildFile(pdf, srcBytes, pageNums, name, flatten, onProgress) {
       const page = await pdf.getPage(pageNums[k]);
       const vp1 = page.getViewport({ scale: 1 });
       let scale = CFG.aplanadoDpi / 72;
-      const maxPx = 64e6; // tope para que el navegador no se quede sin memoria
+      // tope para que el navegador no se quede sin memoria; iPhone/iPad (Safari) no permite imágenes de más de ~16,7 millones de píxeles
+      const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const maxPx = ios ? 16e6 : 64e6;
       if (vp1.width * scale * vp1.height * scale > maxPx) scale = Math.sqrt(maxPx / (vp1.width * vp1.height));
       const { c } = await renderToCanvas(page, scale);
       const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", CFG.aplanadoCalidad));
