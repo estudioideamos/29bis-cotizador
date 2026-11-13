@@ -2676,8 +2676,8 @@
       toggleConditionalFields();
     }
     if (analysis.custom && els.size.value === "100x100_personalizado") {
-      els.customWidth.value = analysis.custom.w.toFixed(2);
-      els.customHeight.value = analysis.custom.h.toFixed(2);
+      els.customWidth.value = analysis.custom.w.toFixed(2).replace(".", ",");
+      els.customHeight.value = analysis.custom.h.toFixed(2).replace(".", ",");
     }
     const sheets = analysisSheets(analysis);
     if (usesCoverage(els.machine.value, els.paper.value, els.sides.value)) {
