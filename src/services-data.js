@@ -8,7 +8,7 @@ window.SERVICES_DATA = {
     anillado: {
       label: "Anillado",
       machine: "laser",
-      sizes: ["A4"],
+      sizes: ["A4", "SA3"],
       price: 5000,            // por trabajo
       days: 1,
       priceHint: "$5.000 por trabajo",
