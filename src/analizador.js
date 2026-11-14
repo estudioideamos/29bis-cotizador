@@ -31,7 +31,7 @@ const ALL_SIZES = [["laser", "A4", "A4"], ["laser", "A3", "A3"], ["plotter", "A2
   ["plotter", "35x50", "35 x 50 cm"], ["plotter", "50x70", "50 x 70 cm"], ["plotter", "70x100", "70 x 100 cm"]];
 
 function setMode(mode) {
-  document.body.classList.remove("modo-espera", "modo-lector", "modo-manual");
+  document.body.classList.remove("modo-espera", "modo-lector", "modo-manual", "modo-listo");
   document.body.classList.add("modo-" + mode);
 }
 
@@ -366,6 +366,8 @@ function bind() {
       renderGroups();
       $("lector-next").textContent = "Listo: agregaste todos los trabajos del archivo. Podés subir otro PDF o seguir con tus datos.";
       $("lector-paso").innerHTML = "✓ Listo: ya están todos los trabajos del archivo. Completá tus datos y enviá el pedido, o subí otro PDF.";
+      // ya no queda nada por configurar: se esconden las opciones y queda solo la lista de trabajos agregados
+      setMode("listo");
     }
   });
 }
