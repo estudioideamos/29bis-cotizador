@@ -415,3 +415,7 @@ body.v2 .job-box .service-card.is-checked { border-color: var(--ink); box-shadow
 body.v2 .job-box .services-head,
 body.v2 .job-box .services-sub { color: var(--ink); }
 body.v2 .job-box .services-lead { background: #fff; color: var(--ink); }
+
+/* aviso del paso que sigue */
+body.v2 .lector-paso{margin:16px 0 4px;padding:14px 18px;border-radius:14px;background:var(--pink);color:#fff;border:2px solid var(--ink);box-shadow:var(--shadow);font-family:var(--serif);font-style:italic;font-weight:800;font-size:1.35rem;line-height:1.25;scroll-margin-top:16px}
+body.v2 .lector-paso.hidden{display:none}

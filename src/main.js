@@ -1458,6 +1458,7 @@
       quantity: usesCoverage(machineKey, paperKey) ? null : Number(els.quantity.value) || 0,
       coverageDistribution: usesCoverage(machineKey, paperKey, sideKey) ? getCoverageDistribution() : [],
       lectorNota: state.analysis && state.analysis.nota ? state.analysis.nota : "",
+      ajustarTamano: Boolean(state.analysis && state.analysis.ajustarTamano),
       services: servicesSnapshot.list.map((entry) => ({
         key: entry.key,
         label: entry.label,
@@ -2428,7 +2429,7 @@
       updateSummary();
       clearWorkInputsForNextItem();
       updateFileMeta();
-      setStatus(`Trabajo ${jobNumber} agregado con sus archivos. Ahora cargá el Trabajo ${jobNumber + 1} y sus archivos.`, "ok");
+      setStatus(`Trabajo ${jobNumber} agregado. Si querés sumar otro trabajo, cargalo arriba; si no, completá tus datos y enviá el pedido.`, "ok");
       state.analysis = null;
       document.dispatchEvent(new CustomEvent("cotizador:trabajo-agregado", { detail: { jobNumber } }));
     });

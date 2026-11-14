@@ -155,3 +155,4 @@ a.files{text-decoration:none;color:var(--ink);display:inline-block}
 .po{grid-template-columns:86px 1fr auto}
 .po .num .hecho{white-space:normal;line-height:1.15}
 @media (max-width:700px){.po{grid-template-columns:70px 1fr}}
+.bd.ajustar{background:#1d1d1b;color:#fff;font-weight:800;letter-spacing:.03em}

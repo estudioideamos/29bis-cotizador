@@ -449,7 +449,8 @@ function mostTrabajosDesdePayload_(payload) {
       detalle: partes.join(' · '),
       cantidad: formatWorkQuantityForOperacion_(it),
       servicios: servicios,
-      archivo: archivo
+      archivo: archivo,
+      ajustar: Boolean(it.ajustarTamano) // el cliente pidió imprimir en otro tamaño que el del archivo
     };
   });
 }

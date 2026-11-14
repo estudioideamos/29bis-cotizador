@@ -41,6 +41,14 @@ function copiesOf(n) {
   return ex ? Math.round(Number(ex.copies)) : st.copies;
 }
 
+// Si el cliente eligió otro tamaño, el taller tiene que saberlo
+function ajusteNote(g) {
+  if (!g.override) return "";
+  const orig = g.custom ? `${g.custom.w.toFixed(2).replace(".", ",")} x ${g.custom.h.toFixed(2).replace(".", ",")} m` : g.sizeKey;
+  const dest = ALL_SIZES.find((x) => x[0] === g.override.machine && x[1] === g.override.sizeKey)[2];
+  return `AJUSTAR TAMAÑO: el archivo es ${orig} y se imprime en ${dest}`;
+}
+
 function copiesNote() {
   const parts = [];
   if (st.copies > 1) parts.push(`${st.copies} copias de todo el archivo`);
@@ -178,14 +186,22 @@ function loadGroup(i) {
     sizeKey: o ? o.sizeKey : g.sizeKey,
     custom: o ? null : (g.custom || null),
     pages: pagesFor(g),
-    nota: copiesNote(),
+    nota: [copiesNote(), ajusteNote(g)].filter(Boolean).join(" · "),
+    ajustarTamano: Boolean(o),
     files: g.file ? [g.file] : [],
     linkLater: !g.file
   });
   setMode("lector");
   renderGroups();
   renderSize();
-  $("lector-config").scrollIntoView({ behavior: "smooth", block: "start" });
+  // aviso del paso que sigue (en rosa, entre la carga del archivo y la caja de configuración)
+  const multi = st.groups.length > 1;
+  $("lector-paso").innerHTML = i === 0
+    ? `✓ Archivo cargado. ${multi ? `Lo separamos en ${st.groups.length} trabajos: elegí` : "Elegí"} el papel y la faz acá abajo ↓`
+    : `✓ Trabajo agregado. Ahora elegí el papel y la faz del Trabajo ${jobNum(i)} ↓`;
+  $("lector-paso").classList.remove("hidden");
+  // la página se queda donde está; solo si venía de agregar un trabajo (abajo de todo) sube al aviso
+  if (i > 0) $("lector-paso").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function sizeText(g) {
@@ -221,7 +237,7 @@ function renderExtra() {
 
 function copiesChanged() {
   if (!api() || st.current < 0 || st.current >= st.groups.length) return;
-  api().setPages(pagesFor(st.groups[st.current]), copiesNote());
+  api().setPages(pagesFor(st.groups[st.current]), [copiesNote(), ajusteNote(st.groups[st.current])].filter(Boolean).join(" · "));
 }
 
 async function handleFile(file) {
@@ -233,6 +249,7 @@ async function handleFile(file) {
   if (!api()) { setMsg("El cotizador todavía se está cargando. Probá de nuevo en unos segundos.", "error"); return; }
   st.busy = true; st.file = file; st.groups = []; st.current = -1; st.extra = []; st.copies = 1;
   st.offset = api().jobCount();
+  $("lector-paso").classList.add("hidden");
   $("lector-copies").value = "1"; renderExtra();
   renderGroups();
   $("lector-drop").classList.add("is-busy");
@@ -336,6 +353,7 @@ function bind() {
   });
   document.querySelectorAll("[data-manual]").forEach((b) => b.addEventListener("click", () => {
     if (api()) api().clear();
+    $("lector-paso").classList.add("hidden");
     setMode("manual");
     document.getElementById("quote-form").scrollIntoView({ behavior: "smooth", block: "start" });
   }));
@@ -347,6 +365,7 @@ function bind() {
       st.current = st.groups.length; // todos agregados
       renderGroups();
       $("lector-next").textContent = "Listo: agregaste todos los trabajos del archivo. Podés subir otro PDF o seguir con tus datos.";
+      $("lector-paso").innerHTML = "✓ Listo: ya están todos los trabajos del archivo. Completá tus datos y enviá el pedido, o subí otro PDF.";
     }
   });
 }
