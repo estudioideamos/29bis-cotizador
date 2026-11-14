@@ -426,3 +426,13 @@ body.modo-listo .multi-order-head,
 body.modo-listo #toggle-items-btn,
 body.modo-listo .premium-steps { display: none !important; }
 body.modo-listo #items-panel { display: block !important; }
+
+/* celular: que nada empuje el ancho de la página (nombres de archivo largos, etc.) */
+@media (max-width: 980px) {
+  body.v2 .layout { grid-template-columns: minmax(0, 1fr); }
+}
+body.v2 .layout > *, body.v2 .job-box > *, body.v2 .lector, body.v2 .lector-result { min-width: 0; }
+body.v2 .lector-msg, body.v2 .lector-gtext, body.v2 .upload-meta, body.v2 .job-sum-title,
+body.v2 .job-sum-line span:first-child, body.v2 .job-sum-note, body.v2 .item-row, body.v2 .lector-paso { overflow-wrap: anywhere; word-break: break-word; }
+body.v2 input[type="file"] { max-width: 100%; min-width: 0; }
+body.v2 .lector-group { min-width: 0; }
