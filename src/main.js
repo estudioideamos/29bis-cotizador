@@ -602,6 +602,10 @@
     const machineKey = els.machine.value;
     const machine = pricing.machines[machineKey];
     machine.papers.forEach((paperKey) => {
+      // con un archivo leído, solo se ofrecen los papeles que vienen en el tamaño del archivo (ej: SA3 = papeles especiales)
+      if (state.analysis && !analysisSizeFor(state.analysis, machineKey, paperKey)) {
+        return;
+      }
       const opt = createOption(paperKey, getPaperLabel(paperKey));
       if (!isPaperAvailable(paperKey)) {
         opt.disabled = true;
@@ -2634,8 +2638,14 @@
   state.analysis = null;
 
   function mapAnalysisSize(analysis) {
-    const machineKey = els.machine.value;
-    const allowed = getAllowedSizes(machineKey, els.paper.value);
+    return analysisSizeFor(analysis, els.machine.value, els.paper.value);
+  }
+
+  function analysisSizeFor(analysis, machineKey, paperKey) {
+    if (analysis.machine && analysis.machine !== machineKey) {
+      return null;
+    }
+    const allowed = getAllowedSizes(machineKey, paperKey);
     if (analysis.custom) {
       return allowed.includes("100x100_personalizado") ? "100x100_personalizado" : null;
     }
@@ -2695,9 +2705,14 @@
   function apiLoadJob(analysis) {
     state.analysis = analysis;
     const machineKey = analysis.machine;
-    if (machineKey && els.machine.value !== machineKey && pricing.machines[machineKey]) {
+    if (machineKey && pricing.machines[machineKey]) {
       els.machine.value = machineKey;
+      const before = els.paper.value;
       buildPaperOptions();
+      // si el papel que estaba elegido sirve para este tamaño, se mantiene
+      if (Array.from(els.paper.options).some((o) => o.value === before && !o.disabled)) {
+        els.paper.value = before;
+      }
       buildSizeOptions();
       buildSidesOptions();
       toggleConditionalFields();
@@ -2743,6 +2758,11 @@
     },
     clear() {
       state.analysis = null;
+      buildPaperOptions();
+      buildSizeOptions();
+      buildSidesOptions();
+      toggleConditionalFields();
+      updateSummary();
     },
     jobCount: () => state.savedItems.length,
     sizeLabel: (key) => getSizeLabel(key)

@@ -15,7 +15,8 @@ const CFG = Object.assign({
   aplanadoCalidad: 0.85
 }, (window.APP_CONFIG && window.APP_CONFIG.lectorPdf) || {});
 
-const LASER_SIZES = [["A4", 210, 297], ["A3", 297, 420], ["A3", 320, 450]]; // SA3 se trata como A3
+// SA3 = 32 x 47 cm (también se acepta 32 x 45): solo papeles especiales
+const LASER_SIZES = [["A4", 210, 297], ["A3", 297, 420], ["SA3", 320, 450], ["SA3", 320, 470]];
 const PLOTTER_SIZES = [["A2", 420, 594], ["A1", 594, 841], ["A0", 841, 1189], ["35x50", 350, 500], ["50x70", 500, 700], ["70x100", 700, 1000]];
 const MM = 25.4 / 72;
 const BAND_LBL = { lineas: "líneas", mixto: "mixto", pleno: "pleno" };
@@ -27,7 +28,7 @@ const st = { file: null, groups: [], current: -1, copies: 1, extra: [], busy: fa
 const jobNum = (i) => st.offset + i + 1;
 
 // Tamaños para "Imprimir en otro tamaño": [máquina, código, nombre]
-const ALL_SIZES = [["laser", "A4", "A4"], ["laser", "A3", "A3"], ["plotter", "A2", "A2"], ["plotter", "A1", "A1"], ["plotter", "A0", "A0"],
+const ALL_SIZES = [["laser", "A4", "A4"], ["laser", "A3", "A3"], ["laser", "SA3", "SA3 (32 x 47 cm)"], ["plotter", "A2", "A2"], ["plotter", "A1", "A1"], ["plotter", "A0", "A0"],
   ["plotter", "35x50", "35 x 50 cm"], ["plotter", "50x70", "50 x 70 cm"], ["plotter", "70x100", "70 x 100 cm"]];
 
 function setMode(mode) {
@@ -69,7 +70,8 @@ function classify(wMm, hMm) {
   for (const [key, w, h] of PLOTTER_SIZES) if (Math.abs(a - w) <= 6 && Math.abs(b - h) <= 6) return { machine: "plotter", sizeKey: key };
   // tamaño libre: si entra en una hoja de láser (hasta SA3), va a láser en la hoja que le alcanza
   if (a <= 210 + 3 && b <= 297 + 3) return { machine: "laser", sizeKey: "A4" };
-  if (a <= 320 + 3 && b <= 450 + 3) return { machine: "laser", sizeKey: "A3" };
+  if (a <= 297 + 3 && b <= 420 + 3) return { machine: "laser", sizeKey: "A3" };
+  if (a <= 320 + 3 && b <= 470 + 3) return { machine: "laser", sizeKey: "SA3" };
   // si no, plotter personalizado (en metros, redondeado al cm, con el mínimo del plotter)
   const minM = (window.APP_CONFIG && window.APP_CONFIG.customSizeLimits && Number(window.APP_CONFIG.customSizeLimits.minM)) || 0.3;
   const w = Math.max(minM, Math.round(a / 10) / 100), h = Math.max(minM, Math.round(b / 10) / 100);
