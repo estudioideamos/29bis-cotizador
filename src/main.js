@@ -2649,6 +2649,10 @@
     if (analysis.custom) {
       return allowed.includes("100x100_personalizado") ? "100x100_personalizado" : null;
     }
+    // papeles que en la planilla figuran como SA3 pero en realidad son A3 (vegetal, Reciclado NAT): no sirven para hojas más grandes que A3
+    if (analysis.sizeKey === "SA3" && SIZE_LABEL_OVERRIDES[paperKey] && SIZE_LABEL_OVERRIDES[paperKey].SA3 === "A3") {
+      return null;
+    }
     if (allowed.includes(analysis.sizeKey)) {
       return analysis.sizeKey;
     }
