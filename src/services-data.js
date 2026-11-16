@@ -12,7 +12,7 @@ window.SERVICES_DATA = {
       price: 5000,            // por trabajo
       days: 1,
       priceHint: "$5.000 por trabajo",
-      info: "Incluye anillo doble alambre y tapas plásticas. Si querés tapas en papel grueso, imprimilas en tu archivo y podés laminarlas. En A3 el anillado va del lado corto."
+      info: "Incluye anillo doble alambre y tapas plásticas. Si querés tapas en papel grueso, cotizalas en un archivo aparte. En A3 el anillado va del lado corto."
     },
     empanelado: {
       label: "Empanelado",
