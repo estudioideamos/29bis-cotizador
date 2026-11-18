@@ -51,6 +51,8 @@
 
   let pricing = null;
   let runtimePaperAvailability = { ...(config.paperAvailabilityOverrides || {}) };
+  // Stock por tamaño: "maquina|papel|tamaño" -> true/false (columna Disponible de la hoja de precios).
+  let runtimeSizeAvailability = {};
 
   const currency = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -379,6 +381,7 @@
   async function loadPricingData() {
     const base = deepClone(fallbackData);
     runtimePaperAvailability = { ...(config.paperAvailabilityOverrides || {}) };
+    runtimeSizeAvailability = {};
 
     if (config.pricesMode !== "remote-json" || !config.pricesJsonUrl) {
       return base;
@@ -393,6 +396,12 @@
 
       if (remote && remote.mode === "price-rows" && Array.isArray(remote.priceRows)) {
         patchPricingFromRows(base, remote.priceRows);
+        // un tamaño queda disponible si al menos una de sus filas está en Disponible = SI
+        remote.priceRows.forEach((row) => {
+          const key = [row.machine, row.paper_key, row.size_key].map((v) => String(v || "").trim()).join("|");
+          const active = normalizeBool(row.active, true);
+          runtimeSizeAvailability[key] = Boolean(runtimeSizeAvailability[key]) || active;
+        });
         applyServicePricesFromRows(remote.priceRows);
         if (remote.paperAvailability && typeof remote.paperAvailability === "object") {
           Object.entries(remote.paperAvailability).forEach(([paperKey, isAvailable]) => {
@@ -543,19 +552,29 @@
     els.customWhatsappLink.href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   }
 
-  function getAllowedSizes(machineKey, paperKey) {
+  function isSizeInStock(machineKey, paperKey, sizeKey) {
+    const key = `${machineKey}|${paperKey}|${sizeKey}`;
+    if (Object.prototype.hasOwnProperty.call(runtimeSizeAvailability, key)) {
+      return runtimeSizeAvailability[key];
+    }
+    return true;
+  }
+
+  // ignoreStock = true devuelve también los tamaños sin stock (para avisar "sin stock en este tamaño").
+  function getAllowedSizes(machineKey, paperKey, ignoreStock) {
+    let sizes;
     if (isPlotter(machineKey)) {
-      return pricing.plotter.sizes;
+      sizes = pricing.plotter.sizes;
+    } else if (paperKey === "obra_80") {
+      sizes = pricing.laser.common.sizes;
+    } else {
+      const onlySA3 = pricing.laser.special.sizesByPaper.onlySA3.includes(paperKey);
+      sizes = onlySA3 ? ["SA3"] : pricing.laser.special.sizesByPaper.default;
     }
-
-    if (paperKey === "obra_80") {
-      return pricing.laser.common.sizes;
+    if (ignoreStock) {
+      return sizes;
     }
-
-    const onlySA3 = pricing.laser.special.sizesByPaper.onlySA3.includes(paperKey);
-    return onlySA3
-      ? ["SA3"]
-      : pricing.laser.special.sizesByPaper.default;
+    return sizes.filter((sizeKey) => isSizeInStock(machineKey, paperKey, sizeKey));
   }
 
   function getPaperLabel(paperKey) {
@@ -603,13 +622,17 @@
     const machine = pricing.machines[machineKey];
     machine.papers.forEach((paperKey) => {
       // con un archivo leído, solo se ofrecen los papeles que vienen en el tamaño del archivo (ej: SA3 = papeles especiales)
-      if (state.analysis && !analysisSizeFor(state.analysis, machineKey, paperKey)) {
+      const sizeOk = !state.analysis || Boolean(analysisSizeFor(state.analysis, machineKey, paperKey));
+      if (!sizeOk && !analysisSizeFor(state.analysis, machineKey, paperKey, true)) {
         return;
       }
       const opt = createOption(paperKey, getPaperLabel(paperKey));
-      if (!isPaperAvailable(paperKey)) {
+      if (!isPaperAvailable(paperKey) || getAllowedSizes(machineKey, paperKey).length === 0) {
         opt.disabled = true;
         opt.textContent = `${getPaperLabel(paperKey)} (sin stock)`;
+      } else if (!sizeOk) {
+        opt.disabled = true;
+        opt.textContent = `${getPaperLabel(paperKey)} (sin stock en este tamaño)`;
       }
       els.paper.appendChild(opt);
     });
@@ -622,10 +645,20 @@
 
   function buildSizeOptions() {
     clearSelect(els.size);
-    const sizes = getAllowedSizes(els.machine.value, els.paper.value);
-    sizes.forEach((sizeKey) => {
-      els.size.appendChild(createOption(sizeKey, getSizeLabel(sizeKey)));
+    const machineKey = els.machine.value;
+    const paperKey = els.paper.value;
+    getAllowedSizes(machineKey, paperKey, true).forEach((sizeKey) => {
+      const opt = createOption(sizeKey, getSizeLabel(sizeKey));
+      if (!isSizeInStock(machineKey, paperKey, sizeKey)) {
+        opt.disabled = true;
+        opt.textContent = `${getSizeLabel(sizeKey)} (sin stock)`;
+      }
+      els.size.appendChild(opt);
     });
+    const firstAvailable = Array.from(els.size.options).find((opt) => !opt.disabled);
+    if (firstAvailable) {
+      els.size.value = firstAvailable.value;
+    }
   }
 
   function buildSidesOptions() {
@@ -2641,11 +2674,11 @@
     return analysisSizeFor(analysis, els.machine.value, els.paper.value);
   }
 
-  function analysisSizeFor(analysis, machineKey, paperKey) {
+  function analysisSizeFor(analysis, machineKey, paperKey, ignoreStock) {
     if (analysis.machine && analysis.machine !== machineKey) {
       return null;
     }
-    const allowed = getAllowedSizes(machineKey, paperKey);
+    const allowed = getAllowedSizes(machineKey, paperKey, ignoreStock);
     if (analysis.custom) {
       return allowed.includes("100x100_personalizado") ? "100x100_personalizado" : null;
     }
