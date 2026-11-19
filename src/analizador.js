@@ -10,8 +10,8 @@ const CFG = Object.assign({
   mixtoHasta: 50,
   umbralTinta: 230,     // "normal": un píxel cuenta como tinta si algún canal baja de esto
   maxBytes: 20 * 1024 * 1024,
-  lentoSegundos: 8,     // tiempo de lectura a partir del cual el archivo se considera "difícil"
-  aplanarSiEsLento: false, // true = también se aplanan los archivos difíciles aunque pesen menos del límite
+  lentoSegundos: 20,    // si el archivo tarda más que esto en leerse, es "pesado" para imprimir: se aplana
+  aplanarSiEsLento: true, // false = solo se aplanan los que pesan más del límite
   aplanadoDpi: 300,     // se respeta siempre: la página se dibuja en franjas para no pasarse de memoria
   aplanadoCalidades: [0.92, 0.85, 0.75] // se prueba de mayor a menor hasta que el archivo entre en el límite
 }, (window.APP_CONFIG && window.APP_CONFIG.lectorPdf) || {});
