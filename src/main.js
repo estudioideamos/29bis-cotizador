@@ -487,6 +487,12 @@
     };
   }
 
+  function getRollWidthM(paperKey) {
+    const map = config.paperRollWidthM || {};
+    const value = Number(map[paperKey]);
+    return value > 0 ? value : 0;
+  }
+
   function formatMeters(value) {
     return String(value).replace(".", ",");
   }
@@ -512,6 +518,10 @@
     }
     if (smallest < minM) {
       return `La medida mínima es ${formatMeters(minM)} m por lado. Para imprimir en A4 o A3, elegí impresión láser.`;
+    }
+    const roll = getRollWidthM(els.paper.value);
+    if (roll && smallest > roll + 0.0001) {
+      return `En ${getPaperLabel(els.paper.value)} el rollo mide ${Math.round(roll * 100)} cm de ancho: al menos una de las dos medidas tiene que ser de ${formatMeters(roll.toFixed(2))} m o menos.`;
     }
     return "";
   }
@@ -633,6 +643,10 @@
       } else if (!sizeOk) {
         opt.disabled = true;
         opt.textContent = `${getPaperLabel(paperKey)} (sin stock en este tamaño)`;
+      } else if (state.analysis && state.analysis.custom && getRollWidthM(paperKey)
+        && Math.min(state.analysis.custom.w, state.analysis.custom.h) > getRollWidthM(paperKey) + 0.0001) {
+        opt.disabled = true;
+        opt.textContent = `${getPaperLabel(paperKey)} (rollo de ${Math.round(getRollWidthM(paperKey) * 100)} cm: tu archivo no entra)`;
       }
       els.paper.appendChild(opt);
     });

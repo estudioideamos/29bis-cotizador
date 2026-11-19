@@ -30,6 +30,8 @@ window.APP_CONFIG = {
 
   // Medidas permitidas para el tamaño personalizado de plotter (en metros, por lado).
   customSizeLimits: { minM: 0.30, maxM: 3 },
+  // Papeles de plotter con rollo más angosto: en tamaño personalizado, al menos una medida tiene que entrar en el rollo.
+  paperRollWidthM: { plotter_fotografico_180: 0.60 },
 
   // Configuración de retiro (opciones cerradas en el front)
   pickupSchedule: {
