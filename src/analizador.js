@@ -1,6 +1,6 @@
 // Lector de PDF del cotizador: lee tamaño y cobertura de cada página en la computadora del cliente,
 // separa el archivo por tamaño (un trabajo por tamaño) y completa el cotizador solo.
-// Si el archivo pesa más de 20 MB, lo aplana (lo convierte en imágenes) antes de subirlo.
+// Si el archivo pesa más de 20 MB, lo aplana (lo convierte en imágenes a 300 dpi) antes de subirlo.
 import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
@@ -10,9 +10,10 @@ const CFG = Object.assign({
   mixtoHasta: 50,
   umbralTinta: 230,     // "normal": un píxel cuenta como tinta si algún canal baja de esto
   maxBytes: 20 * 1024 * 1024,
-  lentoSegundos: 8,     // si el archivo tarda más que esto en leerse, es "pesado" para imprimir: se aplana
-  aplanadoDpi: 300,
-  aplanadoCalidad: 0.85
+  lentoSegundos: 8,     // tiempo de lectura a partir del cual el archivo se considera "difícil"
+  aplanarSiEsLento: false, // true = también se aplanan los archivos difíciles aunque pesen menos del límite
+  aplanadoDpi: 300,     // se respeta siempre: la página se dibuja en franjas para no pasarse de memoria
+  aplanadoCalidades: [0.92, 0.85, 0.75] // se prueba de mayor a menor hasta que el archivo entre en el límite
 }, (window.APP_CONFIG && window.APP_CONFIG.lectorPdf) || {});
 
 // SA3 = 32 x 47 cm (también se acepta 32 x 45): solo papeles especiales
@@ -112,7 +113,7 @@ async function analyzePage(page) {
 }
 
 // PDF nuevo con solo esas páginas: copiando el original (liviano) o aplanando a imagen (pesado)
-async function buildFile(pdf, srcBytes, pageNums, name, flatten, onProgress) {
+async function buildFile(pdf, srcBytes, pageNums, name, flatten, onProgress, calidad) {
   const out = await PDFLib.PDFDocument.create();
   if (!flatten) {
     const src = await PDFLib.PDFDocument.load(srcBytes, { ignoreEncryption: true });
@@ -123,15 +124,30 @@ async function buildFile(pdf, srcBytes, pageNums, name, flatten, onProgress) {
       onProgress(k + 1, pageNums.length);
       const page = await pdf.getPage(pageNums[k]);
       const vp1 = page.getViewport({ scale: 1 });
-      let scale = CFG.aplanadoDpi / 72;
-      // tope para que el navegador no se quede sin memoria; iPhone/iPad (Safari) no permite imágenes de más de ~16,7 millones de píxeles
+      const scale = CFG.aplanadoDpi / 72;
+      const vp = page.getViewport({ scale });
+      const W = Math.max(1, Math.round(vp.width));
+      const H = Math.max(1, Math.round(vp.height));
+      // La página se dibuja en franjas horizontales para mantener los 300 dpi en cualquier tamaño
+      // sin pasarse de memoria (iPhone/iPad no permiten imágenes de más de ~16 millones de píxeles).
       const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-      const maxPx = ios ? 16e6 : 64e6;
-      if (vp1.width * scale * vp1.height * scale > maxPx) scale = Math.sqrt(maxPx / (vp1.width * vp1.height));
-      const { c } = await renderToCanvas(page, scale);
-      const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", CFG.aplanadoCalidad));
-      const img = await out.embedJpg(await blob.arrayBuffer());
-      out.addPage([vp1.width, vp1.height]).drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
+      const maxPx = ios ? 12e6 : 32e6;
+      const stripH = Math.max(256, Math.min(H, Math.floor(maxPx / W)));
+      const outPage = out.addPage([vp1.width, vp1.height]);
+      const c = document.createElement("canvas");
+      const ctx = c.getContext("2d");
+      for (let y0 = 0; y0 < H; y0 += stripH) {
+        const h = Math.min(stripH, H - y0);
+        c.width = W;
+        c.height = h;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, W, h);
+        await page.render({ canvas: c, canvasContext: ctx, viewport: vp, transform: [1, 0, 0, 1, 0, -y0] }).promise;
+        const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", calidad || CFG.aplanadoCalidades[0]));
+        const img = await out.embedJpg(await blob.arrayBuffer());
+        const pt = vp1.height / H; // puntos por píxel
+        outPage.drawImage(img, { x: 0, y: vp1.height - (y0 + h) * pt, width: vp1.width, height: h * pt });
+      }
       c.width = c.height = 0;
       page.cleanup();
     }
@@ -188,7 +204,7 @@ function loadGroup(i) {
     sizeKey: o ? o.sizeKey : g.sizeKey,
     custom: o ? null : (g.custom || null),
     pages: pagesFor(g),
-    nota: [copiesNote(), ajusteNote(g)].filter(Boolean).join(" · "),
+    nota: [copiesNote(), ajusteNote(g), g.aplanado ? "ARCHIVO APLANADO POR LA WEB (300 dpi): revisar líneas finas" : ""].filter(Boolean).join(" · "),
     ajustarTamano: Boolean(o),
     files: g.file ? [g.file] : [],
     linkLater: !g.file
@@ -278,7 +294,7 @@ async function handleFile(file) {
     const segundos = (performance.now() - t0) / 1000;
     const heavy = file.size > CFG.maxBytes;
     const slow = segundos > CFG.lentoSegundos; // archivo "difícil": muchos vectores, capas o transparencias
-    const flatten = heavy || slow;
+    const flatten = heavy || (slow && CFG.aplanarSiEsLento);
     const base = file.name.replace(/\.pdf$/i, "");
     for (let i = 0; i < groups.length; i++) {
       const g = groups[i];
@@ -286,17 +302,30 @@ async function handleFile(file) {
       if (groups.length === 1 && !flatten) { g.file = file; continue; }
       const name = groups.length > 1 ? `${base} - ${g.custom ? "personalizado" : g.sizeKey}.pdf` : `${base}.pdf`; // eslint-disable-line
       try {
-        g.file = await buildFile(pdf, srcBytes, nums, name, flatten, (k, t) => setMsg(`Preparando el archivo para imprimir${groups.length > 1 ? ` (trabajo ${i + 1})` : ""}: página ${k} de ${t}…`));
+        const progreso = (k, t) => setMsg(`Preparando el archivo para imprimir${groups.length > 1 ? ` (trabajo ${i + 1})` : ""}: página ${k} de ${t}…`);
+        if (!flatten) {
+          g.file = await buildFile(pdf, srcBytes, nums, name, false, progreso);
+        } else {
+          // siempre a 300 dpi; si no entra en el límite, se baja la compresión de a un paso
+          for (const calidad of CFG.aplanadoCalidades) {
+            g.file = await buildFile(pdf, srcBytes, nums, name, true, progreso, calidad);
+            if (g.file.size <= CFG.maxBytes) break;
+          }
+          g.aplanado = true;
+        }
         // si aplanarlo lo dejó más pesado que el límite pero el original entraba, se sube el original
         if (!heavy && g.file.size > CFG.maxBytes) {
           g.file = groups.length === 1 ? file : await buildFile(pdf, srcBytes, nums, name, false, () => {});
+          g.aplanado = false;
         }
       } catch (err) {
         // si no se pudo separar sin aplanar (PDF raro), se aplana
         g.file = heavy ? null : await buildFile(pdf, srcBytes, nums, name, true, (k, t) => setMsg(`Preparando el archivo: página ${k} de ${t}…`));
+        g.aplanado = Boolean(g.file);
       }
       if (g.file && g.file.size > CFG.maxBytes) {
         g.file = null;
+        g.aplanado = false;
         g.note = "pesa demasiado aun achicado: mandalo por Drive o WeTransfer";
       }
     }
