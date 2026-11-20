@@ -99,7 +99,12 @@ function mpAvisarAdmin_(asunto, texto) {
   }
 }
 
+// Recargo por urgente: tiene que ser igual al de config.js del cotizador (urgentSurcharge).
+const MP_URGENTE_TASA = 0.2;
+const MP_URGENTE_MINIMO = 1000;
+
 // El total que se cobra tiene que coincidir con la suma de los trabajos del pedido.
+// Si el pedido es urgente, se suma el recargo.
 function mpTotalCoherente_(body) {
   try {
     const items = Array.isArray(body && body.orderItems) ? body.orderItems : [];
@@ -112,7 +117,10 @@ function mpTotalCoherente_(body) {
       suma += Number(p.subtotal || 0) + Number(p.servicesTotal || 0);
     });
     const descuento = Number(body.pricing.discountAmount || 0);
-    const esperado = suma - descuento;
+    const base = suma - descuento;
+    // Recargo por urgente: se recalcula acá con la misma regla del cotizador (20 %, mínimo $ 1.000)
+    const recargo = body.urgent ? Math.round(Math.max(base * MP_URGENTE_TASA, MP_URGENTE_MINIMO)) : 0;
+    const esperado = base + recargo;
     return { ok: Math.abs(esperado - total) <= 1, total: total, esperado: esperado };
   } catch (err) {
     return { ok: false, total: 0 };
